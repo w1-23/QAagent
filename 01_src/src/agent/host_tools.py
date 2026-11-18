@@ -36,7 +36,8 @@ class HostTools:
             cid = row.get('tool_call_id')
             if (row.get('status') != 'not_run' or not cid
                     or (row.get('reason') or row.get('reason_code')) not in {
-                        'invalid_tool_arguments', 'required_skill_not_loaded', 'script_execution_rejected'}
+                        'invalid_tool_arguments', 'required_skill_not_loaded', 'script_execution_rejected',
+                        'workspace_version_conflict'}
                     or not self.proven_no_dispatch(cid)):
                 continue
             target = next((later.get('tool_call_id') for later in self.records[index + 1:]
@@ -51,6 +52,17 @@ class HostTools:
                 self.published_resolutions[cid] = target
         if changes:
             emit_encoded("tool_resolution", {"resolutions": changes})
+
+    def _result_request_id(self):
+        """Result storage uses the job's client turn key, not its server trace ID."""
+        from src.core import jobs
+        from src.core.task_events import TaskConflict
+        job = jobs.get_job(self.identity.run_id)
+        if (not job or job['owner_user_id'] != self.identity.owner_user_id
+                or job['session_id'] != self.identity.session_id
+                or job['request_id'] != self.identity.user_turn_id):
+            raise TaskConflict('agent_execution_identity_conflict')
+        return str(job.get('client_request_id') or self.identity.user_turn_id)
 
     def proven_no_dispatch(self, cid):
         observation = self.messages.get(cid)
@@ -67,7 +79,7 @@ class HostTools:
         return bool(marker.get('schema_version') == 1 and marker.get('operation_id')
             and marker['operation_id'] == observation.additional_kwargs.get('operation_id')
             and stored and stored.get('session_id') == self.identity.session_id
-            and stored.get('request_id') == self.identity.user_turn_id
+            and stored.get('request_id') == self._result_request_id()
             and tool_results.storage_integrity(stored)['complete']
             and marker.get('result_sha256') == hashlib.sha256(stored['result_text'].encode('utf-8')).hexdigest())
 
@@ -111,8 +123,13 @@ class HostTools:
         def dispatched():
             self.dispatched[call["id"]] = call["name"]
         try:
-            message = await _run_single_tool(tool, call, require_durable=True,
-                                             on_dispatch=dispatched)
+            from contextlib import nullcontext
+            from .code_tools import CODE_TOOL_NAMES, code_execution_context
+            binding = (code_execution_context(identity, call['id'])
+                       if call['name'] in CODE_TOOL_NAMES else nullcontext())
+            with binding:
+                message = await _run_single_tool(tool, call, require_durable=True,
+                                                 on_dispatch=dispatched)
         finally:
             tracing.set_web_search_enabled(previous_network)
             reset_question_context(token)
@@ -122,10 +139,24 @@ class HostTools:
         question = artifact.get("user_question")
         if call["name"] == "request_user_input" and isinstance(question, dict):
             self.pending_question = question
+        execution_waits = ()
+        if (call['name'] in {'code_execute', 'code_wait'}
+                and artifact.get('_code_execution_id')
+                and (artifact.get('_tool_outcome') or {}).get('status') == 'complete'):
+            import asyncio
+            from src.code_execution.service import ExecutionService
+            from src.code_execution.waits import ExecutionWaits
+            # Only the trusted adapter's authenticated execution reference is
+            # adopted. The model cannot supply wait IDs, claims or acknowledgments.
+            waits = ExecutionWaits(ExecutionService(identity))
+            watched = await asyncio.to_thread(waits.watch, artifact['_code_execution_id'],
+                                              tool_call_id=call['id'])
+            execution_waits = (watched['wait_id'],)
         return ToolExecution(message,
             operation_id=str(message.additional_kwargs.get("operation_id") or ""),
             uncertain=bool(message.additional_kwargs.get("operation_uncertain")),
-            pending_question=self.pending_question is not None)
+            pending_question=self.pending_question is not None,
+            execution_waits=execution_waits)
 
     async def publish(self, call, execution, identity):
         if identity != self.identity:
@@ -161,7 +192,7 @@ class HostTools:
         record = message.additional_kwargs.get("host_publication")
         reference = message.additional_kwargs.get("result_reference") or {}
         if (not stored or stored.get("session_id") != self.identity.session_id
-                or stored.get("request_id") != self.identity.user_turn_id
+                or stored.get("request_id") != self._result_request_id()
                 or not tool_results.storage_integrity(stored)["complete"]
                 or stored.get("tool_name") != message.name
                 or reference.get("full_sha256") != stored.get("full_sha256")

@@ -89,7 +89,8 @@ def repairable_proposal_reason(reason: str) -> bool:
     capability metadata. This helper never grants that exemption by itself.
     """
     return reason in {"invalid_tool_arguments", "required_skill_not_loaded",
-                      "preparation_required", "script_execution_rejected"} or reason.startswith("load_failed:")
+                      "preparation_required", "script_execution_rejected",
+                      "workspace_version_conflict"} or reason.startswith("load_failed:")
 
 
 def completion_from_answer(answer: str, records) -> CompletionEnvelope:

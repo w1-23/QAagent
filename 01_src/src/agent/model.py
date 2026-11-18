@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable
 
-from langchain_core.messages import AIMessage, BaseMessage
+from langchain_core.messages import AIMessage, BaseMessage, message_chunk_to_message
 
 from .capabilities import CapabilityCatalog
 from .identity import ExecutionIdentity
@@ -41,7 +41,11 @@ class ModelDriver:
         response = await run_model_attempt(
             bound, list(messages),
             lambda: stream_llm_response(bound, list(messages), self.on_text),
-            purpose="general_agent", usage_session_id=identity.session_id)
+            purpose="main_loop", usage_session_id=identity.session_id)
+        # The stream accumulator returns a chunk. Executor state and context
+        # admission require a complete message, including the adapter's exact
+        # private protocol class, tool calls, usage and response metadata.
+        response = message_chunk_to_message(response)
         if self.max_output_tokens is not None:
             truncated = response.response_metadata.get("finish_reason") in {
                 "length", "max_tokens", "max_output_tokens"}

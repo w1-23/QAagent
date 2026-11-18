@@ -1158,6 +1158,8 @@ class SessionManager:
         Account-library files remain available to their owner for 30 days.
         Only this conversation's file-to-turn links are removed; its history
         and research notes remain governed by their existing retention rules.
+        Newly persisted retrieval snapshots under workspace/evidence are removed
+        for this owner/session; their stable references become unavailable.
         """
         try:
             import sqlite3
@@ -1178,6 +1180,14 @@ class SessionManager:
                     session_files.unlink_session_turns(session_id, owner_user_id)
             except Exception as exc:  # noqa: BLE001
                 logger.warning(f"[SessionManager] session file purge failed: {exc}")
+            try:
+                if owner_user_id:
+                    from src.retrieval.evidence_adapter import purge_session_evidence
+                    purge_session_evidence(owner_user_id, session_id, session_db_path=self.db_path)
+            except Exception as exc:  # noqa: BLE001
+                # The deleted flag already denies reads, even if linked paths or
+                # an active filesystem handle prevent physical cleanup.
+                logger.warning(f"[SessionManager] session retrieval evidence purge failed: {exc}")
             logger.info(f"[SessionManager] session soft-deleted: {session_id[:8]}")
             return True
         except Exception as e:

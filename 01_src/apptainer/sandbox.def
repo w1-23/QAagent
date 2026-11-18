@@ -1,0 +1,61 @@
+Bootstrap: docker
+From: public.ecr.aws/docker/library/python@sha256:0f086103b026048cc50cb5da25ec435c023c5241a83fc44daea593377abc61c4
+
+%labels
+    org.opencontainers.image.title CitrusScholar offline CPU sandbox
+    org.citrusscholar.role untrusted-code
+
+%files
+    pyproject.toml /opt/support-build/pyproject.toml
+    README.md /opt/support-build/README.md
+    packages /opt/support-build/packages
+    01_src/src/figures /opt/support-build/01_src/src/figures
+    01_src/src/research /opt/support-build/01_src/src/research
+    01_src/src/prompts/skills/vendor/nature-skills /opt/support-build/01_src/src/prompts/skills/vendor/nature-skills
+    skills/nature-figure/vendor/nature-skills /opt/support-build/skills/nature-figure/vendor/nature-skills
+    04_scripts/build_worker_bundle.py /opt/support-build/04_scripts/build_worker_bundle.py
+    01_src/docker/requirements.sandbox.txt /opt/citrusfig/requirements.sandbox.txt
+
+%post
+    set -eu
+    apt-get update
+    apt-get install -y --no-install-recommends fontconfig fonts-dejavu-core fonts-noto-cjk libgomp1 ca-certificates
+    rm -rf /var/lib/apt/lists/*
+    python -m pip install --no-cache-dir -r /opt/citrusfig/requirements.sandbox.txt
+    python -m pip install --no-cache-dir 'setuptools>=68' wheel
+    python -m pip wheel --no-deps --no-build-isolation --wheel-dir /tmp/support-wheel /opt/support-build
+    python -m pip install --no-deps /tmp/support-wheel/citrusscholar_support-2.0.0-py3-none-any.whl
+    # The same allowlist and wheel RECORD used by Docker. No application,
+    # credentials, database or retrieval models cross into the sandbox.
+    python -I /opt/support-build/04_scripts/build_worker_bundle.py --output /tmp/worker-bundle
+    cp -a /tmp/worker-bundle/. /opt/citrusfig/
+    rm -rf /opt/support-build /tmp/support-wheel /tmp/worker-bundle
+    mkdir -p /input /workspace /outputs /work/in /work/out /code-environment /snapshot/input /snapshot/workspace /snapshot/outputs
+    python -m pip check
+    python -m pip freeze --all > /opt/citrusfig/installed-requirements.txt
+    fc-cache -f
+    python -I - <<'PY'
+from matplotlib import font_manager as fm
+chars = [0x4e2d, 0x6587, 0x70ed, 0x56fe]
+faces = [fm.get_font(f.fname) for f in fm.fontManager.ttflist if f.name.startswith('Noto Sans CJK')]
+assert any(all(face.get_char_index(c) for c in chars) for face in faces), 'CJK glyph coverage missing'
+import hashlib, json
+from pathlib import Path
+root = Path('/opt/citrusfig')
+manifest = json.loads((root / 'worker-manifest.json').read_bytes())
+assert all(hashlib.sha256((root/name).read_bytes()).hexdigest() == digest for name, digest in manifest['members'].items())
+PY
+
+%environment
+    export PYTHONDONTWRITEBYTECODE=1
+    export PYTHONUNBUFFERED=1
+    export PYTHONUTF8=1
+    export MPLBACKEND=Agg
+    export MPLCONFIGDIR=/tmp/mpl
+    export PYTHONPATH=/opt/citrusfig
+
+%runscript
+    exec python -I /opt/citrusfig/worker.py "$@"
+
+%test
+    python -I -c 'import numpy, pandas, scipy, matplotlib, citrus_figures'

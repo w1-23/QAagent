@@ -70,7 +70,8 @@ for (const failure of [401, 403, 500, 503, 'network']) {
     await pending;
     assert.equal(b.ctx.sessionId, 'missing-session');
     assert.equal(b.ctx.localStorage.getItem('citrus_session_id_A'), 'missing-session');
-    assert.equal(b.get('chat-container').textContent, 'old history');
+    assert.equal(b.get('chat-container').textContent, 'old history任务和历史暂时无法读取，点击重试');
+    assert.equal(b.get('chat-container').querySelectorAll('.history-retry').length, 1);
     assert.equal(creations(b).length, 0);
     assertComposer(b);
   });

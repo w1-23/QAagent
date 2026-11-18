@@ -18,6 +18,21 @@ def __getattr__(name):
     raise AttributeError(name)
 
 
+def _after_supervisor(state):
+    suspension = state.get("execution_suspension")
+    if suspension:
+        from src.agent.execution_outcome import validate_execution_suspension
+        from src.agent.identity import ExecutionIdentity
+        try:
+            identity = ExecutionIdentity(state["user_id"], state["session_id"],
+                                         state["request_id"], state["job_id"])
+            validate_execution_suspension(suspension, identity)
+        except (KeyError, TypeError, ValueError):
+            return "session_save"
+        return END
+    return "session_save"
+
+
 def build_general_agent_graph():
     from src.graph.session_nodes import load_session_context, save_session_context
     from src.graph.candidate_prefetch import prefetch_candidates
@@ -36,6 +51,7 @@ def build_general_agent_graph():
         {"supervisor": "supervisor", "session_load": "session_load"})
     graph.add_edge("session_load", "candidate_prefetch")
     graph.add_edge("candidate_prefetch", "supervisor")
-    graph.add_edge("supervisor", "session_save")
+    graph.add_conditional_edges("supervisor", _after_supervisor,
+                                {END: END, "session_save": "session_save"})
     graph.add_edge("session_save", END)
     return graph.compile()

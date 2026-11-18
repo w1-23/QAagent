@@ -112,6 +112,10 @@ class ApptainerBackend:
         self.image_sha256 = str(image_sha256 or "").lower()
         # For this backend runtime names an executable, never arbitrary flags.
         self.runtime = str(runtime or "/usr/bin/apptainer")
+        # systemd executes this on the host, even when the Web process lives
+        # in an application SIF. Its sys.executable belongs to that SIF.
+        self.host_python = os.environ.get("CITRUS_APPTAINER_HOST_PYTHON", "/usr/bin/python3")
+        self.image_id = "sha256:" + self.image_sha256
 
     def _validate_image(self) -> Path:
         path = Path(self.image)
@@ -146,7 +150,9 @@ class ApptainerBackend:
     def _validate_host(self) -> None:
         if sys.platform != "linux" or os.getuid() == 0:
             raise SandboxUnavailable("Apptainer requires Linux and an unprivileged service user.")
-        if (not Path(self.runtime).is_absolute()
+        if (not Path(self.host_python).is_absolute()
+                or any(c in self.host_python for c in "\x00\n\r")
+                or not Path(self.runtime).is_absolute()
                 or shutil.which(self.runtime, path=SAFE_PATH) is None
                 or any(shutil.which(tool, path=SAFE_PATH) is None
                        for tool in ("systemd-run", "systemctl", "env"))):
@@ -218,7 +224,7 @@ class ApptainerBackend:
             "--property", "LimitCORE=0", "--property", "UMask=0077",
             "--", "/usr/bin/env", "-i",
             *(f"{key}={value}" for key, value in env.items()),
-            sys.executable, "-I", "-c", _CGROUP_GUARD,
+            self.host_python, "-I", "-c", _CGROUP_GUARD,
             str(memory), str(int(job.pids)), str(float(job.cpus)),
             self.runtime, "exec", "--containall", "--cleanenv", "--no-home",
             "--no-mount", "hostfs,cwd,home,bind-paths,sys", "--net", "--network", "none",

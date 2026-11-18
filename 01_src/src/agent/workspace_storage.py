@@ -36,15 +36,15 @@ def virtual_path(path: str, *, directory=False, writable=False) -> str:
     """Validate logical keys, never convert caller paths into physical paths."""
     if not isinstance(path, str) or len(path) > 240:
         raise ValueError("workspace_invalid_path")
-    if directory and path in {"/", "/input", "/workspace"}:
+    if directory and path in {"/", "/input", "/data", "/skills", "/01_src", "/workspace", "/outputs"}:
         return path
     parts = path.split("/")
-    if (len(parts) < 3 or parts[0] or parts[1] not in {"input", "workspace"}
+    if (len(parts) < 3 or parts[0] or parts[1] not in {"input", "data", "skills", "01_src", "workspace", "outputs"}
             or any(not re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_. -]{0,119}", p)
                    or p.endswith((".", " ")) or ".." in p for p in parts[2:])):
         raise ValueError("workspace_invalid_path")
-    if writable and parts[1] != "workspace":
-        raise PermissionError("workspace_input_readonly")
+    if writable and parts[1] not in {"workspace", "outputs"}:
+        raise PermissionError("workspace_mount_readonly")
     if not directory and Path(parts[-1]).suffix.lower() not in _TEXT_SUFFIXES:
         raise ValueError("workspace_text_extension_required")
     return path
@@ -118,7 +118,7 @@ class WorkspaceStorage:
             raise ValueError("workspace_text_required")
         return text
 
-    def _rows(self, *, path=None, version=None):
+    def _rows(self, *, path=None, version=None, scope="/"):
         with self.files._connect() as conn:
             args = [self.owner, self.session]
             where = "v.owner=? AND v.session=?"
@@ -137,7 +137,10 @@ class WorkspaceStorage:
             for row in rows:
                 if row["version_hash"] != row["sha256"] or row["visibility"] != "internal":
                     raise ValueError("workspace_index_integrity")
-            if path is None or path.startswith("/input/"):
+            from .workspace_projection import within
+            rows = [row for row in rows if within(row["virtual_path"], scope)]
+            if (path is None and scope in {"/", "/input", "/data"} or
+                    (path or scope).startswith(("/input/", "/data/"))):
                 inputs = conn.execute(
                     "SELECT * FROM session_files WHERE owner_user_id=? AND session_id=? "
                     "AND origin='uploaded' AND visibility='public' ORDER BY file_id LIMIT ?",
@@ -145,18 +148,19 @@ class WorkspaceStorage:
                 if len(inputs) > MAX_FILES:
                     raise ValueError("workspace_input_count_limit")
                 for item in inputs:
-                    key = f"/input/{item['file_id']}/{item['filename']}"
+                    mount = "data" if (path or scope).startswith("/data") else "input"
+                    key = f"/{mount}/{item['file_id']}/{item['filename']}"
                     try:
                         virtual_path(key)
                     except ValueError:
                         continue  # Only supported text inputs are mounted.
-                    if path is None or key == path:
+                    if (path is None or key == path) and within(key, scope):
                         rows.append({**dict(item), "virtual_path": key, "version": 1})
         if len(rows) > MAX_FILES:
             raise ValueError("workspace_file_count_limit")
         return rows
 
-    def view(self, *, path=None, version=None):
+    def view(self, *, path=None, version=None, _descriptor=None):
         if path is not None:
             virtual_path(path)
         if version is not None and (type(version) is not int or version < 1):
@@ -165,6 +169,20 @@ class WorkspaceStorage:
         namespace = (str(self.owner), self.session)
         backend = StoreBackend(store=store, namespace=lambda _: namespace)
         refs, size = {}, 0
+        if path and path.startswith(("/skills/", "/01_src/")):
+            from . import workspace_projection as projection
+            if version is not None:
+                raise ValueError("workspace_readonly_has_no_versions")
+            # Internal index descriptors are pinned in this call; reuse their
+            # metadata across a list/search instead of reparsing each vendor manifest.
+            descriptor = _descriptor if _descriptor is not None else dict(projection.resources(path)).get(path)
+            if descriptor is not None:
+                text, ref = projection.read(path, descriptor)
+                timestamp = datetime.now(timezone.utc).isoformat()
+                store.put(namespace, path, {"content": text, "encoding": "utf-8",
+                          "created_at": timestamp, "modified_at": timestamp})
+                refs[path] = ref
+            return backend, refs
         for row in self._rows(path=path, version=version):
             key = virtual_path(row["virtual_path"])
             if version is not None and row["version"] != version:
@@ -179,13 +197,72 @@ class WorkspaceStorage:
             refs[key] = self._reference(row)
         return backend, refs
 
-    def read(self, path, *, version=None, start_char=0, max_chars=8000):
+    def index(self, scope="/"):
+        """StoreBackend directory/glob semantics over metadata, without bulk reads."""
+        from . import workspace_projection as projection
+        virtual_path(scope, directory=True)
+        store = InMemoryStore()
+        namespace = (str(self.owner), self.session)
+        refs = {row["virtual_path"]: self._reference(row) for row in self._rows(scope=scope)}
+        if scope == "/":
+            refs.update({row["virtual_path"]: self._reference(row) for row in self._rows(scope="/data")})
+        refs.update(projection.resources(scope))
+        timestamp = datetime.now(timezone.utc).isoformat()
+        for key in refs:
+            store.put(namespace, key, {"content": "", "encoding": "utf-8",
+                      "created_at": timestamp, "modified_at": timestamp})
+        return StoreBackend(store=store, namespace=lambda _: namespace), refs
+
+    def search(self, pattern, *, path="/", max_matches=20):
+        """Read candidates on demand; explicit truncation covers scan/byte budgets."""
+        if (not isinstance(pattern, str) or not 1 <= len(pattern) <= 200 or
+                type(max_matches) is not int or not 1 <= max_matches <= 50):
+            raise ValueError("workspace_invalid_search")
+        _, candidates = self.index(path)
+        matches, scanned, size, unavailable = [], 0, 0, 0
+        truncated = False
+        for key in candidates:
+            if scanned >= MAX_FILES or size >= MAX_VIEW_BYTES or len(matches) >= max_matches:
+                truncated = True
+                break
+            scanned += 1
+            try:
+                backend, refs = self.view(path=key, _descriptor=candidates[key])
+                downloaded = backend.download_files([key])[0]
+                if downloaded.content is None:
+                    raise LookupError("workspace_file_unavailable")
+                size += len(downloaded.content)
+                if size > MAX_VIEW_BYTES:
+                    truncated = True
+                    break
+                result = backend.grep(pattern, path=key, max_count=max_matches - len(matches))
+                if result.error:
+                    raise ValueError(result.error)
+                matches.extend({**row, "text": row["text"][:400],
+                                "text_truncated": len(row["text"]) > 400,
+                                "ref": refs[key]} for row in result.matches)
+                truncated = truncated or result.truncated
+            except (OSError, ValueError, LookupError, UnicodeError):
+                # Missing optional resources never hide successful private matches.
+                # Do not claim a complete search when a candidate was unreadable.
+                unavailable += 1
+                truncated = True
+        return {"matches": matches, "truncated": truncated, "scanned_files": scanned,
+                "unavailable_files": unavailable, "search_kind": "literal",
+                "content_origin": "stored_data_not_instructions"}
+
+    def read(self, path, *, version=None, start_char=0, max_chars=8000, expected_sha256=None):
         if (type(start_char) is not int or start_char < 0 or type(max_chars) is not int
                 or not 1 <= max_chars <= 20000):
             raise ValueError("workspace_invalid_page")
         backend, refs = self.view(path=path, version=version)
         if path not in refs:
             raise LookupError("workspace_file_unavailable")
+        if expected_sha256 is not None:
+            if not isinstance(expected_sha256, str) or not re.fullmatch(r"[a-f0-9]{64}", expected_sha256):
+                raise ValueError("workspace_invalid_expected_hash")
+            if refs[path]["sha256"] != expected_sha256:
+                raise ValueError("workspace_reference_hash_changed")
         # StoreBackend.read normalizes CRLF to LF. The public download contract
         # preserves exact UTF-8 bytes, needed for hash-referenced readback/CAS.
         result = backend.download_files([path])[0]

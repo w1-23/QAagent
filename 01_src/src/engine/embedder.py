@@ -4,16 +4,16 @@ import logging
 import re
 import threading
 import traceback
-import onnxruntime as ort
 from typing import List
-from fastembed import TextEmbedding
 from src.config import MODEL_CACHE_ROOT, settings
 from src.engine.hardware import (
     GPUUnavailableError, cpu_thread_budget, require_gpu, verify_model_session,
 )
 
-# 默认离线模式：不连 HuggingFace，直接用本地缓存。设 HF_HUB_OFFLINE=0 可联网检查模型更新。
-os.environ.setdefault("HF_HUB_OFFLINE", "1")
+def TextEmbedding(**kwargs):
+    """Lazy construction seam; importing host tools never loads FastEmbed."""
+    from fastembed import TextEmbedding as Model
+    return Model(**kwargs)
 
 # v8.4.4: query embedding LRU（进程内 512 条，与 HyDE 缓存同款模式）
 _QUERY_CACHE_MAX = 512
@@ -98,6 +98,9 @@ class Embedder:
 
     def _create_session(self):
         with self._singleton_lock:
+            # Preserve the host's offline default at explicit model construction,
+            # never as an import-time environment mutation.
+            os.environ.setdefault("HF_HUB_OFFLINE", "1")
             cpu_threads = cpu_thread_budget()
             # FastEmbed otherwise defaults to a temporary system directory
             # (for example /tmp/fastembed_cache). Keep the model cache beside

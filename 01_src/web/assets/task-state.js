@@ -30,6 +30,7 @@
     }
     function note(text, id, metadata) {
       metadata = metadata || {};
+      if (typeof text !== 'string' || metadata.visibility !== 'public' || metadata.origin !== 'model' || metadata.internal === true || metadata.private === true) return null;
       var identity = metadata.note_id ? 'note:' + metadata.note_id : id;
       if (!text || identity && seen.has(identity)) return null;
       if (identity) seen.add(identity);

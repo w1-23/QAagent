@@ -84,11 +84,16 @@ def _connect() -> sqlite3.Connection:
     columns = {row[1] for row in conn.execute("PRAGMA table_info(figure_projects)")}
     for name, declaration in (
         ("data_refs_json", "TEXT NOT NULL DEFAULT '[]'"),
+        ("document_json", "TEXT NOT NULL DEFAULT '{}'"),
         ("render_version", "INTEGER NOT NULL DEFAULT 0"),
         ("pins_version", "INTEGER NOT NULL DEFAULT 0"),
     ):
         if name not in columns:
-            conn.execute(f"ALTER TABLE figure_projects ADD COLUMN {name} {declaration}")
+            try:
+                conn.execute(f"ALTER TABLE figure_projects ADD COLUMN {name} {declaration}")
+            except sqlite3.OperationalError:
+                if name not in {row[1] for row in conn.execute("PRAGMA table_info(figure_projects)")}:
+                    raise
     conn.execute("CREATE INDEX IF NOT EXISTS idx_figure_projects_owner "
                  "ON figure_projects(owner_user_id, updated_at DESC)")
     conn.execute("CREATE TABLE IF NOT EXISTS figure_project_pins "
@@ -170,7 +175,7 @@ def _row_to_project(row: sqlite3.Row | None) -> dict[str, Any] | None:
     record = dict(row)
     for key, fallback in (("source_json", {}), ("manifest_json", {}),
                           ("overrides_json", []), ("exports_json", {}),
-                          ("data_refs_json", [])):
+                          ("data_refs_json", []), ("document_json", {})):
         try:
             record[key] = json.loads(record.get(key) or json.dumps(fallback))
         except (TypeError, ValueError):
@@ -194,6 +199,9 @@ def _create_project(*, owner_user_id: int, title: str, source_kind: str,
                     source: Any, session_id: str, data_refs: list[Any] | None) -> dict[str, Any]:
     figure_id = uuid.uuid4().hex
     now = time.time()
+    from src.figures.document import build_figure_document
+    document = build_figure_document({"figure_id": figure_id, "source_kind": source_kind,
+                                      "source_json": source or {}})
     data_refs = list(data_refs or [])
     resource_id, pinned = _pin_files(int(owner_user_id), figure_id,
         [str(ref["file_id"]) for ref in data_refs if isinstance(ref, dict) and ref.get("file_id")], data_refs,
@@ -215,12 +223,12 @@ def _create_project(*, owner_user_id: int, title: str, source_kind: str,
             conn.execute(
                 "INSERT INTO figure_projects (figure_id, owner_user_id, session_id, title,"
                 " source_kind, source_json, manifest_json, overrides_json, exports_json,"
-                " data_refs_json, status, created_at, updated_at, pins_version)"
-                " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,2)",
+                " data_refs_json, status, created_at, updated_at, document_json, pins_version)"
+                " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,2)",
                 (figure_id, int(owner_user_id), str(session_id or ""), str(title or ""),
                  str(source_kind or "spec"), json.dumps(source or {}, ensure_ascii=False),
                  "{}", "[]", "{}", json.dumps(data_refs, ensure_ascii=False),
-                 "ready", now, now))
+                 "ready", now, now, json.dumps(document, ensure_ascii=False)))
             _record_pin(conn, resource_id, figure_id, int(owner_user_id), source, session_id)
             row = conn.execute(
                 "SELECT * FROM figure_projects WHERE figure_id=? AND owner_user_id=?",
@@ -275,10 +283,20 @@ def _update_project(figure_id: str, owner_user_id: int, *,
     updates = {key: value for key, value in fields.items() if key in allowed}
     if not updates:
         return False
+    before = get_project(figure_id, owner_user_id)
+    if before is None:
+        return False
+    # The identity document is derived server-side and committed with the same
+    # row CAS as its manifest/source/exports. Never accept a caller's document.
+    render_fields = ("source_kind", "source_json", "manifest_json", "overrides_json",
+                     "exports_json", "data_refs_json", "render_version")
+    if any(key in updates and updates[key] != before.get(key) for key in render_fields):
+        from src.figures.document import build_figure_document
+        updates["document_json"] = build_figure_document({**before, **updates})
     assignments = []
     values: list[Any] = []
     for key, value in updates.items():
-        if key in {"source_json", "manifest_json", "exports_json", "data_refs_json"}:
+        if key in {"source_json", "manifest_json", "exports_json", "data_refs_json", "document_json"}:
             value = json.dumps(value if value is not None else {}, ensure_ascii=False)
         elif key == "overrides_json":
             value = json.dumps(value if value is not None else [], ensure_ascii=False)
@@ -291,9 +309,6 @@ def _update_project(figure_id: str, owner_user_id: int, *,
     if expected_revision is not None:
         condition += " AND render_version=?"
         values.append(int(expected_revision))
-    before = get_project(figure_id, owner_user_id)
-    if before is None:
-        return False
     exports = updates.get("exports_json", before.get("exports_json")) or {}
     refs = updates.get("data_refs_json", before.get("data_refs_json")) or []
     # Pin the complete new dependency set before CAS. Each writer has a unique

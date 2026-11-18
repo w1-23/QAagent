@@ -1,0 +1,11 @@
+{
+  "schema": "citrus.display-status/1",
+  "note": "Compatibility labels only, never default truth verdicts",
+  "providers": [
+    "ok",
+    "error",
+    "skipped",
+    "not_authorized"
+  ],
+  "suggested_next_step": "advisory, never a tool gate"
+}

@@ -484,6 +484,9 @@ async def _run_single_tool(tool: BaseTool, tool_call: dict, *, require_durable: 
         if name == "run_research_figure_script":
             from src.research.script_reconciliation import capture_script_failure
             reconciliation_scope = capture_script_failure(owner, job["session_id"])
+        elif name in {"workspace_write", "workspace_edit"}:
+            from src.agent.workspace_reconciliation import capture_write_conflict
+            reconciliation_scope = capture_write_conflict(owner, job["session_id"])
         with reconciliation_scope as reconciliation:
             message = await _execute_single_tool(tool, tool_call, lease_seconds=600, on_dispatch=on_dispatch)
         message.additional_kwargs["operation_id"] = operation_id

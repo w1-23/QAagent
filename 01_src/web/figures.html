@@ -6,11 +6,12 @@
   <meta name="robots" content="noindex,nofollow">
   <title>图表工作台 · CitrusScholar</title>
   <link rel="stylesheet" href="/assets/app.css?v=32">
-  <link rel="stylesheet" href="/assets/figures.css?v=8">
+  <link rel="stylesheet" href="/assets/figures.css?v=10">
   <link rel="stylesheet" href="/assets/guide.css?v=3">
-  <script src="/assets/figures/edit_model.js?v=1" defer></script>
-  <script src="/assets/figures/scene_projection.js?v=1" defer></script>
-  <script src="/assets/figures.js?v=10" defer></script>
+  <script src="/assets/figures/edit_model.js?v=2" defer></script>
+  <script src="/assets/figures/scene_projection.js?v=2" defer></script>
+  <script src="/assets/figures/hit_geometry.js?v=1" defer></script>
+  <script src="/assets/figures.js?v=13" defer></script>
   <script src="/assets/guide.js?v=4" defer></script>
 </head>
 <body class="figure-app">
@@ -132,7 +133,7 @@
         <span class="tool-divider" aria-hidden="true"></span>
         <button class="button fit-button" id="fitView"><svg class="icon"><use href="#i-fit"/></svg>适应窗口</button>
       </div>
-      <footer class="stage-status"><p class="edit-status" id="editStatus" role="status" aria-live="polite">未打开图件</p><span class="view-note">滚轮平移 · Ctrl/⌘ + 滚轮缩放</span></footer>
+      <footer class="stage-status"><p class="edit-status" id="editStatus" role="status" aria-live="polite">未打开图件</p><span class="view-note" id="hitStatus" role="status">Alt 点击切换重叠对象 · 滚轮平移</span></footer>
     </section>
 
     <aside class="inspector-sidebar" id="rightSidebar" aria-label="属性和画布">
@@ -142,7 +143,9 @@
       </div>
       <section class="inspector-section" id="propertiesSection" role="tabpanel" aria-labelledby="propertiesTab">
         <div class="inspector-heading"><span class="object-symbol"><svg class="icon"><use href="#i-pointer"/></svg></span><div><h2 id="objectName">未选择对象</h2></div></div>
+        <div id="propertyScope" class="property-scope" aria-live="polite" hidden></div>
         <div id="propertyPanel" class="property-panel"><p class="property-empty">在画板或左侧列表中选择对象。</p></div>
+        <section id="propertyDraftControls" class="property-drafts" aria-label="恢复未保存的属性" hidden></section>
         <button class="editor-guide" id="figureGuideButton" type="button" data-citrus-guide="figures" data-guide-focus-fallback="#toggleRight">编辑指南与快捷键</button>
       </section>
       <section class="inspector-section" id="canvasSection" role="tabpanel" aria-labelledby="canvasTab" hidden>
@@ -153,6 +156,13 @@
         <label class="setting-row"><span>辅助网格<small>10 mm 间距</small></span><input type="checkbox" id="gridToggle" checked></label>
         <label class="setting-row"><span>毫米标尺<small>随缩放调整刻度</small></span><input type="checkbox" id="rulerToggle" checked></label>
         <p class="hint">辅助显示只用于编辑定位，不写入图件或导出文件。</p>
+        <h2 class="section-title spaced">图件检查</h2>
+        <p class="hint">检查当前已保存文件。执行状态与检查结论分别列出。</p>
+        <button class="button secondary" id="verifyFigureButton" disabled>检查图件</button>
+        <button class="button secondary" id="bundleFigureButton" disabled>导出证据包</button>
+        <div id="figureQaStatus" class="hint" role="status" aria-live="polite">未打开图件</div>
+        <div id="figureQaChecks"></div>
+        <div id="figureQaDownloads"></div>
       </section>
       <div class="inspector-bottom"><button class="button danger" id="deleteButton" disabled>删除当前图件</button></div>
     </aside>

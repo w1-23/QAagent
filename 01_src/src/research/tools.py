@@ -1380,341 +1380,29 @@ def _load_frame(file_index: int, sheet_name: str = "", header_row: int = 1,
 def _load_frame_from_bytes(data: bytes, name: str = "table", sheet_name: str = "",
                            header_row: int = 1, header_rows: list[int] | None = None,
                            discover_only: bool = False) -> tuple[Any, dict[str, Any]]:
-    """Parse table bytes into a DataFrame under the service's read budgets."""
-    suffix = Path(name).suffix.lower()
-    used_header_rows = sorted(set(header_rows or [header_row]))
-    if not used_header_rows or any(type(row) is not int or not 1 <= row <= 20 for row in used_header_rows):
-        raise ValueError("header_row 必须在 1 到 20 之间")
-    if suffix in {".csv", ".tsv"}:
-        frame, encoding, raw_preview, used_header_rows, truncated = _decode_csv(data, header_row, used_header_rows)
-        meta = {"name": name, "sheet": "", "encoding": encoding, "delimiter": "auto",
-                "raw_preview": raw_preview, "header_row": max(used_header_rows),
-                "header_rows": used_header_rows, "truncated": truncated,
-                "source_rows": int(frame.shape[0]), "source_columns": int(frame.shape[1]),
-                "processed_rows": int(frame.shape[0]),
-                "processed_columns": int(frame.shape[1]),
-                "truncation_reasons": (["CSV 行数或单元格数超过安全解析预算"]
-                                       if truncated else [])}
-    elif suffix in {".xlsx", ".xlsm", ".xls", ".xlsb"}:
-        try:
-            used_header_rows = sorted(set(header_rows or [header_row]))
-            if not used_header_rows or any(row < 1 or row > 20 for row in used_header_rows):
-                raise ValueError("header_row 必须在 1 到 20 之间")
-            if suffix in {".xls", ".xlsb"}:
-                try:
-                    import python_calamine
-                    reader = python_calamine.CalamineWorkbook.from_filelike(io.BytesIO(data))
-                    names = reader.sheet_names
-                    if discover_only and not sheet_name:
-                        return _pd().DataFrame(), {'name': name, 'sheets': names, 'sheet': '', 'discovery_only': True}
-                    requested_sheet = sheet_name.strip()
-                    if requested_sheet and requested_sheet not in names:
-                        raise ValueError(_missing_sheet_message(requested_sheet, names))
-                    chosen = requested_sheet or (names[0] if names else "")
-                    if not chosen:
-                        raise ValueError("工作簿中没有可读取的工作表")
-                    sheet = reader.get_sheet_by_name(chosen)
-                    width = getattr(sheet, "width", None)
-                    height = getattr(sheet, "height", None)
-                    width = width() if callable(width) else width
-                    height = height() if callable(height) else height
-                    if not isinstance(width, int) or not isinstance(height, int):
-                        raise ValueError("无法在读取前确认工作表尺寸；为避免无界内存占用，已停止解析")
-                    if width > _MAX_TABLE_COLUMNS:
-                        raise ValueError(f"列数 {width} 超过限制 {_MAX_TABLE_COLUMNS}")
-                    row_limit = max(1, min(_MAX_TABLE_ROWS + max(used_header_rows) + 1,
-                                           _MAX_TABLE_CELLS // max(1, width) + max(used_header_rows)))
-                    if height > row_limit:
-                        raise ValueError(
-                            f"工作表有 {height:,} 行，当前 XLS/XLSB 安全解析上限为 {row_limit:,} 行；"
-                            "请先拆分工作表后重试，未对该表执行审查")
-                    data_rows = sheet.to_python()
-                    if len(data_rows) > row_limit:
-                        raise ValueError("工作表实际行数超出安全解析范围，未执行审查")
-                except ImportError as exc:
-                    raise ValueError(f"读取 {suffix.upper()} 需要安装 python-calamine；文件未被判定为无异常") from exc
-            else:
-                import openpyxl
-                from zipfile import ZipFile
-                from src.core.file_safety import validate_zip_bytes
-                validate_zip_bytes(data, label=name)
-                with ZipFile(io.BytesIO(data)) as archive:
-                    if "xl/workbook.xml" not in archive.namelist():
-                        raise ValueError("工作簿缺少必要的 OOXML 结构")
-                wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True,
-                                            keep_vba=False)
-                names = wb.sheetnames
-                if discover_only and not sheet_name:
-                    wb.close()
-                    return _pd().DataFrame(), {'name': name, 'sheets': names, 'sheet': '', 'discovery_only': True}
-                requested_sheet = sheet_name.strip()
-                if requested_sheet and requested_sheet not in names:
-                    wb.close()
-                    raise ValueError(_missing_sheet_message(requested_sheet, names))
-                chosen = requested_sheet or next(
-                    (s for s in names if wb[s].max_row and wb[s].max_column),
-                    names[0] if names else "")
-                if not chosen:
-                    wb.close()
-                    raise ValueError("工作簿中没有可读取的工作表")
-                worksheet = wb[chosen]
-                width = int(worksheet.max_column or 0)
-                height = int(worksheet.max_row or 0)
-                if width > _MAX_TABLE_COLUMNS:
-                    wb.close()
-                    raise ValueError(f"列数 {width} 超过限制 {_MAX_TABLE_COLUMNS}")
-                header_span = max(used_header_rows)
-                if width and height:
-                    row_limit = max(1, min(_MAX_TABLE_ROWS + header_span + 1,
-                                           _MAX_TABLE_CELLS // max(1, width) + header_span))
-                    data_rows = list(worksheet.iter_rows(
-                        min_row=1, max_row=min(height, row_limit), max_col=width,
-                        values_only=True))
-                else:
-                    # 有些工作簿没有写 sheet dimension，read_only 模式下 max_row/max_column 为 None；
-                    # 此时按有界惰性遍历读取真实内容，再按实际行列重算尺寸，避免把整张表判定为空。
-                    row_limit = max(1, _MAX_TABLE_ROWS + header_span + 1)
-                    data_rows = []
-                    observed_cells = 0
-                    unknown_dimensions_truncated = False
-                    for row in worksheet.iter_rows(values_only=True):
-                        row = row if isinstance(row, tuple) else tuple(row or ())
-                        if len(row) > _MAX_TABLE_COLUMNS:
-                            wb.close()
-                            raise ValueError(f"列数超过限制 {_MAX_TABLE_COLUMNS}")
-                        if len(data_rows) >= row_limit or observed_cells + len(row) > _MAX_TABLE_CELLS:
-                            unknown_dimensions_truncated = True
-                            break
-                        data_rows.append(row)
-                        observed_cells += len(row)
-                    while data_rows and not any(
-                            cell is not None and str(cell).strip() for cell in data_rows[-1]):
-                        data_rows.pop()
-                    width = max((len(row) for row in data_rows), default=0)
-                    height = len(data_rows)
-                    if width > _MAX_TABLE_COLUMNS:
-                        wb.close()
-                        raise ValueError(f"列数 {width} 超过限制 {_MAX_TABLE_COLUMNS}")
-                wb.close()
-            data_row_limit = min(_MAX_TABLE_ROWS, _MAX_TABLE_CELLS // max(1, width))
-            if len(data_rows) < max(used_header_rows):
-                frame = _pd().DataFrame()
-            else:
-                width = max((len(row) for row in data_rows), default=0)
-                if width > _MAX_TABLE_COLUMNS:
-                    raise ValueError(f"列数 {width} 超过限制 {_MAX_TABLE_COLUMNS}")
-                header, used_header_rows = _resolve_headers(data_rows, used_header_rows, width)
-                data_row_limit = min(_MAX_TABLE_ROWS, _MAX_TABLE_CELLS // max(1, len(header)))
-                frame = _pd().DataFrame(
-                    data_rows[max(used_header_rows):max(used_header_rows) + data_row_limit],
-                    columns=header, dtype=object)
-            meta = {"name": name, "sheet": chosen, "sheets": names, "encoding": suffix[1:],
-                    "header_row": max(used_header_rows), "header_rows": used_header_rows,
-                    "raw_preview": [[str(v)[:120] if v is not None else "" for v in row]
-                                    for row in data_rows[:8]],
-                    "source_rows": max(0, int(height) - max(used_header_rows)),
-                    "source_columns": int(width),
-                    "processed_rows": int(frame.shape[0]),
-                    "processed_columns": int(frame.shape[1]),
-                    "truncation_reasons": ([
-                        f"工作表源数据行数 {max(0, height - max(used_header_rows)):,} "
-                        "超过单次审查行数或单元格预算"
-                    ] if max(0, height - max(used_header_rows)) > frame.shape[0] else [])}
-            meta["truncated"] = (height > row_limit) or (
-                len(data_rows) > max(used_header_rows) + data_row_limit) or bool(
-                    locals().get('unknown_dimensions_truncated', False))
-        except ValueError:
-            raise
-        except Exception as exc:
-            raise ValueError(f"无法读取工作簿：{exc}") from exc
-    elif suffix == ".pdf":
-        try:
-            import pdfplumber
-            all_tables = []
-            cell_budget = _MAX_TABLE_CELLS
-            extraction_truncated = False
-            with pdfplumber.open(io.BytesIO(data)) as pdf:
-                pages = pdf.pages[:200]
-                extraction_truncated = len(pdf.pages) > len(pages)
-                for page_no, page in enumerate(pages, start=1):
-                    for table_no, rows in enumerate(page.extract_tables() or [], start=1):
-                        if rows and any(any(str(cell or "").strip() for cell in row) for row in rows):
-                            if len(all_tables) >= _MAX_EXTRACTED_TABLES or cell_budget <= 0:
-                                extraction_truncated = True
-                                break
-                            label = f"{name}!p{page_no}_t{table_no}"
-                            # Discovery lists targets without parsing the first table.
-                            # A malformed/wide table must not hide a later usable one.
-                            if (discover_only and not sheet_name.strip()) or (sheet_name.strip() and label != sheet_name.strip()):
-                                all_tables.append((label, []))
-                                continue
-                            bounded_rows, clipped, used_cells = _bound_raw_table(
-                                rows, used_header_rows, cell_budget, label)
-                            all_tables.append((label, bounded_rows))
-                            cell_budget -= used_cells
-                            extraction_truncated = extraction_truncated or clipped
-                    if extraction_truncated and (len(all_tables) >= _MAX_EXTRACTED_TABLES or cell_budget <= 0):
-                        break
-            if not all_tables:
-                raise ValueError("PDF 中没有可提取的结构化表格；扫描件/OCR 未覆盖，审查未完成")
-            if discover_only and not sheet_name.strip():
-                return _pd().DataFrame(), {
-                    'name': name, 'sheet': '', 'sheets': [label for label, _ in all_tables],
-                    'discovery_only': True, 'truncated': extraction_truncated,
-                    'truncation_reasons': ['PDF 页数或表格数超过发现预算'] if extraction_truncated else []}
-            if sheet_name.strip():
-                matching = next(((label, rows) for label, rows in all_tables
-                                 if label == sheet_name.strip()), None)
-                if matching is None:
-                    raise ValueError(_missing_sheet_message(
-                        sheet_name.strip(), [label for label, _rows in all_tables],
-                        kind="PDF 表格"))
-                chosen, rows = matching
-            elif len(all_tables) > 1 and not discover_only:
-                raise ValueError(
-                    "PDF 提取到多个表格，请用 sheet_name 指定目标（例如 "
-                    f"{all_tables[0][0]}）；未默认选择第一张表")
-            else:
-                chosen, rows = all_tables[0]
-            used_header_rows = sorted(set(header_rows or [header_row]))
-            if any(row < 1 or row > 20 for row in used_header_rows):
-                raise ValueError("header_row 必须在 1 到 20 之间")
-            width = max((len(row) for row in rows), default=0)
-            header, used_header_rows = _resolve_headers(rows, used_header_rows, width)
-            data_row_limit = min(_MAX_TABLE_ROWS, _MAX_TABLE_CELLS // max(1, width))
-            frame = _pd().DataFrame(
-                [(row + [None] * width)[:width]
-                 for row in rows[max(used_header_rows):max(used_header_rows) + data_row_limit]],
-                columns=header)
-            meta = {"name": name, "sheet": chosen, "sheets": [label for label, _ in all_tables],
-                    "encoding": "pdf-table", "header_row": max(used_header_rows),
-                    "header_rows": used_header_rows, "raw_preview": rows[:8],
-                    "source_rows": max(0, len(rows) - max(used_header_rows)),
-                    "source_columns": int(width),
-                    "processed_rows": int(frame.shape[0]),
-                    "processed_columns": int(frame.shape[1]),
-                    "truncated": extraction_truncated or
-                                 len(rows) > max(used_header_rows) + data_row_limit,
-                    "truncation_reasons": (
-                        ["PDF 页数、表格数、行数或单元格数超过提取预算"]
-                        if extraction_truncated or
-                        len(rows) > max(used_header_rows) + data_row_limit else [])}
-        except ValueError:
-            raise
-        except Exception as exc:
-            raise ValueError(f"无法提取 PDF 表格：{exc}") from exc
-    elif suffix == ".docx":
-        try:
-            from src.core.file_safety import validate_zip_bytes
-            validate_zip_bytes(data, label=name)
-            with zipfile.ZipFile(io.BytesIO(data)) as archive:
-                document_info = archive.getinfo("word/document.xml")
-                if document_info.file_size > 16 * 1024 * 1024:
-                    raise ValueError("Word 正文 XML 超过 16 MB，已停止解析")
-                root = ET.fromstring(archive.read("word/document.xml"))
-            ns = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
-            word_tables = []
-            cell_budget = _MAX_TABLE_CELLS
-            table_nodes = root.findall(".//w:tbl", ns)
-            extraction_truncated = len(table_nodes) > _MAX_EXTRACTED_TABLES
-            if discover_only and not sheet_name.strip():
-                return _pd().DataFrame(), {
-                    'name': name, 'sheet': '',
-                    'sheets': [f'{name}!t{number}' for number in range(1, min(len(table_nodes), _MAX_EXTRACTED_TABLES)+1)],
-                    'discovery_only': True, 'truncated': extraction_truncated,
-                    'truncation_reasons': ['Word 表格数超过发现预算'] if extraction_truncated else []}
-            for number, table in enumerate(table_nodes[:_MAX_EXTRACTED_TABLES], start=1):
-                label = f"{name}!t{number}"
-                if sheet_name.strip() and label != sheet_name.strip():
-                    continue
-                rows = []
-                observed_cells = 0
-                row_limit = _MAX_TABLE_ROWS + max(used_header_rows) + 1
-                for row in table.findall("./w:tr", ns):
-                    cells = row.findall("./w:tc", ns)
-                    if len(cells) > _MAX_TABLE_COLUMNS:
-                        raise ValueError(f"Word 表格 {number} 列数超过限制 {_MAX_TABLE_COLUMNS}，未执行审查")
-                    if len(rows) >= row_limit or observed_cells + len(cells) > cell_budget:
-                        extraction_truncated = True
-                        break
-                    rows.append(["".join(t.text or "" for t in cell.findall(".//w:t", ns))
-                                 for cell in cells])
-                    observed_cells += len(cells)
-                if rows:
-                    if len(word_tables) >= _MAX_EXTRACTED_TABLES or cell_budget <= 0:
-                        extraction_truncated = True
-                        break
-                    label = f"{name}!t{number}"
-                    bounded_rows, clipped, used_cells = _bound_raw_table(
-                        rows, sorted(set(header_rows or [header_row])), cell_budget, label)
-                    word_tables.append((label, bounded_rows))
-                    cell_budget -= used_cells
-                    extraction_truncated = extraction_truncated or clipped
-                    if cell_budget <= 0:
-                        extraction_truncated = True
-                        break
-            if not word_tables:
-                raise ValueError("Word 中没有可提取的结构化表格，审查未完成")
-            if sheet_name.strip():
-                matching = next(((label, rows) for label, rows in word_tables
-                                 if label == sheet_name.strip()), None)
-                if matching is None:
-                    raise ValueError(_missing_sheet_message(
-                        sheet_name.strip(), [label for label, _rows in word_tables],
-                        kind="Word 表格"))
-                chosen, rows = matching
-            elif len(word_tables) > 1 and not discover_only:
-                raise ValueError(
-                    "Word 提取到多个表格，请用 sheet_name 指定目标（例如 "
-                    f"{word_tables[0][0]}）；未默认选择第一张表")
-            else:
-                chosen, rows = word_tables[0]
-            used_header_rows = sorted(set(header_rows or [header_row]))
-            width = max((len(row) for row in rows), default=0)
-            header, used_header_rows = _resolve_headers(rows, used_header_rows, width)
-            data_row_limit = min(_MAX_TABLE_ROWS, _MAX_TABLE_CELLS // max(1, width))
-            frame = _pd().DataFrame(
-                [(row + [None] * width)[:width]
-                 for row in rows[max(used_header_rows):max(used_header_rows) + data_row_limit]],
-                columns=header)
-            meta = {"name": name, "sheet": chosen, "sheets": [label for label, _ in word_tables],
-                    "encoding": "docx-table", "header_row": max(used_header_rows),
-                    "header_rows": used_header_rows, "raw_preview": rows[:8],
-                    "source_rows": max(0, len(rows) - max(used_header_rows)),
-                    "source_columns": int(width),
-                    "processed_rows": int(frame.shape[0]),
-                    "processed_columns": int(frame.shape[1]),
-                    "truncated": extraction_truncated or
-                                 len(rows) > max(used_header_rows) + data_row_limit,
-                    "truncation_reasons": (
-                        ["Word 表格数、行数或单元格数超过提取预算"]
-                        if extraction_truncated or
-                        len(rows) > max(used_header_rows) + data_row_limit else [])}
-        except ValueError:
-            raise
-        except Exception as exc:
-            raise ValueError(f"无法提取 Word 表格：{exc}") from exc
-    else:
-        raise ValueError("当前审查支持 CSV/TSV/XLSX/XLS/XLSM/PDF/DOCX")
-    if frame.shape[1] > _MAX_TABLE_COLUMNS:
-        raise ValueError(f"列数 {frame.shape[1]} 超过限制 {_MAX_TABLE_COLUMNS}")
-    if frame.shape[0] > _MAX_TABLE_ROWS:
-        frame = frame.iloc[:_MAX_TABLE_ROWS].copy()
-        meta["truncated"] = True
-    else:
-        meta["truncated"] = bool(meta.get("truncated", False))
-    if meta["truncated"] and not meta.get("truncation_reasons"):
-        meta["truncation_reasons"] = ["输入行数或单元格数超过单次审查预算"]
-    frame = _pd().DataFrame(
-        [[_pd().NA if isinstance(value, str) and not value.strip() else value for value in row]
-         for row in frame.itertuples(index=False, name=None)], columns=frame.columns, dtype=object)
-    # Text parsers retain numeric tokens. Excel numeric cells have already lost
-    # display/lexical precision; never manufacture trailing digits from floats.
-    lexical = suffix in {'.csv', '.tsv', '.docx'}
-    frame.attrs['lexical_precision_preserved'] = lexical
-    meta['lexical_precision_preserved'] = lexical
-    meta['source_rows_exact'] = not meta.get('truncated', False)
-    meta['formula_evaluation'] = 'cached_values_only_no_recalculation' if suffix in {'.xlsx', '.xlsm', '.xls', '.xlsb'} else 'not_applicable'
+    """Parse through the support reader, preserving the host RangeIndex API.
+
+    The serialized envelope retains original coordinates and actual lexical
+    tokens. The compatibility frame uses zero-based row indices; its callers
+    continue to add the physical header offset when constructing findings.
+    """
+    from citrus_audit.readers import read_table, _load_frame_from_bytes as discover
+    if discover_only:
+        return discover(data, name, sheet_name=sheet_name, header_row=header_row,
+                        header_rows=header_rows, discover_only=True)
+    envelope = read_table(data, name, sheet_name=sheet_name, header_row=header_row,
+                          header_rows=header_rows)
+    frame = envelope.to_frame()
+    row_map = {row: index for index, row in enumerate(envelope.row_numbers)}
+    tokens = {(row_map[row], column): raw for (row, column), raw in
+              frame.attrs.get('_validated_precision_tokens', {}).items()}
+    frame = frame.reset_index(drop=True)
+    frame.attrs['_validated_precision_tokens'] = tokens
+    frame.attrs['table_envelope'] = envelope.to_dict()
+    meta = {**envelope.coverage, 'table_envelope': envelope.to_dict(),
+            'source_sha256': envelope.source_sha256,
+            'precision_evidence': list(envelope.precision_evidence),
+            'lexical_coverage': envelope.lexical_coverage}
     return frame, meta
 
 
@@ -1897,7 +1585,8 @@ def _audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list
                  composite_keys: list[list[str]] | None = None,
                  pattern_checks: dict | None = None,
                  expected_structure: dict | None = None,
-                 source_coverage: dict | None = None):
+                 source_coverage: dict | None = None,
+                 selected_checks: list[str] | None = None):
     from src.research.audit_methods import audit_frame
     return audit_frame(
         frame, mapping, groups, values, row_offset=row_offset,
@@ -1907,7 +1596,7 @@ def _audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list
         mean_decimals=mean_decimals, sd_decimals=sd_decimals,
         execution_receipt=execution_receipt, composite_keys=composite_keys,
         pattern_checks=pattern_checks, expected_structure=expected_structure,
-        source_coverage=source_coverage)
+        source_coverage=source_coverage, checks=selected_checks)
 
 
 
@@ -2247,29 +1936,9 @@ def _verify_reference_cached(raw: dict, allow_web: bool) -> dict:
 
 
 def _parse_reference_line(line: str, doi: str) -> dict:
-    """从参考文献条目文本里尽力拆出题名、作者、年份（供元数据错配检测）。"""
-    text = re.sub(r"^\s*[\[（(]?\d{1,3}[\]）)]?[.、)]?\s*", "", line or "").strip()
-    text = re.sub(r"(?i)https?://(?:dx\.)?doi\.org/\S+", "", text)
-    text = re.sub(r"(?i)\bdoi\s*[:：]?\s*\S+", "", text).strip(" .;，,、")
-    year = ""
-    match_year = re.search(r"\b(19|20)\d{2}\b", text)
-    if match_year:
-        year = match_year.group(0)
-    authors = ""
-    title = ""
-    if match_year:
-        head = text[: match_year.start()].strip(" ().,;")
-        tail = text[match_year.end():].strip(" ().,;")
-        authors = head[:200]
-        pieces = [p for p in re.split(r"(?<=[.!?])\s+", tail) if p.strip()]
-        if pieces:
-            first = pieces[0].strip()
-            if len(first) < 25 and len(pieces) > 1:
-                first = (first + " " + pieces[1].strip()).strip()
-            title = first[:400]
-    else:
-        title = text[:400]
-    return {"title": title, "authors": authors[:200], "year": year}
+    """Compatibility entry; the support package owns reference parsing."""
+    from citrus_refcheck.parse import _parse_reference_line as parse_line
+    return parse_line(line, doi)
 
 
 # Shared persistent reference audit; this import preserves the public tool name.
@@ -2515,7 +2184,13 @@ def validate_audit_request(*, checks_json: str | dict = "", publish: bool = Fals
     supported_checks = {'optional_fields', 'required_fields', 'ranges', 'relations', 'key_columns',
                         'groups', 'values', 'column_mapping', 'integer_data_confirmed', 'sd_kind',
                         'mean_decimals', 'sd_decimals', 'reported_summaries', 'composite_keys',
-                        'pattern_checks', 'expected_structure'}
+                        'pattern_checks', 'expected_structure', 'selected_checks'}
+    if 'selected_checks' in checks:
+        from citrus_audit.data_audit_rules import RULES
+        selected = checks['selected_checks']
+        if (not isinstance(selected, list)
+                or any(not isinstance(key, str) or key not in RULES for key in selected)):
+            raise ToolArgumentError('selected_checks 必须为已知规则 ID 数组；invalid_input')
     unknown_checks = set(checks) - supported_checks
     if unknown_checks:
         raise ToolArgumentError(f'未识别的 checks_json 配置：{sorted(unknown_checks)}；invalid_input。'
@@ -2680,6 +2355,9 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
         raise ValueError("reported_summaries 必须为最多50个明确的原始数据/报告单元格映射")
     snapshots_enabled = cross_enabled or bool(summary_bindings)
     common_findings: list[dict[str, Any]] = []
+    # Private persisted evidence; never place source tables in the model's
+    # observation. The repository enforces its existing bounded report limit.
+    review_envelopes: list[dict[str, Any]] = []
     common_omitted = 0
     cross_summary: dict[str, Any] = {
         "status": "not_run",
@@ -2767,6 +2445,10 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                 continue
             header_rows_used = int(max(meta.get("header_rows") or [meta.get("header_row") or 1]))
             source_tables.append((frame, meta))
+            if meta.get('table_envelope'):
+                review_envelopes.append({'source_file_id': source_file_id,
+                                         'file_index': index,
+                                         'table': meta['table_envelope']})
             if snapshots_enabled:
                 snapshot_note = {"attachment_index": index, "file": name,
                                  "sheet": str(meta.get("sheet") or sheet or "")}
@@ -2824,7 +2506,8 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                 key_columns=checks.get("key_columns") or None,
                 execution_receipt=execution_receipt,
                 composite_keys=checks.get('composite_keys'), pattern_checks=checks.get('pattern_checks'),
-                expected_structure=checks.get('expected_structure'), source_coverage=meta)
+                expected_structure=checks.get('expected_structure'), source_coverage=meta,
+                selected_checks=checks.get('selected_checks'))
             from src.research.integrity_review import finding as common_finding
             for signal in findings:
                 if len(common_findings) >= 200:
@@ -3124,6 +2807,7 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                     if re.fullmatch(r"[a-f0-9]{32}", candidate_id):
                         location["file_id"] = candidate_id
             review_report = {"common_findings": common_findings,
+                             "source_envelopes": review_envelopes,
                              "table_results": results, "cross_file_report": cross_report,
                              "summary_consistency": summary_consistency,
                              "coverage": {"findings_omitted": common_omitted, "cross_file": cross_summary.get("status"),

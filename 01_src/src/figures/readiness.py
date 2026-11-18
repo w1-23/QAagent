@@ -1,4 +1,4 @@
-"""Startup-only execution evidence for the local WSL figure worker.
+"""Startup-only execution evidence for WSL and Linux Apptainer figure workers.
 
 Request-time readiness reads this evidence; it never starts a container.
 """
@@ -14,33 +14,56 @@ from .sandbox import SandboxJob, SandboxUnavailable
 
 _LOCK = threading.RLock()
 _EVIDENCE: dict = {}
-PROBE_VERSION = 4
+PROBE_VERSION = 5
 
-PROBE_SCRIPT = '''import os
+_COMMON_PROBE = '''import os
 from pathlib import Path
 import matplotlib.pyplot as plt
-assert os.getuid() == 65534
 status = dict(line.split(':', 1) for line in Path('/proc/self/status').read_text().splitlines() if ':' in line)
-assert status['NoNewPrivs'].strip() == '1'
-assert int(status['CapEff'].strip(), 16) == 0
-assert set(os.listdir('/sys/class/net')) == {'lo'}
-assert any(row.split()[4] == '/' and 'ro' in row.split()[5].split(',') for row in Path('/proc/self/mountinfo').read_text().splitlines())
-assert int(Path('/sys/fs/cgroup/memory.max').read_text()) <= 1024 * 1024 * 1024
-assert int(Path('/sys/fs/cgroup/pids.max').read_text()) <= 128
-quota, period = Path('/sys/fs/cgroup/cpu.max').read_text().split()
-assert quota != 'max' and int(quota) / int(period) <= 1
+assert status['NoNewPrivs'].strip() == '1', 'startup_no_new_privileges'
+assert int(status['CapEff'].strip(), 16) == 0, 'startup_capabilities'
+assert os.statvfs('/').f_flag & os.ST_RDONLY, 'startup_readonly_root'
 try:
     Path('/work/in/.must-not-write').write_text('blocked')
 except OSError:
     pass
 else:
     raise RuntimeError('input mount is writable')
-fig, ax = plt.subplots(figsize=(4, 3), constrained_layout=True)
+'''
+_OCI_PROBE = '''assert os.getuid() == 65534
+assert set(os.listdir('/sys/class/net')) == {'lo'}
+assert int(Path('/sys/fs/cgroup/memory.max').read_text()) <= 1024 * 1024 * 1024
+assert int(Path('/sys/fs/cgroup/pids.max').read_text()) <= 128
+quota, period = Path('/sys/fs/cgroup/cpu.max').read_text().split()
+assert quota != 'max' and int(quota) / int(period) <= 1
+'''
+_APPTAINER_PROBE = '''assert os.getuid() != 0
+interfaces = {row.split(':', 1)[0].strip() for row in Path('/proc/net/dev').read_text().splitlines()[2:]}
+assert interfaces == {'lo'}
+assert not Path('/sys/fs/cgroup/cgroup.controllers').exists()
+'''
+_RENDER_PROBE = '''fig, ax = plt.subplots(figsize=(4, 3), constrained_layout=True)
 ax.plot([1, 10, 100], [2, 4, 3], marker='o', label='Synthetic startup fixture')
 ax.set_title('SYNTHETIC startup fixture')
 ax.set_xlabel('Synthetic x')
 ax.set_ylabel('Synthetic y')
 '''
+PROBE_SCRIPT = _COMMON_PROBE + _OCI_PROBE + _RENDER_PROBE
+
+
+def validate_apptainer_staging():
+    """Require private, host-visible scratch; never fall back to another root."""
+    import stat
+    from pathlib import Path
+    root = Path(os.environ.get('CITRUSQA_FIGURE_JOB_DIR', ''))
+    if not root.is_absolute() or not root.is_dir():
+        raise SandboxUnavailable('Apptainer requires an existing absolute staging directory.')
+    if any(part.is_symlink() for part in (root, *root.parents)):
+        raise SandboxUnavailable('Apptainer staging must not contain symlinks.')
+    info = root.stat()
+    if info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) & 0o077:
+        raise SandboxUnavailable('Apptainer staging must be private to the service user (0700).')
+    return root
 
 
 def backend_arguments(settings) -> dict:
@@ -54,7 +77,8 @@ def backend_arguments(settings) -> dict:
 
 def configuration_key(settings) -> str:
     value = backend_arguments(settings) | {'staging': os.environ.get('CITRUSQA_FIGURE_JOB_DIR', ''),
-                                           'probe_version': PROBE_VERSION}
+                                           'probe_version': PROBE_VERSION,
+                                           'host_python': os.environ.get('CITRUS_APPTAINER_HOST_PYTHON', '/usr/bin/python3')}
     return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
 
 
@@ -108,8 +132,19 @@ def verify_worker(settings, runner) -> dict:
     previous = worker_snapshot(settings)
     if previous and previous.get('verified'):
         return previous
-    from .wsl_docker import validate_staging
-    root = validate_staging()
+    if runner.name == 'apptainer':
+        root = validate_apptainer_staging()
+        # This executes the host cgroup guard and independent net/PID probe;
+        # rendering alone cannot establish the isolation and resource boundary.
+        if not runner.available():
+            raise SandboxUnavailable('Apptainer isolation/resource probe failed.')
+        probe_script = _COMMON_PROBE + _APPTAINER_PROBE + _RENDER_PROBE
+    elif runner.name == 'wsl-docker':
+        from .wsl_docker import validate_staging
+        root = validate_staging()
+        probe_script = PROBE_SCRIPT
+    else:
+        raise SandboxUnavailable('No complete startup protocol for this backend.')
     baseline = {path.name for path in root.iterdir()}
     formats = {'svg': 'figure.svg', 'png': 'figure.png', 'pdf': 'figure.pdf',
                'manifest': 'objects.json'}
@@ -119,7 +154,7 @@ def verify_worker(settings, runner) -> dict:
             {'gid': 'axes_0.title', 'prop': 'text', 'value': 'SYNTHETIC startup edited'},
             {'gid': 'axes_0.title', 'prop': 'fontsize', 'value': 16}]
         outputs = formats if mode == 'initial' else formats | {'overrides': 'overrides.json'}
-        result = runner.run(SandboxJob(script=PROBE_SCRIPT, outputs=outputs,
+        result = runner.run(SandboxJob(script=probe_script, outputs=outputs,
                                        replay_overrides=mode != 'initial', overrides=edits,
                                        render_mode=mode, dpi=100, timeout_sec=45))
         if not result.ok:
@@ -143,7 +178,7 @@ def verify_worker(settings, runner) -> dict:
     from .dataset_codec import decode_frame
     contract = normalize_output_contract({'version': 2, 'tables': [{'name': 'values'}],
         'figures': [{'name': 'first', 'formats': ['png']}, {'name': 'second', 'formats': ['png']}]})
-    script = PROBE_SCRIPT + '''
+    script = probe_script + '''
 import pandas as pd
 emit.table('values', pd.DataFrame({'id': pd.Series([2**53+1], dtype='Int64')}))
 emit.figure('first', fig)
@@ -191,7 +226,7 @@ emit.figure('second', second)
         raise SandboxUnavailable('Drawing startup left job staging directories behind.')
     evidence = dict(backend=runner.name, status='ready', verified=True,
                     configuration_key=configuration_key(settings), probe_version=PROBE_VERSION,
-                    distribution=runner.distribution, image_id=runner.image_id,
+                    distribution=getattr(runner, 'distribution', 'native-linux'), image_id=runner.image_id,
                     isolation_verified=True, edit_replay_verified=True, preview_verified=True,
                     render_protocol=2, cleanup_verified=True,
                     exports=exports)

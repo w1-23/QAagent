@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import json
 import logging
@@ -10,9 +12,7 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 from concurrent.futures import as_completed
-from qdrant_client import QdrantClient
-from qdrant_client.http import models
-from src.config import MODEL_CACHE_ROOT, settings
+from src.config import PROJECT_ROOT, settings
 from src.engine.embedder import Embedder
 from src.engine.reranker import Reranker
 from src.retrieval.bm25 import (
@@ -74,7 +74,9 @@ def _resolve_corpus_family_filter(
 
 # v8.6 (书 §3.2 离线建索引): BM25 倒排索引持久化——语料不变则启动直接加载，
 # 跳过 fit（实测 119k chunk 语料 fit+倒排 ~15s → 加载 ~2s）；查询走倒排加速。
-_BM25_CACHE_DIR = MODEL_CACHE_ROOT / "bm25"
+# Derived scoring caches belong to this runtime. Model assets may be shared
+# read-only; saving/retaining BM25 caches must never modify that asset root.
+_BM25_CACHE_DIR = PROJECT_ROOT / ".hf_cache" / "bm25"
 _BM25_CACHE_KEEP = 3   # 只保留最近 3 份缓存（不同语料指纹各自成文件）
 
 
@@ -173,7 +175,7 @@ class MultiBatchRetriever:
             self.data_dir = settings.DATA_DIR
             self.registry = load_corpus_registry(self.data_dir)
             self.lance_root = active_lancedb_path(self.data_dir)
-            self.index_generation = self.lance_root.name
+            self.index_generation = active_index_generation(self.data_dir)
             self.corpus_scope = CorpusAccessScope.from_registry(
                 self.registry, index_generation=active_index_generation(self.data_dir))
             self.embedder = Embedder()
@@ -251,28 +253,12 @@ class MultiBatchRetriever:
                 raise
 
     def close(self):
-        """Release Qdrant file locks so next startup can load all batches.
-
-        v8.4.3 工单10: 关闭后删除本实例持有的 .lock——否则每次启动都触发
-        "cleaned stale lock" 噪音（进程退出不释放锁文件）。
-        v8.9: LanceDB 后端无需关闭（文件级句柄，无锁）。
-        """
+        """Close owned clients; the backend exclusively owns its lock files."""
         for batch_name, (client, _) in list(self.batches.items()):
             try:
                 client.close()
             except Exception:
                 pass
-        try:
-            if self.data_dir.exists():
-                for batch_dir in sorted(self.data_dir.iterdir()):
-                    lock = batch_dir / "qdrant_data" / ".lock"
-                    if lock.exists():
-                        try:
-                            lock.unlink()
-                        except Exception:
-                            pass
-        except Exception:
-            pass
         self.batches.clear()
         self.lance_tables.clear()
         self.lance_db = None
@@ -301,39 +287,11 @@ class MultiBatchRetriever:
         return bool(corpus_id in self.registry.corpora
                     and self._allowed_corpus_scope().permits(corpus_id))
 
-    def _clean_stale_locks(self) -> set:
-        """清理陈旧 .lock 文件；返回被另一实例占用的批次集合（v8.3.4）。
-
-        Qdrant local 模式每个存储目录一个 .lock。崩溃残留锁可删；
-        若 unlink 失败（PermissionError = 另一实例正持有）→ 标记冲突批次，
-        调用方跳过该批次的 Qdrant 加载（不再产生无意义的失败噪音与竞态）。
-        """
-        conflict = set()
-        if not self.data_dir.exists():
-            return conflict
-        for batch_dir in sorted(self.data_dir.iterdir()):
-            if not batch_dir.is_dir():
-                continue
-            lock = batch_dir / "qdrant_data" / ".lock"
-            if not lock.exists():
-                continue
-            try:
-                lock.unlink()
-                logger.info(f"[MultiBatchRetriever] cleaned stale lock: {lock}")
-            except PermissionError:
-                conflict.add(batch_dir.name)
-                logger.error(
-                    f"[MultiBatchRetriever] Qdrant 数据目录被另一实例占用: {lock} — "
-                    f"local 模式单实例限制，该批次向量检索不可用（BM25 兜底），"
-                    f"请先停止其他服务进程再启动以获得完整检索"
-                )
-            except Exception as e:
-                logger.debug(f"[MultiBatchRetriever] lock cleanup: {lock}: {e}")
-        return conflict
-
     def _load_data(self):
-        lock_conflict = self._clean_stale_locks()
-        self.failed_batches = {name: "另一实例占用 (lock)" for name in lock_conflict}
+        # Never unlink Qdrant locks: on POSIX another process may still hold the
+        # inode, and unlinking it defeats the backend's mutual exclusion.
+        # LanceDB does not inspect or initialize the optional Qdrant backend.
+        self.failed_batches = {}
         if not self.data_dir.exists():
             raise FileNotFoundError(f"Data directory not found: {self.data_dir}")
         logger.info(f"Scanning multi-source batches in {self.data_dir}...")
@@ -454,36 +412,25 @@ class MultiBatchRetriever:
                     "active versioned generations are built as LanceDB; "
                     "set RETRIEVAL_BACKEND=lancedb or auto")
                 continue
-            # ── qdrant 后端 ──
-            if batch_name in lock_conflict:
-                # v8.3.4: 另一实例占用 → 跳过 Qdrant（避免重复失败日志），BM25 仍可构建
-                continue
+            # Optional legacy backend owns lock acquisition and release.
             qdrant_path = batch_dir / "qdrant_data"
             if not qdrant_path.exists():
                 continue
+            client = None
             try:
+                from qdrant_client import QdrantClient
                 client = QdrantClient(path=str(qdrant_path), timeout=settings.QDRANT_TIMEOUT, prefer_grpc=False)
                 colls = client.get_collections().collections
                 coll_name = colls[0].name if colls else "citrus_literature"
                 self.batches[batch_name] = (client, coll_name)
             except Exception as e:
-                # v8.3.4: 瞬时窗口重试一次（删锁后 Qdrant 内部清理延迟/竞态）
-                msg = str(e)
-                if "already accessed" in msg or "lock" in msg.lower():
-                    time.sleep(2)
+                if client is not None:
                     try:
-                        client = QdrantClient(path=str(qdrant_path), timeout=settings.QDRANT_TIMEOUT, prefer_grpc=False)
-                        colls = client.get_collections().collections
-                        coll_name = colls[0].name if colls else "citrus_literature"
-                        self.batches[batch_name] = (client, coll_name)
-                    except Exception as e2:
-                        self.failed_batches[batch_name] = str(e2)[:120]
-                        logger.error(f"Failed to load Qdrant for {batch_name}: {e2}")
-                        continue
-                else:
-                    self.failed_batches[batch_name] = msg[:120]
-                    logger.warning(f"Failed to load Qdrant for {batch_name}: {e}")
-                    continue
+                        client.close()
+                    except Exception:
+                        logger.debug("Could not close failed Qdrant client for %s", batch_name)
+                self.failed_batches[batch_name] = f"{type(e).__name__}: {e}"[:240]
+                logger.warning("Failed to load Qdrant for %s: %s", batch_name, e)
         logger.info(f"Loaded {len(self.batches) + len(self.lance_tables)} batches, "
                     f"{len(self.global_chunks)} total chunks.")
         if not self.batches and not self.lance_tables:
@@ -812,6 +759,7 @@ class MultiBatchRetriever:
                       categories: set[str],
                       corpus_ids: set[str] | None = None) -> List[Tuple[int, float]]:
         try:
+            from qdrant_client.http import models
             filters = [models.FieldCondition(key="corpus_family_id",
                                               match=models.MatchAny(any=sorted(families)))]
             if categories:
@@ -851,27 +799,25 @@ class MultiBatchRetriever:
                             original_query: Optional[str] = None) -> List[Dict]:
         """去重 → RRF → 候选全文 → rerank → 动态阈值 → 空归因 → 日志，返回 passed 证据。
         """
-        # 每流独立「分数降序 → 按 global_idx 去重（保留最高分）」
-        deduped: List[List[Tuple[int, float]]] = []
-        for hits in streams:
-            hits = sorted(hits, key=lambda x: x[1], reverse=True)
-            seen: set = set()
-            deduped.append([
-                (idx, s) for idx, s in hits
-                if not (idx in seen or seen.add(idx))
-            ])
+        from citrus_retrieval.ranking import RankingPolicy, rank_hybrid
+        from src.core.cancel import ToolCancelled, raise_if_cancelled
 
-        fused = rrf_fuse(*deduped, k=settings.RRF_K, weights=weights)
-        # v9.4 (P0#1): 候选窗口参数化——原 top_k_final*2 隐式硬编码，现由
-        # config.yaml retrieval.candidate_window 控制（默认 20 = 10*2，行为不变）
-        candidates = [self._chunk_full(idx)
-                      for idx, _ in fused[:settings.CANDIDATE_WINDOW]]
+        def rerank(query, rows, *, top_k):
+            with RAG_MODEL_SEMAPHORE:
+                return self.reranker.rerank(query, rows, top_k=top_k)
 
-        t_rerank = time.time()
-        with RAG_MODEL_SEMAPHORE:
-            reranked = self.reranker.rerank(rerank_query, candidates,
-                                            top_k=settings.TOP_K_FINAL)
-        dt_rerank = (time.time() - t_rerank) * 1000
+        result = rank_hybrid(
+            streams=streams, weights=weights, query=rerank_query,
+            load_chunk=self._chunk_full, rerank=rerank,
+            check=raise_if_cancelled, abort_exceptions=(ToolCancelled,),
+            policy=RankingPolicy(
+                mode="threshold", candidate_window=settings.CANDIDATE_WINDOW,
+                rerank_top_k=settings.TOP_K_FINAL, limit=settings.TOP_K_FINAL,
+                rrf_k=settings.RRF_K, threshold=settings.RERANK_THRESHOLD,
+                dynamic_ratio=settings.DYNAMIC_THRESHOLD_RATIO))
+        deduped, candidates = result["streams"], result["candidates"]
+        reranked, passed = result["ranked"], result["selected"]
+        dt_rerank = result["rerank_ms"]
 
         if not reranked:
             logger.info(f"[Retriever] {mode}: no reranked results")
@@ -881,9 +827,7 @@ class MultiBatchRetriever:
             return []
 
         top_score = reranked[0].get("rerank_score", 0)
-        dynamic_thresh = top_score * settings.DYNAMIC_THRESHOLD_RATIO
-        final_threshold = max(settings.RERANK_THRESHOLD, dynamic_thresh)
-        passed = [c for c in reranked if c.get("rerank_score", 0) >= final_threshold]
+        final_threshold = result["threshold"]
         if not passed:
             logger.warning(f"[Retriever] {mode}: 动态阈值 {final_threshold:.4f} 拦截所有结果")
             self.last_empty_reason = "threshold_blocked"

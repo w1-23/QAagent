@@ -95,6 +95,13 @@ def _render_spec(source: dict[str, Any],
     from src.figures.resolve import resolve_spec
     from src.figures.spec import SpecError, parse_spec
 
+    from src.figures.declarative_snapshot import load_snapshot, SnapshotError
+    try:
+        frozen = load_snapshot(source)
+    except SnapshotError as exc:
+        raise ProjectError("source_unverified", "创建时的解析结果快照无效，拒绝重新分析后替代。") from exc
+    if frozen is not None:
+        return frozen
     payload = source.get("spec")
     if not isinstance(payload, dict):
         raise ProjectError("missing_spec", "这张图缺少规格定义，无法重新渲染。")
@@ -644,6 +651,9 @@ def detail_for_owner(figure_id: str, owner: int, *, upgrade_manifest: bool = Fal
         **edit_context(project),
         **public,
         "manifest": manifest,
+        # A disposable legacy-inventory upgrade has not been accepted by the
+        # project CAS; do not attach bindings for the stored manifest to it.
+        "document": (project.get("document_json") or None) if not public.get("manifest_upgraded") else None,
         "overrides": project.get("overrides_json") or [],
         "data_refs": project.get("data_refs_json") or [],
         "preview_url": f"/api/v2/figures/projects/{project['figure_id']}/preview.svg",
@@ -661,6 +671,11 @@ def _verify_sources(project: dict[str, Any], owner: int) -> None:
     from src.session import files as session_files
     import hashlib
     source = project.get("source_json") or {}
+    from src.figures.declarative_snapshot import load_snapshot, SnapshotError
+    try:
+        load_snapshot(source)
+    except SnapshotError as exc:
+        raise ProjectError("source_unverified", "创建时的解析结果快照无法验证。") from exc
     if source.get("analysis_result_ref"):
         try:
             from src.research.analysis_results import load_analysis_result, load_dataset_snapshot
@@ -687,7 +702,7 @@ def _verify_sources(project: dict[str, Any], owner: int) -> None:
     spec = (project.get("source_json") or {}).get("spec") or {}
     if isinstance(spec, dict):
         specs = list(spec.get("panels") or []) if spec.get("panels") else [spec]
-        for item, name in ((item, name) for item in specs for name in ("x", "y", "group", "weight")):
+        for item, name in ((item, name) for item in specs for name in ("x", "y", "group", "weight", "series_key")):
             column = item.get(name)
             if not isinstance(column, dict):
                 continue
@@ -748,6 +763,11 @@ def _render_edits(project: dict[str, Any], owner: int, raw_overrides: Any,
         except TrustedRenderError as exc:
             raise ProjectError(exc.code, exc.message) from exc
         merged, changed, new_manifest, blobs = result.overrides, result.changed, result.manifest, result.blobs
+        from src.figures.declarative_snapshot import confirm_render, SnapshotError
+        try:
+            confirm_render(source, new_manifest)
+        except SnapshotError as exc:
+            raise ProjectError("worker_protocol_invalid", "工作进程未确认保存的解析结果。") from exc
         new_manifest["data_provenance"] = info
     _validate_render_receipt(new_manifest, blobs, render_mode)
     _preserve_initial_receipt(project, new_manifest, render_mode, bool(merged))
@@ -906,6 +926,7 @@ def import_from_library(owner: int, session_id: str, file_id: str,
     from src.figures.trusted_render import render_resolved, TrustedRenderError
     from src.figures.resolve import resolve_spec
     from src.figures.spec import SpecError
+    from src.figures.declarative_snapshot import prepare_source, confirm_render, SnapshotError
     from src.research.tools import _load_frame_from_bytes
 
     try:
@@ -937,18 +958,20 @@ def import_from_library(owner: int, session_id: str, file_id: str,
         from src.figures.resolve import table_resolution_scope
         with table_resolution_scope({(int(owner), str(file_id)): frame}):
             resolved, info = resolve_spec(spec, owner_user_id=owner)
+        source = prepare_source(spec, resolved, info)
         result = render_resolved(resolved, formats=DEFAULT_FORMATS, dpi=int(_figure_dpi()))
         blobs, manifest = result.blobs, result.manifest
-    except (SpecError, TrustedRenderError) as exc:
+        confirm_render(source, manifest)
+    except (SpecError, TrustedRenderError, SnapshotError) as exc:
         raise ProjectError("render_failed",
                            str(getattr(exc, "message", exc))) from exc
 
-    _verify_sources({"source_json": {"kind": "spec", "spec": spec.as_dict()},
+    _verify_sources({"source_json": source,
                      "data_refs_json": [{**ref, "sha256": input_digest} for ref in info.get("refs", [])]}, owner)
     stem = title or filename.rsplit(".", 1)[0]
     project = create_project(
         owner_user_id=owner, title=stem, source_kind="spec",
-        source={"kind": "spec", "spec": spec.as_dict()},
+        source=source,
         session_id=session_id, data_refs=info.get("refs", []))
     manifest["data_provenance"] = info
     try:

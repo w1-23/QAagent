@@ -239,6 +239,9 @@ def render_resolved(resolved, *, overrides=None, existing=None, formats=("svg", 
                     if not data[fmt].startswith(signature):
                         raise TrustedRenderError("worker_protocol_invalid", "绘图工作进程返回了无效格式文件。")
                 import hashlib
+                from src.figures.declarative_snapshot import digest
+                if manifest.get("resolved_data_sha256") != digest(job["resolved"]):
+                    raise TrustedRenderError("worker_protocol_invalid", "绘图工作进程没有确认实际解析数据。")
                 receipt = manifest.get("render_receipt") or {}
                 if receipt.get("version") != 2 or receipt.get("mode") != render_mode:
                     raise TrustedRenderError("worker_protocol_invalid", "绘图工作进程没有确认渲染模式。")

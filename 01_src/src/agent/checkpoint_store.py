@@ -28,6 +28,8 @@ from langchain_core.messages import (
 from langgraph.checkpoint.serde.base import SerializerProtocol
 from langgraph.checkpoint.serde.encrypted import EncryptedSerializer
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
+# DeepAgentState uses this private LangGraph snapshot type; pin the SDK version.
+from langgraph.checkpoint.serde.types import _DeltaSnapshot
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.types import Interrupt, Send
 
@@ -96,6 +98,12 @@ class _PrivateMessages(SerializerProtocol):
         return _ProtocolState(self.scope, value["reasoning"])
 
     def _walk(self, value: Any, *, reading: bool = False) -> Any:
+        if type(value) is _DeltaSnapshot:
+            if reading:
+                raise CheckpointProtectionError("unexpected_delta_snapshot_revival")
+            # Recurse before serialization so private protocol fields survive
+            # inside snapshots without enabling JsonPlus class revival.
+            return {_TAG: "delta_snapshot", "value": self._walk(value.value)}
         if type(value) in (_DeepSeekMessage, _DeepSeekMessageChunk):
             if reading:
                 raise CheckpointProtectionError("unexpected_private_message_revival")
@@ -112,6 +120,8 @@ class _PrivateMessages(SerializerProtocol):
                 if not reading:
                     raise CheckpointProtectionError("reserved_checkpoint_tag")
                 kind = value[_TAG]
+                if kind == "delta_snapshot" and set(value) == {_TAG, "value"}:
+                    return _DeltaSnapshot(self._walk(value["value"], reading=True))
                 if kind == "bytearray" and set(value) == {_TAG, "value"} and type(value["value"]) is bytes:
                     return bytearray(value["value"])
                 if kind in ("tuple", "set", "frozenset") and set(value) == {_TAG, "items"} and type(value["items"]) is list:

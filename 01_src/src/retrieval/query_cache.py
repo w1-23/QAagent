@@ -66,6 +66,12 @@ def build_cache_key(query: str, families: list[str], categories: list[str], limi
         "dense_weight": float(getattr(settings, "RRF_WEIGHT_ORIG_DENSE", 1.0) or 1.0),
         "decay": float(getattr(settings, "LOCAL_HYBRID_ADJACENT_DECAY_RATIO", 0.6) or 0.6),
         "window": int(getattr(settings, "CANDIDATE_WINDOW", 20) or 20),
+        "top_k_vector": int(getattr(settings, "TOP_K_VECTOR", 40) or 40),
+        "embedding_model": str(getattr(settings, "EMBEDDING_MODEL", "")),
+        "reranker_model": str(getattr(settings, "RERANKER_MODEL", "")),
+        "rerank_batch_size": int(getattr(settings, "RERANK_BATCH_SIZE", 16) or 16),
+        "ranking_policy": "adjacent_rrf_fallback_v1",
+        "passages_per_record": 2,
     }
     return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 

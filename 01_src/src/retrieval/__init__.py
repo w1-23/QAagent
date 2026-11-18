@@ -7,10 +7,10 @@ logger = logging.getLogger(__name__)
 
 def eager_load_rag():
     """Preload the shared retriever, embedder, and reranker once per process."""
-    from src.retrieval.multi_retriever import MultiBatchRetriever
+    from src.retrieval.runtime import get_rag
     t0 = time.perf_counter()
     try:
-        MultiBatchRetriever()  # singleton __init__ → _load_data() → Qdrant + BM25 + Models
+        get_rag()  # Validate data capability before importing optional model backends.
         logger.info(f"[RAG] MultiBatchRetriever loaded ({time.perf_counter()-t0:.1f}s)")
     except Exception as e:
         logger.error(f"[RAG] MultiBatchRetriever preload failed: {e}")

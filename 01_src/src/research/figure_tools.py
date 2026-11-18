@@ -32,6 +32,7 @@ the file the user downloads.
 from __future__ import annotations
 
 import hashlib
+import inspect
 import json
 import logging
 from typing import Any
@@ -148,7 +149,7 @@ def _persist_attachment_refs(spec: Any) -> Any:
         return replace(spec, panels=tuple(_persist_attachment_refs(panel) for panel in spec.panels))
     if not owner or not session_id:
         if any(getattr(getattr(spec, name, None), "kind", "") == "attachment"
-               for name in ("x", "y", "group", "weight")):
+               for name in ("x", "y", "group", "weight", "series_key")):
             raise ToolArgumentError("缺少账号或会话，无法保存图件的原始附件。")
         return spec
 
@@ -172,7 +173,7 @@ def _persist_attachment_refs(spec: Any) -> Any:
 
     try:
         converted = {name: _convert(getattr(spec, name, None))
-                     for name in ("x", "y", "group", "weight")}
+                     for name in ("x", "y", "group", "weight", "series_key")}
     except Exception as exc:
         raise ToolArgumentError("图件原始附件保存失败，未创建不可重绘的项目。") from exc
     if all(converted[name] is getattr(spec, name, None) for name in converted):
@@ -251,15 +252,18 @@ def create_research_figure(
         return _error("DATA", f"数据解析失败：{exc}")
 
     from src.figures.trusted_render import render_resolved, TrustedRenderError
+    from src.figures.declarative_snapshot import prepare_source, confirm_render, SnapshotError
     from src.core.cancel import ToolCancelled
 
     try:
+        source = prepare_source(spec, resolved, source_info)
         result = render_resolved(resolved, formats=tuple(formats), dpi=resolved.style.dpi)
         blobs, manifest = result.blobs, result.manifest
+        confirm_render(source, manifest)
         manifest["data_provenance"] = source_info
     except ToolCancelled:
         raise
-    except (SpecError, TrustedRenderError) as exc:
+    except (SpecError, TrustedRenderError, SnapshotError) as exc:
         return _error("RENDER", str(getattr(exc, "message", exc)))
     except Exception as exc:  # noqa: BLE001
         return _error("RENDER", f"出图失败：{exc}")
@@ -285,12 +289,11 @@ def create_research_figure(
         except Exception:
             placeholder = ""
 
-    # ``source`` must have the shape the re-render path reads: ``_render_spec``
-    # takes ``source["spec"]``. The bare spec opens in the workbench but fails
-    # every edit with ``missing_spec``.
+    # Persist the original specification and its creation-time resolved snapshot.
+    # A bare specification alone cannot certify statistics-preserving replay.
     project = _record_project(
         title=resolved.title or stem, source_kind="spec",
-        source={"kind": "spec", "spec": spec.as_dict()},
+        source=source,
         manifest=manifest, exports=published,
         data_refs=source_info.get("refs", []))
     if project:
@@ -698,7 +701,7 @@ def run_research_figure_script(
         analysis_result_ref_json=analysis_result_ref_json, outputs_json=outputs_json)
 
 
-run_research_figure_script.__doc__ = (_run_research_figure_script.__doc__ or "") + """
+run_research_figure_script.__doc__ = inspect.cleandoc(_run_research_figure_script.__doc__ or "") + "\n" + """
 
 复用优先：先用research_workspace发现适用内置工具/脚本和任务脚本。
 script与script_ref_json二选一；源码执行前自动暂存，返回script_ref及run_id，

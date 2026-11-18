@@ -147,6 +147,20 @@ class WslDockerBackend(DockerBackend):
         returned = self._control(self._wsl_command("/usr/bin/wslpath", "-a", "-w", mapped))
         if Path(returned).resolve() != resolved:
             raise SandboxUnavailable("WSL mount mapping does not round-trip to the managed directory.")
+        if resolved.name == "out":
+            # Windows chmod only changes the readonly attribute, including on
+            # WSL UNC paths. Apply the existing per-job output policy in Linux
+            # so uid 65534 can write an ext4 output mount. Never change the
+            # staging root, inputs, or any path before its checked round-trip.
+            try:
+                result = subprocess.run(
+                    self._wsl_command("/usr/bin/chmod", "0777", "--", mapped),
+                    stdin=subprocess.DEVNULL, capture_output=True, timeout=10,
+                    env=self._host_env())
+            except (OSError, subprocess.SubprocessError) as exc:
+                raise SandboxUnavailable("Could not prepare the managed WSL job output directory.") from exc
+            if result.returncode:
+                raise SandboxUnavailable("Could not prepare the managed WSL job output directory.")
         return mapped
 
     def _container_name(self, job: SandboxJob) -> str:

@@ -15,6 +15,7 @@ import secrets
 import sqlite3
 import threading
 import time
+from contextlib import closing
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -39,6 +40,16 @@ def _stamp(value: datetime | None = None) -> str:
     return (value or _now()).isoformat()
 
 
+class _ClosingConnection(sqlite3.Connection):
+    """Auth's existing connection context commits/rolls back *and* closes."""
+
+    def __exit__(self, *exc):
+        try:
+            return super().__exit__(*exc)
+        finally:
+            self.close()
+
+
 def _connect() -> sqlite3.Connection:
     DB_PATH.parent.mkdir(parents=True, mode=0o700, exist_ok=True)
     if os.name != "nt":
@@ -46,17 +57,21 @@ def _connect() -> sqlite3.Connection:
             DB_PATH.parent.chmod(0o700)
         except OSError:
             pass
-    conn = sqlite3.connect(str(DB_PATH), timeout=30, isolation_level=None)
+    conn = sqlite3.connect(str(DB_PATH), timeout=30, isolation_level=None, factory=_ClosingConnection)
     if os.name != "nt":
         try:
             DB_PATH.chmod(0o600)
         except OSError:
             pass
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA busy_timeout=30000")
-    conn.execute("PRAGMA foreign_keys=ON")
-    return conn
+    try:
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=30000")
+        conn.execute("PRAGMA foreign_keys=ON")
+        return conn
+    except BaseException:
+        conn.close()
+        raise
 
 
 def init_store() -> None:
@@ -107,6 +122,10 @@ def init_store() -> None:
         CREATE INDEX IF NOT EXISTS idx_workspace_files_owner ON workspace_files(user_id, session_id);
         """)
         _ensure_user_profile_columns(conn)
+        from src.core.account_admission import init_schema
+        conn.execute("BEGIN IMMEDIATE")
+        init_schema(conn)
+        conn.commit()
         conn.execute("DELETE FROM browser_sessions WHERE expires_at < ?", (_stamp(),))
         _ensure_session_owner_column()
 
@@ -447,9 +466,16 @@ def list_users() -> list[dict[str, Any]]:
 
 def set_user_status(user_id: int, active: bool) -> bool:
     with _connect() as conn:
-        cur = conn.execute("UPDATE users SET active=? WHERE user_id=?", (int(active), int(user_id)))
+        conn.execute("BEGIN IMMEDIATE")
+        # Administrator disable is reversible; deletion close never is. The DB
+        # trigger also fences direct SQL reactivation in other processes.
+        cur = conn.execute(
+            "UPDATE users SET active=? WHERE user_id=? AND (?=0 OR NOT EXISTS ("
+            "SELECT 1 FROM account_admission WHERE owner=? AND deleting=1))",
+            (int(active), int(user_id), int(active), int(user_id)))
         if not active:
             conn.execute("DELETE FROM browser_sessions WHERE user_id=?", (int(user_id),))
+        conn.commit()
     return cur.rowcount > 0
 
 
@@ -538,44 +564,52 @@ def _assert_no_active_account_jobs(conn: sqlite3.Connection, user_id: int) -> No
 
 
 def delete_user_account(user_id: int, *, raise_if_busy: bool = False) -> bool:
-    """Serialize retries in this worker; preserve the existing bool API by default."""
+    """Claim one cleanup owner across processes; preserve the existing bool API."""
     from src.core.account_leases import deletion_lock
-    with deletion_lock(user_id):
-        return _delete_user_account(user_id, raise_if_busy=raise_if_busy)
+    try:
+        with deletion_lock(user_id) as claim:
+            if claim is None:
+                return False
+            return _delete_user_account(user_id, raise_if_busy=raise_if_busy, claim=claim)
+    except AccountDeletionPending:
+        if raise_if_busy:
+            raise
+        return False
 
 
-def _delete_user_account(user_id: int, *, raise_if_busy: bool) -> bool:
+def _delete_user_account(user_id: int, *, raise_if_busy: bool, claim) -> bool:
     """Disable an account, purge its scoped data, then remove its identity.
 
-    The identity is deleted last. Single-worker admission leases cover accepted
+    The identity is deleted last. Shared admission references cover accepted
     requests and retained worker threads; job rows remain an additional legacy
-    guard. Waiting or failed cleanup leaves the account disabled and retryable.
+    guard. The persistent claim spans purge without a long SQLite transaction.
     Writers outside these admission/publication boundaries need their own lease.
     """
-    from src.core.account_leases import assert_idle, close_admission
+    from src.core.account_leases import assert_idle
     sessions_db = PROJECT_ROOT / "state" / "sessions.db"
     session_ids: list[str] = []
     try:
-        # Disable before taking the session snapshot. The same account DB write
-        # transaction used by reserve_chat_request prevents new reservations
-        # from passing the active check after this boundary.
-        with _lock, _connect() as conn:
-            row = conn.execute("SELECT role FROM users WHERE user_id=?", (int(user_id),)).fetchone()
-            if not row or row["role"] == "admin":
-                return False
-            # Close admission before taking a DB write lock: acquisition checks
-            # the current DB account while holding the admission lock.
-            close_admission(user_id)
-            conn.execute("BEGIN IMMEDIATE")
-            conn.execute("UPDATE users SET active=0 WHERE user_id=?", (int(user_id),))
-            conn.execute("DELETE FROM browser_sessions WHERE user_id=?", (int(user_id),))
-            conn.commit()
+        # Claim acquisition atomically closed admission and disabled identity in
+        # the auth database. Validate the fence before touching any scoped data.
+        with claim.store.transaction() as conn:
+            claim.validate(conn)
+
+        # Revoke durable queued executions after closing account admission. The
+        # queue hook also defers deletion for running/unknown execution states.
+        from src.code_execution.repository import cancel_owner_executions
+        cancel_owner_executions(int(user_id))
 
         # Includes requests admitted before reserve/create_job and retained
         # threads; a terminal job row alone is never proof that they exited.
         assert_idle(user_id)
+        # The final admitted submitter may have queued work after the first
+        # revoke and released its lease just before idle was observed. With
+        # admission closed and all holders drained, this second sweep is final.
+        cancel_owner_executions(int(user_id))
+        from src.code_execution.logs import purge_owner as purge_execution_logs
+        purge_execution_logs(int(user_id), claim=claim)
         if sessions_db.exists():
-            with sqlite3.connect(str(sessions_db), timeout=30) as conn:
+            with closing(sqlite3.connect(str(sessions_db), timeout=30)) as conn, conn:
                 conn.execute("BEGIN")
                 cols = {row[1] for row in conn.execute("PRAGMA table_info(sessions)")}
                 if "owner_user_id" not in cols:
@@ -583,6 +617,11 @@ def _delete_user_account(user_id: int, *, raise_if_busy: bool) -> bool:
                 _assert_no_active_account_jobs(conn, user_id)
                 session_ids = [str(row[0]) for row in conn.execute(
                     "SELECT session_id FROM sessions WHERE owner_user_id=?", (int(user_id),))]
+
+        # Task workspaces own file pins too. Their metadata/pins must drain
+        # under this fenced cleanup claim before session files remove bytes.
+        from src.workspaces import purge_owner as purge_workspaces
+        purge_workspaces(int(user_id), claim=claim)
 
         # Figure projects own pins on account files. Purge them first so file
         # cleanup can remove those bytes; any failure keeps the identity disabled.
@@ -626,7 +665,7 @@ def _delete_user_account(user_id: int, *, raise_if_busy: bool) -> bool:
 
         artifact_db = PROJECT_ROOT / "state" / "research_artifacts.sqlite3"
         if artifact_db.exists():
-            with sqlite3.connect(str(artifact_db), timeout=30) as conn:
+            with closing(sqlite3.connect(str(artifact_db), timeout=30)) as conn, conn:
                 for sid in session_ids:
                     for table in ("publication_outbox", "artifacts", "research_notes"):
                         try:
@@ -656,7 +695,7 @@ def _delete_user_account(user_id: int, *, raise_if_busy: bool) -> bool:
             memory_store.clear_session(sid)
 
         if sessions_db.exists():
-            with sqlite3.connect(str(sessions_db), timeout=30) as conn:
+            with closing(sqlite3.connect(str(sessions_db), timeout=30)) as conn, conn:
                 conn.execute("BEGIN IMMEDIATE")
                 # Recheck before removing the evidence used to identify jobs.
                 # A pre-existing request may have registered during file cleanup.
@@ -679,7 +718,11 @@ def _delete_user_account(user_id: int, *, raise_if_busy: bool) -> bool:
                     conn.execute("DELETE FROM sessions WHERE session_id=?", (sid,))
                 conn.commit()
 
-        with _lock, _connect() as conn:
+        with claim.store.transaction() as conn:
+            claim.validate(conn)
+            if conn.execute("SELECT 1 FROM account_work_leases WHERE owner=? LIMIT 1",
+                            (int(user_id),)).fetchone():
+                raise AccountDeletionPending("account work changed during deletion")
             cur = conn.execute(
                 "DELETE FROM users WHERE user_id=? AND role!='admin'", (int(user_id),))
             if cur.rowcount != 1:

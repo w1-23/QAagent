@@ -110,8 +110,8 @@ async def lifespan(app: FastAPI):
         mark_interrupted_requests()
         from src.core.jobs import mark_interrupted_jobs
         mark_interrupted_jobs()
-        from src.engine.hardware import get_device_status
-        logger.info("[Lifespan] ONNX device status: %s", get_device_status())
+        from src.engine.hardware import runtime_readiness
+        logger.info("[Lifespan] ONNX runtime snapshot: %s", runtime_readiness())
     except Exception as exc:
         logger.exception("[Lifespan] account store initialization failed: %s", exc)
         raise
@@ -206,7 +206,7 @@ async def lifespan(app: FastAPI):
                 image_sha256=getattr(settings, "FIGURES_SANDBOX_IMAGE_SHA256", ""),
                 runtime=settings.FIGURES_SANDBOX_RUNTIME, allow_local=False,
                 wsl_distribution=getattr(settings, "FIGURES_SANDBOX_WSL_DISTRO", "Ubuntu-24.04")), timeout=30)
-            if worker_backend == "wsl-docker" and runner is not None:
+            if worker_backend in {"wsl-docker", "apptainer"} and runner is not None:
                 from src.figures.readiness import verify_worker
                 app.state.worker_readiness = await asyncio.wait_for(
                     asyncio.to_thread(verify_worker, settings, runner), timeout=150)
@@ -221,10 +221,9 @@ async def lifespan(app: FastAPI):
         raise RuntimeError(f"Required drawing sandbox failed startup: {app.state.worker_readiness}")
     if os.getenv("CITRUS_LOCAL_FULL_STARTUP") == "1":
         from src.engine.hardware import get_device_status
-        models = get_device_status()["models"]
+        from src.runtime_status import complete_model_evidence
         if (not app.state.task_stores_ready or not app.state.retrieval_ready
-                or any(not item["loaded"] or not item["gpu"] or not item["inference_verified"] or item["runtime_error"]
-                       for item in models.values())):
+                or not complete_model_evidence(get_device_status())):
             raise RuntimeError("Complete local startup requires ready stores, retrieval and both warmed models.")
     # v9.0: 启动时一次性拼接固定 system prompt（Supervisor/Retrieve/Write/Lite/…）
     # 之后每次请求复用同一字符串，不再拼接、不再动态选择格式模板（KV cache 最大化复用）
@@ -245,7 +244,9 @@ async def lifespan(app: FastAPI):
                     app.state.figure_skill_readiness["assembled_prompt_chars"])
     except Exception:
         logger.exception("[Lifespan] nature-figure prompt verification failed")
-        raise
+        app.state.figure_skill_readiness = {"prompt_loaded": False, "reason_code": "figure_method_unavailable"}
+        if os.getenv("CITRUS_REQUIRE_FIGURE_WORKER") == "1" or os.getenv("CITRUS_LOCAL_FULL_STARTUP") == "1":
+            raise
     # Log registered capabilities. Per-request tool filtering happens inside
     # the General Agent; opt-in tools may not be advertised on ordinary turns.
     try:
@@ -262,7 +263,21 @@ async def lifespan(app: FastAPI):
         loop_watchdog.install()
     except Exception as exc:  # noqa: BLE001 - 诊断不得影响启动
         logger.warning("[Lifespan] loop watchdog install failed: %s", exc)
-    yield
+    execution_coordinator_task = None
+    if os.getenv("CITRUS_CODE_EXECUTION") == "offline-development":
+        from src.agent.execution_coordinator import ExecutionCompletionCoordinator
+        from src.config import get_deepseek_model
+        coordinator = ExecutionCompletionCoordinator(PROJECT_ROOT / "state",
+            (settings.RESOLVED_MAIN_BASE_URL, get_deepseek_model()),
+            dispatch=_resume_execution_segment,
+            busy=lambda job_id: job_id in _running_graph_tasks or job_id in _pending_graph_starts)
+        execution_coordinator_task = asyncio.create_task(coordinator.run())
+    try:
+        yield
+    finally:
+        if execution_coordinator_task is not None:
+            execution_coordinator_task.cancel()
+            await asyncio.gather(execution_coordinator_task, return_exceptions=True)
     try:
         from src.core import loop_watchdog
         loop_watchdog.uninstall()
@@ -505,15 +520,15 @@ def _stop_marker_messages(query: str, stop_text: str, done_steps: list) -> list:
 
 
 def _schedule_detach_grace(job_id: str, task: asyncio.Task) -> None:
-    """S1: 断线后的宽限期监视。
+    """Navigation/disconnect keeps execution running by default.
 
-    断线只把 job 标成 detached，执行继续；到期仍未结束才真正停——
-    且 stop_reason 写 `detached_timeout`，**绝不**写成 user。
+    An explicitly configured positive grace stops unfinished work on expiry
+    with stop_reason=detached_timeout, never a user cancellation.
     """
     from src.core import jobs as jobs_mod
 
 # S1: 允许小数秒值，方便测试用亚秒级宽限期；生产仍按整秒配置。
-    grace = float(getattr(settings, "AGENT_DETACH_GRACE_SEC", 180) or 0)
+    grace = float(getattr(settings, "AGENT_DETACH_GRACE_SEC", 0) or 0)
     if grace <= 0:
         logger.info(f"[SSE v2] detach grace disabled for job {job_id}")
         return
@@ -563,7 +578,7 @@ class ChatRequest(BaseModel):
     web_search_enabled: Optional[bool] = None
     visualization_enabled: bool = False
     context_compression: bool = True
-    selected_skills: list[SelectedSkill] = Field(default_factory=list, max_length=8)
+    selected_skills: list[SelectedSkill] = Field(default_factory=list, max_length=4)
     # Per-request attachments. Payloads are processed in memory and are never
     # ingested into the shared RAG corpus.
     attachments: list[dict[str, str]] = Field(default_factory=list, max_length=8)
@@ -1468,8 +1483,8 @@ def _load_account_file_references(infos: list[dict]) -> list[dict[str, str]]:
 @app.get("/api/v2/skills")
 async def available_skills(request: Request):
     current_user(request)
-    from src.agent.skill_adapter import skill_catalog
-    return JSONResponse({"skills": skill_catalog(scenarios_only=True)}, headers={"Cache-Control": "no-store"})
+    from src.agent.skill_adapter import scenario_catalog
+    return JSONResponse({"skills": scenario_catalog()}, headers={"Cache-Control": "no-store"})
 
 
 @app.post("/api/v2/chat")
@@ -1561,16 +1576,11 @@ async def _chat_v2_admitted(req: ChatRequest, request: Request, request_lease):
             raise HTTPException(status_code=413, detail="每轮最多上传或引用 8 个文件。")
         if req.session_id and session_manager.session_exists(req.session_id):
             require_owned_session(req.session_id, user)
-        from src.agent.skill_adapter import validate_selected_skills
-        from src.agent.host_policy import allowed_presets
+        from src.agent.skill_adapter import validate_scenario_selection
         try:
-            # Reject unavailable selections before quota admission. The host
-            # rechecks readiness against parsed attachments before execution.
-            available = allowed_presets({"query": req.query, "session_id": sid,
-                "visualization_enabled": req.visualization_enabled,
-                "account_files": req.file_refs},
-                has_tables=bool(req.attachments or req.file_refs), has_pool=False) if req.selected_skills else None
-            selected = validate_selected_skills([item.model_dump() for item in req.selected_skills], available)
+            # Selection pins guidance only. Readiness/source/write permissions
+            # remain the executor's responsibility, independent of this menu.
+            selected = validate_scenario_selection([item.model_dump() for item in req.selected_skills])
         except ValueError as exc:
             raise HTTPException(status_code=409, detail={
                 "code": "skill_selection_changed",
@@ -1590,7 +1600,7 @@ async def _chat_v2_admitted(req: ChatRequest, request: Request, request_lease):
         worker = _running_graph_tasks.get(job_id)
         if worker is not None and worker is not admission_task:
             # Ownership already transferred to the graph: its finally refunds
-            # if appropriate, and its done callback releases the retained lease.
+            # if appropriate, and its outer wrapper releases the retained lease.
             cancel_token.cancel("internal")
             if job_id not in _pending_graph_starts and not worker.done():
                 worker.cancel()
@@ -1625,7 +1635,41 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
                               user: dict, sid: str, rid: str, job_id: str,
                               cancel_token, ref_infos: list, queued_attachment_bytes: int,
                               *, continuation_state: dict | None = None, quota_reserved: bool = True,
-                              recovery_state: dict | None = None, recovery_cursor: int = 0):
+                              recovery_state: dict | None = None, recovery_cursor: int = 0,
+                              execution_segment_claim=None):
+    from src.agent.identity import ExecutionIdentity
+    identity = ExecutionIdentity(int(user["user_id"]), sid, rid, job_id)
+    if execution_segment_claim is not None and execution_segment_claim.identity != identity:
+        raise ValueError("execution_segment_identity_conflict")
+    try:
+        return await _prepare_claimed_chat(req, request, request_lease, user, sid, rid,
+            job_id, cancel_token, ref_infos, queued_attachment_bytes,
+            continuation_state=continuation_state, quota_reserved=quota_reserved,
+            recovery_state=recovery_state, recovery_cursor=recovery_cursor,
+            execution_segment_claim=execution_segment_claim)
+    except BaseException:
+        # Setup can fail before the retained graph task takes ownership. Keep a
+        # claimed wake retryable under the original run and budget in that case.
+        worker = _running_graph_tasks.get(job_id)
+        if execution_segment_claim is not None and (worker is None or worker is asyncio.current_task()):
+            from src.agent.execution_segments import ExecutionSegments
+            from src.core import jobs, task_events
+            try:
+                ExecutionSegments(execution_segment_claim.identity).release_unstarted_resume(execution_segment_claim)
+                jobs.update_job(job_id, current_step="waiting_code", error="code_resume_admission_failed")
+                task_events.append_event(job_id, "status", {"stage": "waiting_code",
+                    "summary": "执行恢复暂未受理，稍后重试。"})
+            except task_events.TaskConflict:
+                pass  # Cancellation/reconciliation must retain its own fence.
+        raise
+
+
+async def _prepare_claimed_chat(req: ChatRequest, request: Request, request_lease,
+                                user: dict, sid: str, rid: str, job_id: str,
+                                cancel_token, ref_infos: list, queued_attachment_bytes: int,
+                                *, continuation_state: dict | None = None, quota_reserved: bool = True,
+                                recovery_state: dict | None = None, recovery_cursor: int = 0,
+                                execution_segment_claim=None):
     from src.core.account_leases import run_account_async, run_account_thread
     from src.core.cancel import reset_current_token, set_current_token
     from src.core import jobs as jobs_mod
@@ -1786,6 +1830,19 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
                              if math.isfinite(request_deadline) else math.inf),
                     max_calls=int(settings.AGENT_MAX_MODEL_CALLS),
                     max_tokens=int(settings.AGENT_MAX_MODEL_TOKENS))
+    from src.agent.identity import ExecutionIdentity
+    from src.agent.execution_segments import ExecutionSegments
+    identity = ExecutionIdentity(int(user["user_id"]), sid, rid, job_id)
+    segments = ExecutionSegments(identity)
+    segment_claim = execution_segment_claim
+    if recovery_state is None:
+        segment_claim = segments.start()
+    elif segment_claim is None:
+        segments = None  # Legacy explicit recovery predates segment admission.
+    segment_activated = execution_segment_claim is None
+    resume_released = False
+    park_prepared = False
+    code_cancel_pending = False
 
     # S1 补（发布准入矩阵「SSE 断线」）：断线**不等于**取消。
     # 只在生成器里 catch CancelledError 是不够的——sse-starlette 3.4 在收到
@@ -1927,6 +1984,7 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
                 await asyncio.sleep(0)
 
         async def process_graph():
+            nonlocal park_prepared
             from src.core.tracing import set_session_id, set_user_id, set_user_role
             set_session_id(sid)
             set_user_id(int(user["user_id"]))
@@ -1941,21 +1999,40 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
             # no separate intake model or confirmation card rewrites it.
 
             pending_supervisor_output = None
+            graph_stream = graph.astream(initial_state, stream_mode="updates",
+                                         recursion_limit=settings.RECURSION_LIMIT)
             try:
-                async for node_output in graph.astream(initial_state, stream_mode="updates",
-                                                       recursion_limit=settings.RECURSION_LIMIT):
+                async for node_output in graph_stream:
                     for node_name, output in node_output.items():
-                        if "_trace" in output:
-                            trace = output["_trace"]
-                            if trace.get("node") == "session_load":
-                                await event_queue.put(_encode_event("status", {
-                                    "stage": "loading",
-                                    "summary": trace.get("summary", ""),
-                                }))
-
                         if node_name == "session_load":
                             continue
                         if node_name == "supervisor":
+                            if (cancel_token.cancelled()
+                                    or (jobs_mod.get_job(job_id) or {}).get("status") in {"cancel_requested", "cancelled"}
+                                    or (output.get("turn_outcome") or {}).get("status") == "cancelled"):
+                                await finish_cancelled()
+                                return
+                            if output.get("execution_suspension"):
+                                from src.agent.execution_outcome import validate_execution_suspension
+                                from src.agent.recovery import load_recovery_state
+                                from src.config import get_deepseek_model
+                                suspension = validate_execution_suspension(output["execution_suspension"], identity)
+                                if segments is None or segment_claim is None:
+                                    raise ValueError("execution_segment_required")
+                                await load_recovery_state(PROJECT_ROOT / "state", identity,
+                                    (settings.RESOLVED_MAIN_BASE_URL, get_deepseek_model()),
+                                    execution_wait={"checkpoint_ref": suspension["checkpoint_ref"],
+                                                    "wait_ids": suspension["wait_ids"]})
+                                check_admission_cancelled()
+                                segments.prepare_park(segment_claim,
+                                    checkpoint_ref=suspension["checkpoint_ref"],
+                                    wait_ids=tuple(suspension["wait_ids"]))
+                                park_prepared = True
+                                await emit_to_client(_encode_event("status", {"stage": "waiting_code",
+                                    "summary": "代码正在执行，完成后继续本轮任务。"}))
+                                return
+                            if segments is not None:
+                                segments.begin_finalize(segment_claim)
                             pending_supervisor_output = output
                             ref_data = output.get("references_data")
                             if ref_data:
@@ -2193,6 +2270,9 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
             except Exception as e:
                 logger.error(f"[SSE v2] graph processing error: {e}")
                 jobs_mod.update_job(job_id, status="failed", error=str(e)[:500])
+                model_unconfigured = not bool(settings.RESOLVED_MAIN_API_KEY)
+                safe_error = ("主模型尚未配置，请联系管理员配置模型后重试。附件仍可在资料库中查看。"
+                              if model_unconfigured else "处理请求时发生内部错误，请稍后重试")
                 error_envelope = None
                 try:
                     from src.core.turn_envelope import build_turn_envelope
@@ -2204,7 +2284,7 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
                         job_status="failed",
                         stop_reason="error",
                         history_saved=False,
-                        notices=["处理请求时发生内部错误，请稍后重试"],
+                        notices=[safe_error],
                     )
                     jobs_mod.save_terminal_snapshot(
                         job_id, error_envelope.as_dict())
@@ -2230,7 +2310,8 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
                 try:
                     # v8.3.3: 错误脱敏——详细异常只进日志，SSE 只发用户可读信息
                     error_payload = {
-                        "message": "处理请求时发生内部错误，请稍后重试",
+                        "message": safe_error,
+                        "code": "model_credential_unconfigured" if model_unconfigured else "request_failed",
                         "turn_status": "failed",
                     }
                     if error_envelope is not None:
@@ -2240,13 +2321,35 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
                 except Exception:
                     pass
             finally:
-                reset_request_tables(table_context_token)
-                reset_request_images(image_context_token)
-                set_user_id(None)
-                set_user_role("")
-                set_session_id("")
+                try:
+                    await graph_stream.aclose()
+                finally:
+                    reset_request_tables(table_context_token)
+                    reset_request_images(image_context_token)
+                    set_user_id(None)
+                    set_user_role("")
+                    set_session_id("")
 
         async def finish_cancelled():
+            nonlocal code_cancel_pending
+            # Code cancellation is a request, not proof that the executor exited.
+            # Leave the run discoverable until the coordinator observes terminal
+            # executions after this segment's complete outer cleanup barrier.
+            from src.code_execution.service import ExecutionService
+            from src.code_execution.protocol import TERMINAL
+            try:
+                executions = await run_account_thread(graph_lease, ExecutionService(identity).cancel_run)
+                code_cancel_pending = any(row["status"] not in TERMINAL for row in executions)
+            except Exception:
+                logger.exception("execution cancellation requires reconciliation")
+                code_cancel_pending = True
+            if code_cancel_pending:
+                cancel_token.cancel(cancel_token.reason if cancel_token.cancelled() else "user")
+                jobs_mod.update_job(job_id, status="cancel_requested", current_step="code_cancel_pending",
+                    progress_summary="等待执行队列确认停止", error="")
+                await event_queue.put(_encode_event("status", {"stage": "code_cancel_pending",
+                    "summary": "正在停止代码执行，等待执行器确认。"}))
+                return
             # S1: 区分"用户点了停止"与"服务端内部取消"——不再一律记 cancelled。
             prev_status = str((jobs_mod.get_job(job_id) or {}).get("status") or "")
             stop_reason = (cancel_token.reason if cancel_token.cancelled() else
@@ -2341,8 +2444,19 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
             except Exception:
                 pass
 
+        async def release_unstarted_resume():
+            nonlocal resume_released
+            if execution_segment_claim is None or segment_activated or resume_released:
+                return False
+            segments.release_unstarted_resume(segment_claim)
+            resume_released = True
+            jobs_mod.update_job(job_id, current_step="waiting_code", error="code_resume_admission_failed")
+            await event_queue.put(_encode_event("status", {"stage": "waiting_code",
+                "summary": "执行恢复暂未受理，稍后重试。"}))
+            return True
+
         async def process_with_capacity():
-            nonlocal attachment_context, image_attachments, table_attachments
+            nonlocal attachment_context, image_attachments, table_attachments, segment_activated
             _pending_graph_starts.discard(job_id)
             from src.core.account_leases import set_current_account_lease, reset_current_account_lease
             cancel_ctx_token = set_current_token(cancel_token)
@@ -2416,6 +2530,8 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
                         except asyncio.TimeoutError as exc:
                             raise TimeoutError("附件解析超过处理时限，请缩小文件或拆分后重试。") from exc
                 except HTTPException as exc:
+                    if await release_unstarted_resume():
+                        return
                     jobs_mod.update_job(job_id, status="failed", error=str(exc.detail)[:500])
                     try:
                         from src.admin_audit import finish_request
@@ -2426,6 +2542,8 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
                     await event_queue.put(_encode_event("error", {"message": str(exc.detail)}))
                     return
                 except Exception as exc:
+                    if await release_unstarted_resume():
+                        return
                     from src.core.executors import ExecutorSaturatedError
                     if isinstance(exc, ExecutorSaturatedError):
                         message = "附件处理队列繁忙，请稍后重试。"
@@ -2463,9 +2581,14 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
                     from src.core.user_questions import supersede_pending_questions
                     await run_account_thread(graph_lease, supersede_pending_questions, job_id,
                         owner_user_id=int(user["user_id"]), session_id=sid)
+                if execution_segment_claim is not None:
+                    segments.activate(segment_claim)
+                    segment_activated = True
                 processing_started = True
                 await process_graph()
             except OverflowError as exc:
+                if await release_unstarted_resume():
+                    return
                 jobs_mod.update_job(job_id, status="failed", error=str(exc))
                 try:
                     from src.admin_audit import finish_request
@@ -2475,6 +2598,8 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
                     pass
                 await event_queue.put(_encode_event("error", {"message": str(exc)}))
             except TimeoutError as exc:
+                if await release_unstarted_resume():
+                    return
                 jobs_mod.update_job(job_id, status="failed", error=str(exc))
                 try:
                     from src.admin_audit import finish_request
@@ -2486,6 +2611,8 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
             except asyncio.CancelledError:
                 await finish_cancelled()
             except Exception as exc:
+                if await release_unstarted_resume():
+                    return
                 logger.exception("chat request failed before/during graph execution")
                 jobs_mod.update_job(job_id, status="failed", error=type(exc).__name__)
                 try:
@@ -2518,19 +2645,41 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
                         finally:
                             progress_task.cancel()
                             heartbeat_task.cancel()
+                            cleanup_results = await asyncio.gather(progress_task, heartbeat_task, return_exceptions=True)
+                            if any(isinstance(result, BaseException) and not isinstance(result, asyncio.CancelledError)
+                                   for result in cleanup_results):
+                                raise RuntimeError("execution_segment_progress_cleanup_failed")
                             if observer_connected:
                                 event_queue.put_nowait(None)
+
+        async def run_graph_segment():
+            # This is the sole retained-handle owner. Parking becomes resumable
+            # only after every inner finally and the handle release succeeded.
+            cleanup_complete = False
+            try:
+                await process_with_capacity()
+                cleanup_complete = True
+            finally:
+                graph_lease.release()
+            if cleanup_complete and segments is not None:
+                job = jobs_mod.get_job(job_id) or {}
+                if job.get("status") == "cancel_requested":
+                    # A stop can arrive after inner cleanup unregisters the
+                    # task. The coordinator must re-read execution settlement.
+                    segments.release_cancel(segment_claim)
+                elif (park_prepared and not cancel_token.cancelled()
+                        and job.get("status") in {"running", "detached"}
+                        and not asyncio.current_task().cancelling()):
+                    segments.release_park(segment_claim)
 
         _pending_graph_starts.add(job_id)
         graph_lease = request_lease.retain()
         try:
-            graph_task = asyncio.create_task(process_with_capacity())
+            graph_task = asyncio.create_task(run_graph_segment())
         except BaseException:
             graph_lease.release()
             raise
-        # Task completion includes its outer finally (including cancellation
-        # history and capacity cleanup), even if cancelled before first execution.
-        graph_task.add_done_callback(lambda _done: graph_lease.release())
+        # No await separates retained-handle ownership and task registration.
         _running_graph_tasks[job_id] = graph_task
         graph_task_holder["task"] = graph_task
 
@@ -2550,7 +2699,9 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
                         yield event
                     if page["has_more"]:
                         continue
-                    if ended or graph_task.done():
+                    job = jobs_mod.get_job(job_id) or {}
+                    if ((ended or graph_task.done())
+                            and job.get("status") in jobs_mod.TERMINAL_STATUS):
                         break
                     try:
                         event = await asyncio.wait_for(event_queue.get(), timeout=1.5)
@@ -2565,7 +2716,10 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
             finally:
                 if not conn_state["keep_alive"]:
                     if not graph_task.done():
-                        graph_task.cancel()
+                        if job_id in _pending_graph_starts:
+                            cancel_token.cancel("internal")
+                        else:
+                            graph_task.cancel()
                 if not progress_task.done():
                     progress_task.cancel()
                 if not heartbeat_task.done():
@@ -2603,16 +2757,21 @@ async def get_job_status(job_id: str, request: Request):
     job = jobs_mod.get_job(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
-    _require_owned_job(job, current_user(request))
+    user = current_user(request)
+    _require_owned_job(job, user)
     payload = dict(job)
     payload["terminal_snapshot"] = jobs_mod.decode_terminal_snapshot(job)
     from src.core.task_events import projection
     payload.update(projection(job_id))
-    from src.core.user_questions import list_questions
-    questions = list_questions(job_id, owner_user_id=int(current_user(request)["user_id"]),
-                               session_id=job["session_id"])
-    if questions:
-        payload["question"] = questions[0]
+    # Legacy jobs are authorized through their session above. They have no
+    # durable account identity and cannot own the newer question protocol.
+    # Do not feed them into its stricter owner-bound authorization check.
+    if job.get("owner_user_id") is not None:
+        from src.core.user_questions import list_questions
+        questions = list_questions(job_id, owner_user_id=int(user["user_id"]),
+                                   session_id=job["session_id"])
+        if questions:
+            payload["question"] = questions[0]
     return payload
 
 
@@ -2781,6 +2940,62 @@ async def decide_task_approval(job_id: str, approval_id: str, req: ApprovalDecis
         return result
     except task_events.TaskConflict as exc:
         raise HTTPException(status_code=409, detail={"code": str(exc)}) from exc
+
+
+async def _resume_execution_segment(identity, state, admission, lease):
+    """Coordinator-only dispatch using the original owner, inputs and run."""
+    from src.auth import user_by_id
+    from src.agent.execution_segments import ExecutionSegments
+    from src.core import task_events
+    from src.core.cancel import CancelToken
+
+    if identity.run_id in _running_graph_tasks or identity.run_id in _pending_graph_starts:
+        raise task_events.TaskConflict("execution_segment_already_active")
+    admission_task = asyncio.current_task()
+    registered = False
+    try:
+        user = user_by_id(identity.owner_user_id)
+        if not user or not user.get("active"):
+            raise task_events.TaskConflict("execution_segment_owner_unavailable")
+        require_owned_session(identity.session_id, user)
+        if (state.get("user_id") != identity.owner_user_id
+                or state.get("session_id") != identity.session_id
+                or state.get("request_id") != identity.user_turn_id
+                or state.get("job_id") != identity.run_id):
+            raise task_events.TaskConflict("execution_segment_identity_conflict")
+        file_ids = [str(ref["file_id"]) for ref in state.get("attachment_refs", [])]
+        ref_infos = _validate_account_file_refs(file_ids, identity.owner_user_id)
+        hashes = {ref["file_id"]: ref.get("sha256") for ref in state.get("attachment_refs", [])}
+        if any(hashes.get(info["file_id"]) != info.get("sha256") for info in ref_infos):
+            raise task_events.TaskConflict("recovery_input_changed")
+        req = ChatRequest(query=state["query"], session_id=identity.session_id,
+            client_request_id=state["client_request_id"], file_refs=file_ids,
+            visualization_enabled=bool(state.get("visualization_enabled")),
+            context_compression=bool(state.get("context_compression", True)),
+            selected_skills=state.get("selected_skills") or [])
+        token = CancelToken()
+        _job_tokens[identity.run_id] = token
+        _running_graph_tasks[identity.run_id] = admission_task
+        registered = True
+        request = Request({"type": "http", "method": "POST", "path": "/internal/execution-resume",
+                           "headers": [], "query_string": b"", "scheme": "http"})
+        return await _start_claimed_chat(req, request, lease, user, identity.session_id,
+            identity.user_turn_id, identity.run_id, token, ref_infos,
+            sum(int(info.get("size_bytes") or 0) for info in ref_infos),
+            quota_reserved=False, recovery_state=state,
+            execution_segment_claim=admission["claim"],
+            recovery_cursor=admission.get("recovery_cursor", 0))
+    except BaseException:
+        worker = _running_graph_tasks.get(identity.run_id)
+        if worker is None or (registered and worker is admission_task):
+            if registered:
+                _job_tokens.pop(identity.run_id, None)
+                _running_graph_tasks.pop(identity.run_id, None)
+            try:
+                ExecutionSegments(identity).release_unstarted_resume(admission["claim"])
+            except task_events.TaskConflict:
+                pass
+        raise
 
 
 class RecoverAgentRequest(BaseModel):
@@ -3549,37 +3764,53 @@ def _agent_runtime_readiness():
         except Exception as exc:
             # Report module/type only; import exceptions may contain local secrets.
             errors.append({"module": name, "error": type(exc).__name__})
+    if not errors:
+        try:
+            from src.agent.deep_agent_runtime import configure_host_profile
+            configure_host_profile()
+        except Exception as exc:
+            errors.append({"module": "src.agent.deep_agent_runtime", "error": type(exc).__name__})
     return {"ready": not errors, "errors": errors}
+
+
+def _runtime_snapshot():
+    from src.engine.hardware import runtime_readiness
+    models = runtime_readiness()
+    worker = dict(getattr(app.state, "worker_readiness", {"status": "unverified", "verified": False}))
+    if settings.FIGURES_SANDBOX_BACKEND in {"wsl-docker", "apptainer"}:
+        from src.figures.readiness import worker_snapshot
+        worker = worker_snapshot(settings) or {"status": "unverified", "verified": False}
+    return {"models": models, "worker": worker,
+            "stores": bool(getattr(app.state, "task_stores_ready", False)),
+            "retrieval": bool(getattr(app.state, "retrieval_ready", False)),
+            "figure_skill": dict(getattr(app.state, "figure_skill_readiness", {})),
+            "agent": getattr(app.state, "agent_readiness", None) or _agent_runtime_readiness()}
 
 
 @app.get("/ready")
 async def readiness_check():
-    from src.engine.hardware import runtime_readiness
-    models = runtime_readiness()
-    worker = dict(getattr(app.state, "worker_readiness", {"status": "unverified", "verified": False}))
-    if settings.FIGURES_SANDBOX_BACKEND == "wsl-docker":
-        from src.figures.readiness import worker_snapshot
-        worker = worker_snapshot(settings) or {"backend": "wsl-docker", "status": "unverified", "verified": False}
-    if os.getenv("CITRUS_LOCAL_FULL_STARTUP") == "1":
-        model_errors = [name for name, item in models["models"].items()
-                        if not item["loaded"] or not item["gpu"] or not item["inference_verified"] or item["runtime_error"]]
-        if model_errors:
-            models.update(ready=False, status="unavailable", errors=models["errors"] + model_errors)
-    worker_required = os.getenv("CITRUS_REQUIRE_FIGURE_WORKER", "0").strip().lower() in {"1", "true", "yes", "on"}
-    stores_ready = bool(getattr(app.state, "task_stores_ready", False))
-    retrieval_ready = bool(getattr(app.state, "retrieval_ready", False))
-    figure_skill = dict(getattr(app.state, "figure_skill_readiness", {}))
-    agent = getattr(app.state, "agent_readiness", None) or _agent_runtime_readiness()
-    ready = bool(agent["ready"]) and stores_ready and retrieval_ready and bool(models.get("ready")) and (not worker_required or (bool(worker.get("verified")) and bool(figure_skill.get("prompt_loaded"))))
-    return JSONResponse({"ready": ready, "status": ("ready" if worker.get("verified") else "degraded") if ready else "unavailable",
-        "version": settings.VERSION, "stores_ready": stores_ready,
-        "retrieval_ready": retrieval_ready, "models": models, "agent_runtime": agent,
-        "worker": worker | {"required": worker_required},
-        "figure_skill": figure_skill,
-        "local_runtime": ({"profile": "full-v1", "instance_id": os.getenv("CITRUS_LOCAL_INSTANCE_ID", ""),
-                           "pid": os.getpid(), "workspace": str(PROJECT_ROOT.parent)}
-                          if os.getenv("CITRUS_LOCAL_FULL_STARTUP") == "1" else None)}, status_code=200 if ready else 503,
-        headers={"Cache-Control": "no-store"})
+    from src.runtime_status import public_readiness
+    snapshot = await asyncio.to_thread(_runtime_snapshot)
+    status = public_readiness(**snapshot, version=settings.VERSION,
+        model_configured=bool(settings.RESOLVED_MAIN_API_KEY),
+        full=os.getenv("CITRUS_LOCAL_FULL_STARTUP") == "1",
+        worker_required=os.getenv("CITRUS_REQUIRE_FIGURE_WORKER", "0").strip().lower() in {"1", "true", "yes", "on"})
+    code_enabled = os.getenv("CITRUS_CODE_EXECUTION") == "offline-development"
+    code_available = False
+    if code_enabled:
+        from src.code_execution.presence import worker_available
+        code_available = await asyncio.to_thread(worker_available, PROJECT_ROOT / "state" / "code_executions.sqlite3")
+    status["code_worker"] = {"enabled": code_enabled, "available": code_available,
+        "network_policy": "offline", "admission": "development-oci", "public_ready": False}
+    return JSONResponse(status, status_code=200 if status["ready"] else 503,
+                        headers={"Cache-Control": "no-store"})
+
+
+@app.get("/api/v2/admin/runtime")
+async def runtime_diagnostics(request: Request):
+    require_admin(request)
+    snapshot = await asyncio.to_thread(_runtime_snapshot)
+    return JSONResponse(snapshot, headers={"Cache-Control": "no-store"})
 
 
 @app.get("/api/v2/vision/status")
@@ -3623,7 +3854,13 @@ async def new_session_endpoint(request: Request):
 async def list_sessions(request: Request, limit: int = 100):
     """会话列表（排除软删除，按最近更新倒序；标题为空显示"新会话"）。"""
     user = current_user(request)
-    sessions = await asyncio.to_thread(session_manager.list_sessions, limit, int(user["user_id"]))
+    owner = int(user["user_id"])
+    sessions = await asyncio.to_thread(session_manager.list_sessions, limit, owner)
+    from src.core import jobs
+    task_sessions = await asyncio.to_thread(
+        jobs.sessions_with_jobs, [session["session_id"] for session in sessions], owner)
+    for session in sessions:
+        session["has_tasks"] = session["session_id"] in task_sessions
     return {"sessions": sessions, "count": len(sessions)}
 
 
@@ -4109,16 +4346,16 @@ def build_history_turns(items: list[dict]) -> list[dict]:
                 "tool_message_id": mid or entry.get("tool_message_id") or 0,
             })
         elif role == "assistant":
-            # Every assistant row starts life as an execution-timeline note; the
-            # last one of the turn is promoted to the answer below. That is what
-            # the live stream does: narration goes into the trace
-            # (assistant_progress), and ``done.answer`` replaces the bubble text.
+            # Keep answer candidates until turn boundaries are known. Only
+            # notes explicitly classified as public model text are rendered as
+            # commentary; the final plain assistant row becomes the answer.
             try:
                 gen_ms = int(item.get("gen_time_ms") or 0)
             except (TypeError, ValueError):
                 gen_ms = 0
             entry = {"kind": "note", "content": str(item.get("content") or ""),
                      "message_id": mid, "gen_time_ms": gen_ms,
+                     "visibility": item.get("visibility", ""), "origin": item.get("origin", ""),
                      "answer_candidate": True}
             if item.get("progress") is True:
                 # Narration attached to tool calls: it was spoken right before
@@ -4214,7 +4451,8 @@ def _history_items_from_messages(msgs: list, row_ids: list, request_ids: list,
                         "turn_request_id": request_id,
                         "attachments": files_by_request.get(request_id, [])})
         elif isinstance(m, AIMessage):
-            content = str(getattr(m, "content", "") or "").strip()
+            from src.core.public_progress import public_content_text
+            content = public_content_text(m.content).strip()
             # Restore a safe, human-readable trace of each tool operation.
             # Provider reasoning_content is deliberately never returned.
             tool_calls = getattr(m, "tool_calls", None) or []
@@ -4228,6 +4466,9 @@ def _history_items_from_messages(msgs: list, row_ids: list, request_ids: list,
                     "summary": _safe_tool_summary(
                         str(tc.get("name") or "tool"), tc.get("args") or {}),
                 } for tc in tool_calls]})
+            if content and tool_calls:
+                from src.core.public_progress import public_progress_text
+                content = public_progress_text(m.content, has_tool_calls=True)
             if content:
                 # A stored assistant message that also carries tool calls is the
                 # model's public work note for this turn, not the answer: the
@@ -4238,6 +4479,10 @@ def _history_items_from_messages(msgs: list, row_ids: list, request_ids: list,
                         "request_id": turn_request_id,
                         "turn_request_id": turn_request_id,
                         "progress": bool(tool_calls)}
+                if tool_calls:
+                    # Classified from actual assistant text blocks, never from
+                    # provider reasoning fields or a host-generated stage.
+                    item.update(visibility="public", origin="model")
                 metadata = getattr(m, "response_metadata", None) or {}
                 try:
                     generation_ms = int(metadata.get("citrus_generation_ms") or 0)
@@ -4366,20 +4611,20 @@ async def session_turns(session_id: str, request: Request, limit: int = 400,
     return {"session_id": session_id, **data}
 
 
-def _history_with_jobs(turns: list[dict], session_id: str, owner: int) -> list[dict]:
-    """Join identities, never text; queued continuations exist before message save."""
+def _history_with_jobs(turns: list[dict], session_id: str, owner: int, *,
+                       saved_request_ids: list[str] | None = None,
+                       include_pending: bool = True) -> list[dict]:
+    """Join saved turns and rediscover unsaved tasks by durable identities only."""
     from src.core import jobs
     from src.core.task_events import latest_context_snapshot
     from src.core.user_questions import list_questions, get_continuation
     keys = [str(turn.get("turn_request_id") or "") for turn in turns]
+    saved = {key for key in (saved_request_ids or []) if key}
+    saved.update(key for key in keys if key)
     matched = jobs.jobs_for_turns(session_id, owner, keys)
     present = {job["job_id"] for job in matched.values()}
-    result = []
-    for turn in turns:
-        job = matched.get(str(turn.get("turn_request_id") or ""))
-        result.append(turn)
-        if not job:
-            continue
+
+    def attach(turn, job):
         questions = list_questions(job["job_id"], owner_user_id=owner, session_id=session_id)
         turn.update(job_id=job["job_id"], job_status=job["status"],
                     parent_job_id=job.get("parent_job_id") or "",
@@ -4387,12 +4632,28 @@ def _history_with_jobs(turns: list[dict], session_id: str, owner: int) -> list[d
                     terminal_snapshot=jobs.decode_terminal_snapshot(job), replay_cursor=0,
                     context_snapshot=latest_context_snapshot(job["job_id"]),
                     question=questions[0] if questions else None)
+        return questions
+
+    def is_saved(job):
+        return any(job.get(field) in saved for field in ("client_request_id", "request_id"))
+
+    result = []
+    for turn in turns:
+        job = matched.get(str(turn.get("turn_request_id") or ""))
+        result.append(turn)
+        if not job:
+            continue
+        questions = attach(turn, job)
+        if not include_pending:
+            continue
         for question in questions:
             child_id = question.get("child_job_id")
             if not child_id or child_id in present:
                 continue
             child = jobs.get_job(child_id)
             if not child or int(child.get("owner_user_id") or 0) != owner or child.get("session_id") != session_id:
+                continue
+            if is_saved(child):
                 continue
             continuation = get_continuation(child_id, owner_user_id=owner, session_id=session_id)
             key = str(child.get("client_request_id") or "")
@@ -4405,6 +4666,19 @@ def _history_with_jobs(turns: list[dict], session_id: str, owner: int) -> list[d
                 context_snapshot=latest_context_snapshot(child_id), history_pending=True)
             result.append(pending)
             present.add(child_id)
+    if include_pending:
+        recent = jobs.list_for_session(session_id, include_active=True, owner_user_id=owner)
+        for job in reversed(recent):
+            if job["job_id"] in present or is_saved(job):
+                continue
+            key = str(job.get("client_request_id") or job.get("request_id") or job["job_id"])
+            pending = _new_history_turn(key)
+            attach(pending, job)
+            # The request body is not stored in task_jobs. Expose only factual
+            # task metadata; a reconnect must never invent a user question.
+            pending["history_pending"] = True
+            result.append(pending)
+            present.add(job["job_id"])
     return result
 
 
@@ -4443,7 +4717,9 @@ async def session_messages(session_id: str, request: Request, limit: int = 60,
     # P0-A: the same归属 rule the browser applies when it merges pages, so the
     # contract can be asserted without a browser (see test_trace_turn_merge.py).
     turns = build_history_turns(window)
-    turns = await asyncio.to_thread(_history_with_jobs, turns, session_id, int(user["user_id"]))
+    turns = await asyncio.to_thread(
+        _history_with_jobs, turns, session_id, int(user["user_id"]),
+        saved_request_ids=request_ids, include_pending=not before)
     return {"session_id": session_id, "messages": window, "count": len(window),
             "has_more": has_more, "next_before": next_before,
             "turns": turns,

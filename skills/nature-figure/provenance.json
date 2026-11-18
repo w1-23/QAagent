@@ -1,0 +1,297 @@
+{
+  "name": "nature-figure",
+  "version": "2.0.0",
+  "distribution": "citrusscholar-support==2.0.0",
+  "package": "citrus_figures",
+  "vendor": {
+    "source": "https://github.com/Yuan1z0825/nature-skills",
+    "commit": "7bff1d0539c0dfad6c30178bb93ce6dd8a5cebf8",
+    "skill_version": "2.8.0",
+    "upstream_file_count": 44,
+    "provenance": "vendor/nature-skills/provenance.json"
+  },
+  "coverage": "Curated original-byte core plus four pinned peripherals; excluded assets documented in references/bridge.md. No claim of complete upstream checkout.",
+  "hash_scope": "All delivered skill resources except this self-referential provenance and tests; original upstream hashes remain separately recorded.",
+  "files": [
+    {
+      "path": "ADAPTER.md",
+      "sha256": "1847f2f9541667b5abe9278a0c620a4d0808c86b6fd4a7644071ffb72de5f09f",
+      "size": 4958
+    },
+    {
+      "path": "RELEASE.md",
+      "sha256": "6bf7ae55b78f1aa22a3d44f36999a51f27e16d32d828475faadd24e5bc83bdb8",
+      "size": 2784
+    },
+    {
+      "path": "SKILL.md",
+      "sha256": "878010ec09e4c3a65c18249cb2babc41e64ce48b93881a921dd3ff0fc4e9f23d",
+      "size": 4670
+    },
+    {
+      "path": "provenance.extra.json",
+      "sha256": "d009a7c9e34fef2627d01fd940bed35a6a71115bee3a7b4130c1f4c1ae55bcf4",
+      "size": 1301
+    },
+    {
+      "path": "references/bridge.md",
+      "sha256": "84d1263b12d64b02787c5fa11c57d1dfa8ca7618247aeadef8ca6050ff615d63",
+      "size": 3455
+    },
+    {
+      "path": "scripts/citrus/bundle_figure.py",
+      "sha256": "67adff94195ebff0cf4bd5ae6eacd6172e0c6a0188bbeec467cee86397b5f6b2",
+      "size": 430
+    },
+    {
+      "path": "scripts/citrus/render_figure.py",
+      "sha256": "2e19fedfa7622448aafd69908359b29369d65443194c388db1bdcedf45d39ba1",
+      "size": 430
+    },
+    {
+      "path": "scripts/citrus/revise_figure.py",
+      "sha256": "74f534dedec3be326dc75ac810f3dc8d72447a33b212b1dd9085804ee0759cc3",
+      "size": 430
+    },
+    {
+      "path": "scripts/citrus/verify_figure.py",
+      "sha256": "c124ab366305210ffe5036e65978cbd997168d03bfe8128d2741f042f5dc4cb0",
+      "size": 430
+    },
+    {
+      "path": "vendor/nature-skills/.gitattributes",
+      "sha256": "03cb93717fd024bb2c52904b56ffed975624cc543960f505fa8290a76ee550f8",
+      "size": 111
+    },
+    {
+      "path": "vendor/nature-skills/INTEGRATION.md",
+      "sha256": "319bfab0ce13e390a12d9e9df3640c42ddd9caac38cda3562d18a75dbcc54f3b",
+      "size": 8945
+    },
+    {
+      "path": "vendor/nature-skills/LICENSE",
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "size": 11357
+    },
+    {
+      "path": "vendor/nature-skills/provenance.json",
+      "sha256": "43f5229b5052ecfc77b5fc86bf0c6fc390a5b5a118a7d2e3e73cfcb1f74da013",
+      "size": 7984
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/SKILL.md",
+      "sha256": "5aefe708a2531c5ddaa8ee74d5155d747e96c0f21a33143d38316b7c5c88ffc4",
+      "size": 12367
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/assets/figures4papers/THIRD_PARTY_NOTICES.md",
+      "sha256": "b0ef9d2fe959468fce4f45472b12ff4d4fc9450201caa42d394823cd4a5e20d5",
+      "size": 982
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/manifest.yaml",
+      "sha256": "f6cf1e50f55c74e159134edb8ca5a57fd5097b72b37463c7b2612757e01c24be",
+      "size": 7782
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/references/ai-graphical-abstract-workflow.md",
+      "sha256": "258c59085ef3eaf28dcda8bf00bab5d3235f0736be1af652911de1af8aa14c4f",
+      "size": 6263
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/references/api.md",
+      "sha256": "1ec51840fdc45017735511b1275cada5e09f5d3e7dc44f35b2d8ba052809a4bc",
+      "size": 20759
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/references/asset-adaptation.md",
+      "sha256": "64c4f788962d73beba1bbd919255dffe620de3090579e7ec811e88e557ac4c3d",
+      "size": 5149
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/references/backend-selection.md",
+      "sha256": "9ff023b8103da861f2c6e4b8b244a0003120d180ab4fb004c346af5a12343dca",
+      "size": 5937
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/references/chart-types.md",
+      "sha256": "68008a60e0285e840a34973db5f945e88051280ac4dcad8a7eb97882c5384dfa",
+      "size": 11883
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/references/common-patterns.md",
+      "sha256": "5f176c70bb846744374a27a342d03761ff9c0a0c7844f87867add3a66c448581",
+      "size": 11668
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/references/demos.md",
+      "sha256": "dc34ab2d1600265f7e03af51afa0d4bda7b235f4cf3d2f73ac791dca8c605cec",
+      "size": 3282
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/references/design-theory.md",
+      "sha256": "e8b31da9dec01f552acca6aeffbd06c8dbf53e737d7138075d1f97619c43a47e",
+      "size": 18102
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/references/figure-contract.md",
+      "sha256": "db08b51fb080c5fe37f61140a1b7fd31247f90810f3a80cdcf58429a699879df",
+      "size": 5703
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/references/figure-legend-conventions.md",
+      "sha256": "7d00fc1839d5b152b289c8d892e723549be06c38ea75761763108a5ac34303fd",
+      "size": 5165
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/references/multipanel-evidence-architecture.md",
+      "sha256": "79ca617cc05088d6fcfb065140d0ee036eb849738bb79306964eb9aa3a4ed274",
+      "size": 12732
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/references/nature-2026-observations.md",
+      "sha256": "1af8250733da77f1d82cc370e2e8d61266352517b1d1ab82ed6c834de8c98272",
+      "size": 6270
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/references/nature-article-requirements.md",
+      "sha256": "d59ebd80a99b2a91d9b0861529044f6242e1430b37fa4d7c73935a40a6a6be33",
+      "size": 5822
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/references/openrouter-image-generation.md",
+      "sha256": "52a26512c9eabd040c95c5c97f6fba9b110cd4be5b41d667d372c489d11526c6",
+      "size": 5928
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/references/qa-contract.md",
+      "sha256": "4f31375cdb614d74eddb8aa7691c0bdfc8a8f20defcca27ce4a36192308748a8",
+      "size": 24785
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/references/r-template-index.md",
+      "sha256": "0ebbbd4171896b61639d7969a010401d0aa257bafb99783026a1ba32c91ce19e",
+      "size": 3903
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/references/r-workflow.md",
+      "sha256": "ad5403b890801d8e350976d65462babcab2dc1f525351d20bc6136b92900d9d6",
+      "size": 8070
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/references/template-catalog.md",
+      "sha256": "f3dfe03d7ad6d004d17cb1f576e39020f55d1aa6d26f115a3be9ce6279e7d244",
+      "size": 2227
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/references/tutorials.md",
+      "sha256": "0fbd92cedc8da312ec4b8655127d61ce2ba68f218b70a346d6716977ab4861d6",
+      "size": 8728
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/references/vector-schematic-style-rules.md",
+      "sha256": "fa96f0452b67deded2ce0437dc6bde7bedeae9dd438f18e22525d61953b32ee5",
+      "size": 7230
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/references/vector-schematic-workflow.md",
+      "sha256": "9f96fa703bbe29581e50ddac9756900553b5617f46b4a0b31e8978278fffa329",
+      "size": 6629
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/requirements.txt",
+      "sha256": "e2596dd9f3381fb6280bd18added6c3d0025d954c99a132e3d0bc8d3e8a24d00",
+      "size": 23
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/scripts/audit_figure_collisions.py",
+      "sha256": "4bd020238a9f207c8a67c61d7209cef5959f2995a1d9cd95911d6fa93de7aa36",
+      "size": 27709
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/scripts/audit_panel_alignment.py",
+      "sha256": "4ed2d6afe9db45aaf6ca26aeb264cfc251ae92b49ee9fbf117d926e1956acf56",
+      "size": 39469
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/scripts/audit_pdf_text.py",
+      "sha256": "0b3d3e30ce9ec7191b8ba6dd053226487ab41594297005afcd127acda3b08281",
+      "size": 8586
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/scripts/audit_svg_schematic.py",
+      "sha256": "8776cb9da07dc2ef6edf65c1ad23184567172b03685b880c78f3ef74d7241db8",
+      "size": 12722
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/scripts/figure_safety.py",
+      "sha256": "0e3e9601aacdafca32ef5fbf1967bdeec0abbf7f564edfd711875432bd47c212",
+      "size": 2216
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/scripts/generate_openrouter_schematic.py",
+      "sha256": "0b8a9ac399be326fa1b575e800f5d7541516a7f1d0d7696dcc81096a3f4edb4b",
+      "size": 10586
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/scripts/nature_figure_backend.py",
+      "sha256": "ae15bc3f19217250edbbb8bfcb33227d185469f67e81071780369224e63d0dca",
+      "size": 2737
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/scripts/panel_alignment.R",
+      "sha256": "aeb2db8355e2026e2f2640d25bf18edfa57fb0165ec2c7811f97bb75ba53d26b",
+      "size": 6233
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/scripts/plot_templates.py",
+      "sha256": "c5c042bc09464d58cc0363bc8542db946acb4c7efb53360a70386e1a6704691a",
+      "size": 29761
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/scripts/validate_figure.py",
+      "sha256": "b9800e93dfa289eddd2e9438af755fcc6dd4a5f0f1da7778e4f999a91b69b042",
+      "size": 33447
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/static/core/contract.md",
+      "sha256": "a2b6523a48192cf1dff0d194264c5662c832f4d1da6e9e4763ccd98cc0664d4c",
+      "size": 6274
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/static/core/stance.md",
+      "sha256": "c7e6860e955a2ee9c24a30dbe88e28741da4eef8290c019e849c6b220ea0f07a",
+      "size": 4595
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/static/fragments/backend/python.md",
+      "sha256": "1d4809e4ec4ed2d40995d74828732012a6a72c941dfec341745a3118e9312865",
+      "size": 3535
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-figure/static/fragments/backend/r.md",
+      "sha256": "4839a77846f0f71a7a44f077ee8fc665460033e7006cb18a884562712d667e2d",
+      "size": 3299
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-shared/core/ethics.md",
+      "sha256": "065db5761d72c295eb1ed5c231deb0b0bcbb0f1065d530f994c044398bd75056",
+      "size": 3424
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-shared/core/nature-results-discussion.md",
+      "sha256": "16f1ce1ed6d2aad7853eabf304cdbd661530931747bce4cf3f10b3dfb655adc1",
+      "size": 10288
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-shared/core/research-compliance.md",
+      "sha256": "0ac172d2af0c2089acd7280712a89b23a5f232d4e436e9ae78dd501ff30cd855",
+      "size": 7717
+    },
+    {
+      "path": "vendor/nature-skills/skills/nature-shared/journal-formats/nature-machine-intelligence.md",
+      "sha256": "d62a418fbd67841e745f553b98a267b5a01c9445457a07a0121095ce76fad0af",
+      "size": 18975
+    }
+  ]
+}

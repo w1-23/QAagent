@@ -2,16 +2,6 @@
   'use strict';
   function create(options) {
     var host = document.createElement('div'); host.className = 'task-controls'; host.hidden = true;
-    var edit = document.createElement('details'); edit.className = 'task-update';
-    var title = document.createElement('summary'); title.textContent = '调整本轮任务'; edit.appendChild(title);
-    var form = document.createElement('form'), label = document.createElement('label');
-    label.textContent = '补充或修改要求';
-    var input = document.createElement('textarea'); input.rows = 2; input.maxLength = 2000;
-    input.setAttribute('aria-label', '补充或修改本轮任务要求'); label.appendChild(input); form.appendChild(label);
-    var hint = document.createElement('p'); hint.className = 'task-control-hint';
-    hint.textContent = '调整在后续步骤生效，已完成的结果保留。'; form.appendChild(hint);
-    var submit = document.createElement('button'); submit.type = 'submit'; submit.textContent = '提交调整'; form.appendChild(submit);
-    edit.appendChild(form); host.appendChild(edit);
     var message = document.createElement('p'); message.className = 'task-control-status';
     message.setAttribute('role', 'status'); host.appendChild(message);
     var recover = document.createElement('div'); recover.className = 'task-recovery'; host.appendChild(recover);
@@ -21,8 +11,6 @@
     function render(state) {
       if (!alive()) return;
       host.hidden = !state.job_id;
-      var active = ['running', 'detached'].indexOf(state.status) >= 0 && !root.CitrusTaskState.isTerminal(state);
-      edit.hidden = !active; submit.disabled = busy || !active;
       var notApplied = state.not_applied_updates || [];
       if (acceptedVersion > 0 && (state.applied_version >= acceptedVersion || notApplied.some(function (item) { return item.version === acceptedVersion; }))) { requestNote = ''; acceptedVersion = 0; }
       var pending = state.pending_updates.length;
@@ -60,33 +48,47 @@
           note.textContent = '仅恢复支持的本地读取或计算步骤；不会重新执行整轮任务。'; recover.appendChild(note);
         }
       }
+      host.hidden = !state.job_id || (!message.textContent && !eligible.length);
+      if (options.onChange) options.onChange(state);
     }
-    form.addEventListener('submit', async function (event) {
-      event.preventDefault();
-      var state = options.store.state, instruction = input.value.trim();
-      if (!alive() || busy || submit.disabled || !instruction) return;
+    function canUpdate() {
+      var state = options.store.state;
+      return alive() && !busy && !!state.job_id && ['running', 'detached'].indexOf(state.status) >= 0
+        && !root.CitrusTaskState.isTerminal(state) && !(state.question && state.question.status === 'pending');
+    }
+    async function submitUpdate(instruction) {
+      instruction = String(instruction || '').trim();
+      var state = options.store.state;
+      if (!canUpdate() || !instruction) return false;
+      if (instruction.length > 8000) {
+        requestNote = '本轮补充最多 8000 个字符。'; render(state); return false;
+      }
       busy = true; requestNote = ''; render(state);
       try {
         var result = await options.transport.post(state.job_id, 'updates', {expected_version: state.task_version, instruction: instruction});
-        if (!alive() || !result) return;
-        requestNote = '调整已提交，等待后续步骤应用。'; input.value = '';
+        if (!alive() || !result) return false;
+        requestNote = '补充已提交，等待后续步骤应用。';
         if (Number.isSafeInteger(result.version)) {
           acceptedVersion = result.version;
+          var latest = options.store.state;
           options.store.hydrate({job_id: state.job_id, task_version: result.version,
-            pending_updates: state.pending_updates.filter(function (item) { return item.version !== result.version; }).concat(result.version > state.applied_version ? [result] : [])});
+            pending_updates: latest.pending_updates.filter(function (item) { return item.version !== result.version; }).concat(result.version > latest.applied_version ? [result] : [])});
         }
         try { await options.transport.refresh(state.job_id); }
-        catch (_) { if (alive()) requestNote = '调整已提交；暂时无法刷新应用状态。'; }
+        catch (_) { if (alive() && acceptedVersion > 0) requestNote = '补充已提交；暂时无法刷新应用状态。'; }
+        return true;
       } catch (error) {
-        if (!alive()) return;
+        if (!alive()) return false;
         requestNote = error.message;
         if (error.status === 409) {
-          try { await options.transport.refresh(state.job_id); } catch (_) { /* preserve draft and conflict explanation */ }
+          try { await options.transport.refresh(state.job_id); } catch (_) { /* preserve the composer draft and conflict explanation */ }
         }
+        return false;
       } finally { if (alive()) { busy = false; render(options.store.state); } }
-    });
+    }
     var unsubscribe = options.store.subscribe(render); render(options.store.state);
-    return {element: host, render: render, dispose: unsubscribe};
+    return {element: host, render: render, dispose: unsubscribe, canUpdate: canUpdate,
+      submitUpdate: submitUpdate, isBusy: function () { return busy; }};
   }
   function createQuestion(options) {
     var host = document.createElement('section'); host.className = 'task-question'; host.hidden = true;

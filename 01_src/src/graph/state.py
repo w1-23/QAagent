@@ -73,6 +73,8 @@ class AgentState(TypedDict, total=False):
     history_load_status: str
     history_load_error: str
     execution_ledger: dict
+    # Private, identity-bound Host receipt; never a client request field.
+    execution_suspension: dict
     context_working_state: dict
     turn_envelope: dict
     # Request-scoped candidate pool: metadata-only snapshot (no candidate text).

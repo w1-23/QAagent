@@ -5,8 +5,9 @@
 - 原始数据只读：本模块只读取上传字节，写到一个**新**工作簿，绝不回写原文件。
 - 不篡改单元格：高亮用填充色 + 红色边框，问题写在 Excel 批注里；空值只着色，
   不写入「缺失」字符串，避免把数值列变成文本。
-- 可追溯：每个问题都进「问题清单」，记录工作表、单元格、类型、原值、规则、
-  严重程度与建议动作；一条规则一行，同一单元格可有多行。
+- 默认不增加工作表：问题清单、审查概览、审查规则分别通过显式开关导出。
+- 兼容旧的 findings/targets 与人工按行意见；新调用方优先使用导入的
+  export_workbook(AuditSnapshot)，从已保存的审查快照导出，不重复扫描。
 - 不伪造精度：只有能定位到具体单元格的发现才着色；只能定位到整列/整表的
   统计信号只写进问题清单，不整列染红。
 """
@@ -24,6 +25,11 @@ from openpyxl.cell.cell import MergedCell
 from openpyxl.styles import Border, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
+from citrus_audit.api import AuditSnapshot, export_workbook
+from citrus_audit.workbook import (
+    _kind, _unique_sheet_title, _restore_original_cells, _data_signature,
+)
+
 _ISSUE_SHEET = "问题清单"
 _OVERVIEW_SHEET = "审查概览"
 _FILL = PatternFill("solid", fgColor="FDE2E1")
@@ -40,76 +46,16 @@ _ANNOTATION_STYLES = {
 }
 
 
-def _unique_sheet_title(wb, desired: str) -> str:
-    """Choose a workbook metadata title without replacing an uploaded sheet."""
-    base = re.sub(r"[\\/*?:\[\]]", "_", str(desired or "审查信息")).strip() or "审查信息"
-    base = base[:31]
-    existing = {str(name).casefold() for name in wb.sheetnames}
-    if base.casefold() not in existing:
-        return base
-    for index in range(2, 1000):
-        suffix = f"_{index}"
-        candidate = base[:31 - len(suffix)] + suffix
-        if candidate.casefold() not in existing:
-            return candidate
-    raise ValueError("工作簿中可用的审查工作表名称已耗尽")
-
-
 def _severity_rank(item: dict) -> int:
     """问题清单排序：先按严重程度，再保持原有工作表/行顺序（sorted 是稳定排序）。"""
     return _SEVERITY_RANK.get(str(item.get("severity") or "").strip(), 3)
 
 
-# 检测类型 → (中文名, 严重程度, 建议核查动作)
-_KINDS: dict[str, tuple[str, str, str]] = {
-    "missing_cell": ("缺失", "需核查", "核对原始记录或实验台账，确认该值确实未测"),
-    "missing_values": ("缺失", "需核查", "确认该列是否允许缺失，补齐或说明"),
-    "non_numeric_cell": ("类型错误", "需核查", "确认是单位/符号/文本类别，还是录入错误"),
-    "mixed_numeric_text": ("类型错误", "需核查", "分离单位或文本标记，保持数值列纯净"),
-    "duplicate_row": ("重复", "需核查", "确认是重复录入还是合法的重复测量"),
-    "duplicate_key": ("重复", "需核查", "确认样本/主键是否唯一，或改用分组编号"),
-    "duplicate_composite_key": ("复合键重复", "需核查", "核对实验单位与访视/重复编号，确认该组合是否允许重复"),
-    "required_field_absent": ("必填字段缺失", "需核查", "核对表头与显式必填字段映射"),
-    "raw_numeric_tail": ("原始尾数集中", "需核查", "核对仪器精度、舍入与固定分母；描述频率不能解释为显著性"),
-    "adjacent_equal_differences": ("相邻等差", "需核查", "核对原始顺序及计划剂量/时间网格"),
-    "sliding_equal_differences": ("滑窗等差", "需核查", "核对原始顺序、窗口与容差；公式序列可合法出现"),
-    "repeated_sequences": ("重复片段", "需核查", "对照两个原始片段，确认周期信号或合法重复"),
-    "repeated_blocks": ("重复数值块", "需核查", "对照两个原始数值块，核对共享对照与导出过程"),
-    "expected_experiment_structure": ("实验结构不符", "需核查", "核对显式设计、实验单位、重复数及排除政策"),
-    "out_of_range": ("越界", "需核查", "与实验设计的合理范围比对后修正"),
-    "logic_conflict": ("逻辑冲突", "需核查", "核对两列来源与计算关系"),
-    "constant_field": ("常量列", "提示", "确认该字段是否有信息量"),
-    "identical_columns": ("列重复", "需核查", "确认是否复制粘贴造成的重复列"),
-    "constant_offset_columns": ("列关系", "需核查", "确认是否为换算列"),
-    "constant_ratio_columns": ("列关系", "需核查", "确认是否为比例换算列"),
-    "exact_linear_columns": ("列关系", "需核查", "确认是否为公式派生列"),
-    "decimal_ending_concentration": ("末位集中", "提示", "确认是否为舍入或固定分母造成"),
-    "unequal_group_size": ("分组不均", "提示", "确认是否按设计"),
-    "unequal_replicates": ("重复数不一", "提示", "核对重复定义"),
-    "integer_mean_inconsistent": ("均值不一致", "需核查", "核对数据粒度、舍入与 n 定义"),
-    "integer_summary_inconsistent": ("统计量不一致", "需核查", "核对 SD 定义与舍入"),
-    "invalid_group_mapping": ("字段未匹配", "提示", "修正分组字段名后重跑"),
-    "invalid_value_mapping": ("字段未匹配", "提示", "修正测量字段名后重跑"),
-    "design_checks_skipped": ("未做分组检查", "提示", "如需分组检查，请说明分组列"),
-    "grim_sd_skipped": ("未做 SD 检查", "提示", "确认报告的是样本 SD 还是总体 SD"),
-    "empty_table": ("空表", "阻断", "确认文件是否选错或表头行是否正确"),
-    "empty_column": ("空列", "提示", "整列无数据，通常是公式列或预留空白列；如该列应有数据请核对导出方式"),
-    "missing_row": ("缺行", "需核查", "确认该行是否被合并单元格或公式行占用"),
-    "iqr_insufficient": ("样本不足", "提示", "组内样本不足 8，不做离群推断；如需判定请补充重复测量"),
-    "iqr_outlier": ("离群值", "需核查", "对照原始记录确认该值是否为录入错误或真实生物学差异"),
-    "mixed_numeric_text": ("类型混杂", "需核查", "统一该列的数值格式，或把文本说明移到备注列"),
-    # 按行标注路径的结论，不是规则命中：措辞必须让读者看出这是模型意见。
-    "row_annotation": ("按行标注", "需核查", "该条为人工/模型注释，请对照原始记录与实验设计确认"),
-}
-
-
-def _kind(check: str) -> tuple[str, str, str]:
-    return _KINDS.get(check, (check or "其他", "提示", "人工复核"))
-
-
 def _header_map(ws, header_row: int) -> dict[str, int]:
     """表头文字 → 列号（1 基）。兼容 pandas 重名后缀 ``.1``。"""
     mapping: dict[str, int] = {}
+    if not 1 <= header_row <= ws.max_row:
+        return mapping
     for cell in ws[header_row]:
         if cell.value is None:
             continue
@@ -137,6 +83,7 @@ def _resolve_column(field: str, header: dict[str, int]) -> int | None:
 def _collect_sheet_issues(ws, header_row: int, findings: Iterable[dict[str, Any]],
                           ) -> tuple[list[dict[str, Any]], dict[str, list[dict[str, Any]]]]:
     """把一张表上的 findings 解析成行记录与「单元格 → 问题」映射（不改样式）。"""
+    height, width = ws.max_row, ws.max_column
     header = _header_map(ws, header_row)
     cell_issues: dict[str, list[dict[str, Any]]] = {}
     rows: list[dict[str, Any]] = []
@@ -177,15 +124,19 @@ def _collect_sheet_issues(ws, header_row: int, findings: Iterable[dict[str, Any]
             data_cols = max(header.values()) if header else ws.max_column
             row_refs = [f"{get_column_letter(c)}{excel_row}"
                         for c in range(1, int(data_cols) + 1)]
+        # Keep supplied coordinates in the report, but never read or mark beyond
+        # the uploaded data region: ws[ref] itself creates a new empty cell.
+        row_in_source = type(excel_row) is int and header_row < excel_row <= height
+        cell_in_source = row_in_source and col_idx is not None and 1 <= col_idx <= width
         evidence = finding.get('evidence') or {}
         evidence_refs = []
         for cell in evidence.get('cells', []) if isinstance(evidence, dict) else []:
             if (isinstance(cell, dict) and type(cell.get('row')) is int and type(cell.get('column_index')) is int
-                    and 1 <= cell['row'] <= ws.max_row and 1 <= cell['column_index'] <= ws.max_column):
+                    and header_row < cell['row'] <= height and 1 <= cell['column_index'] <= width):
                 evidence_refs.append(f"{get_column_letter(cell['column_index'])}{cell['row']}")
         evidence_refs = list(dict.fromkeys(evidence_refs))
         value = ""
-        if ref and "!" not in ref and not ref.endswith("列"):
+        if cell_in_source:
             value = ws[ref].value
         rows.append({
             "sheet": ws.title,
@@ -206,9 +157,9 @@ def _collect_sheet_issues(ws, header_row: int, findings: Iterable[dict[str, Any]
         if evidence_refs:
             for cell_ref in evidence_refs:
                 cell_issues.setdefault(cell_ref, []).append(rows[-1])
-        elif ref and not ref.endswith("列"):
+        elif cell_in_source:
             cell_issues.setdefault(ref, []).append(rows[-1])
-        elif row_refs:
+        elif row_refs and row_in_source:
             for row_ref in row_refs:
                 cell_issues.setdefault(row_ref, []).append(rows[-1])
     return rows, cell_issues
@@ -241,7 +192,7 @@ def _apply_cell_marks(ws, cell_issues: dict[str, list[dict[str, Any]]]) -> None:
             cell.border = _BORDER
         text = "\n".join(f"· [{item['severity']}] {item['kind']}：{item['detail']}" for item in issues[:6])
         if len(issues) > 6:
-            text += f"\n另有 {len(issues) - 6} 条，详见问题清单。"
+            text += f"\n另有 {len(issues) - 6} 条，完整发现见审查结果。"
         previous = cell.comment.text + "\n\n" if cell.comment else ""
         caveat = ("以上为人工/模型按行注释，请结合原始记录确认。" if manual_only else
                   "错误表示违反显式数据规则；需核查/提示为复核线索。检测结果不代表科研不端，原始值未修改。")
@@ -253,14 +204,32 @@ def _apply_cell_marks(ws, cell_issues: dict[str, list[dict[str, Any]]]) -> None:
 def annotate_workbook_multi(data: bytes, *, targets: Iterable[dict[str, Any]],
                             notes: Iterable[str] = (),
                             rule_catalog: Iterable[dict[str, Any]] = (),
-                            source_name: str = "", source_sha256: str = "") -> tuple[bytes, dict[str, Any]]:
+                            source_name: str = "", source_sha256: str = "",
+                            issue_list: bool = False, overview: bool = False,
+                            rules: bool = False) -> tuple[bytes, dict[str, Any]]:
     """在一份副本里标注**多个工作表**，输出一个综合标注工作簿。
 
     targets 每项：{sheet_name, header_row, findings, row_count, column_count}。
-    为什么必须一次输出：同一份多 Sheet 源文件若按表逐份生成，用户会拿到若干个
-    名字相近的结果文件，无法判断哪份是最终产物。
+    多表只输出一个副本。所有附加工作表均须显式开启；rule_catalog 与 notes
+    仅携带审查元数据，不会隐式开启附表。调用时提供的 findings 不会重新计算。
     """
-    wb = load_workbook(_io.BytesIO(data))
+    import hashlib
+    if any(type(flag) is not bool for flag in (issue_list, overview, rules)):
+        raise ValueError("Export switches must be boolean")
+    actual_sha256 = hashlib.sha256(data).hexdigest()
+    # Legacy CSV/PDF/etc callers pass a converted workbook plus the original
+    # source's provenance hash. Only original-workbook bytes can be checked here;
+    # the snapshot export API validates original bytes for every source format.
+    original_workbook = not source_name or str(source_name).lower().endswith(('.xlsx', '.xlsm'))
+    if original_workbook and source_sha256 and source_sha256 != actual_sha256:
+        raise ValueError("Reviewed source hash mismatch")
+    keep_vba = str(source_name).lower().endswith('.xlsm')
+    wb = load_workbook(_io.BytesIO(data), keep_vba=keep_vba)
+    bounds = {ws.title: (ws.max_row, ws.max_column) for ws in wb.worksheets}
+    if sum(height * width for height, width in bounds.values()) > 2_000_000:
+        raise ValueError("Workbook export exceeds 2000000-cell verification budget")
+    before = _data_signature(wb, bounds)
+    original_sheets = list(wb.sheetnames)
     all_rows: list[dict[str, Any]] = []
     per_sheet: list[dict[str, Any]] = []
     total_cells = 0
@@ -283,63 +252,65 @@ def annotate_workbook_multi(data: bytes, *, targets: Iterable[dict[str, Any]],
             "coverage": dict(target.get("coverage") or {}),
         })
 
-    issue_ws = wb.create_sheet(_unique_sheet_title(wb, _ISSUE_SHEET))
-    issue_ws.append(["序号", "工作表", "单元格", "行", "列", "列索引", "问题类型",
-                     "严重程度", "原值", "检测规则", "说明", "建议核查动作", "结果层", "计算/定位证据（长内容需读完整结果）"])
-    # 严重程度优先：阻断类问题不该排在「提示」后面，否则管理员会先看到无关项。
-    for index, item in enumerate(sorted(all_rows, key=_severity_rank), start=1):
-        issue_ws.append([index, item["sheet"], item["cell"], item["row"], item["column"],
-                         item["column_index"], item["kind"], item["severity"],
-                         item["value"], item["rule"], item["detail"], item["action"], item['layer'],
-                         item['evidence'][:32000] + ('…（已截断；完整证据见审查结果）' if len(item['evidence']) > 32000 else '')])
-    for column, width in zip("ABCDEFGHIJKL", (6, 14, 14, 8, 18, 10, 14, 10, 16, 22, 60, 34)):
-        issue_ws.column_dimensions[column].width = width
-    issue_ws.freeze_panes = "A2"
+    if issue_list:
+        issue_ws = wb.create_sheet(_unique_sheet_title(wb, _ISSUE_SHEET))
+        issue_ws.append(["序号", "工作表", "单元格", "行", "列", "列索引", "问题类型",
+                         "严重程度", "原值", "检测规则", "说明", "建议核查动作", "结果层", "计算/定位证据（长内容需读完整结果）"])
+        # 严重程度优先：阻断类问题不该排在「提示」后面，否则管理员会先看到无关项。
+        for index, item in enumerate(sorted(all_rows, key=_severity_rank), start=1):
+            issue_ws.append([index, item["sheet"], item["cell"], item["row"], item["column"],
+                             item["column_index"], item["kind"], item["severity"],
+                             item["value"], item["rule"], item["detail"], item["action"], item['layer'],
+                             item['evidence'][:32000] + ('…（已截断；完整证据见审查结果）' if len(item['evidence']) > 32000 else '')])
+        for column, width in zip("ABCDEFGHIJKL", (6, 14, 14, 8, 18, 10, 14, 10, 16, 22, 60, 34)):
+            issue_ws.column_dimensions[column].width = width
+        issue_ws.freeze_panes = "A2"
 
-    overview = wb.create_sheet(_unique_sheet_title(wb, _OVERVIEW_SHEET))
     counts: dict[str, int] = {}
     for item in all_rows:
         counts[item["kind"]] = counts.get(item["kind"], 0) + 1
-    overview.append(["项目", "值"])
-    overview.append(["审查工作表数", len(per_sheet)])
-    overview.append(["审查工作表", "、".join(item["sheet"] for item in per_sheet)])
-    if source_name:
-        overview.append(["原始文件", str(source_name)])
-    if source_sha256:
-        overview.append(["原始文件 SHA-256", str(source_sha256)])
-    overview.append(["数据行数（合计）", sum(item["rows"] for item in per_sheet)])
-    if any(item["rule"] == "row_annotation" for item in all_rows):
-        overview.append(["按行标注条目数", sum(item["rule"] == "row_annotation" for item in all_rows)])
-    overview.append(["待核查问题数", sum(item["severity"] != "正常" for item in all_rows)])
-    overview.append(["涉及单元格数", total_cells])
-    overview.append(["问题类型分布", "；".join(f"{k} {v}" for k, v in sorted(counts.items())) or "无"])
-    overview.append(["说明", "检测命中属于待核查信号，不代表研究数据造假；原始文件未被修改。"])
-    for item in per_sheet:
-        coverage = item.get("coverage") or {}
-        overview.append([f"工作表 {item['sheet']}",
-                         f"{item['rows']} 行 / {item['columns']} 列 / {item['issues']} 条问题 / {item['cells']} 个标注单元格"])
-        overview.append([f"工作表 {item['sheet']} 覆盖范围",
-                         f"输入 {coverage.get('input_rows', item['rows'])} 行、"
-                         f"处理 {coverage.get('processed_rows', item['rows'])} 行；"
-                         f"输入 {coverage.get('input_columns', item['columns'])} 列、"
-                         f"处理 {coverage.get('processed_columns', item['columns'])} 列"])
-        if coverage.get("truncation_reasons"):
-            overview.append([f"工作表 {item['sheet']} 截断原因",
-                             "；".join(str(x) for x in coverage["truncation_reasons"])])
-        if coverage.get("unscanned_columns"):
-            overview.append([f"工作表 {item['sheet']} 未覆盖列",
-                             "；".join(str(x) for x in coverage["unscanned_columns"][:200])])
-    for note in notes:
-        overview.append(["限制", str(note)])
-    overview.column_dimensions["A"].width = 22
-    overview.column_dimensions["B"].width = 90
+    if overview:
+        overview = wb.create_sheet(_unique_sheet_title(wb, _OVERVIEW_SHEET))
+        overview.append(["项目", "值"])
+        overview.append(["审查工作表数", len(per_sheet)])
+        overview.append(["审查工作表", "、".join(item["sheet"] for item in per_sheet)])
+        if source_name:
+            overview.append(["原始文件", str(source_name)])
+        if source_sha256:
+            overview.append(["原始文件 SHA-256", str(source_sha256)])
+        overview.append(["数据行数（合计）", sum(item["rows"] for item in per_sheet)])
+        if any(item["rule"] == "row_annotation" for item in all_rows):
+            overview.append(["按行标注条目数", sum(item["rule"] == "row_annotation" for item in all_rows)])
+        overview.append(["待核查问题数", sum(item["severity"] != "正常" for item in all_rows)])
+        overview.append(["涉及单元格数", total_cells])
+        overview.append(["问题类型分布", "；".join(f"{k} {v}" for k, v in sorted(counts.items())) or "无"])
+        overview.append(["说明", "检测命中属于待核查信号，不代表研究数据造假；原始文件未被修改。"])
+        for item in per_sheet:
+            coverage = item.get("coverage") or {}
+            overview.append([f"工作表 {item['sheet']}",
+                             f"{item['rows']} 行 / {item['columns']} 列 / {item['issues']} 条问题 / {item['cells']} 个标注单元格"])
+            overview.append([f"工作表 {item['sheet']} 覆盖范围",
+                             f"输入 {coverage.get('input_rows', item['rows'])} 行、"
+                             f"处理 {coverage.get('processed_rows', item['rows'])} 行；"
+                             f"输入 {coverage.get('input_columns', item['columns'])} 列、"
+                             f"处理 {coverage.get('processed_columns', item['columns'])} 列"])
+            if coverage.get("truncation_reasons"):
+                overview.append([f"工作表 {item['sheet']} 截断原因",
+                                 "；".join(str(x) for x in coverage["truncation_reasons"])])
+            if coverage.get("unscanned_columns"):
+                overview.append([f"工作表 {item['sheet']} 未覆盖列",
+                                 "；".join(str(x) for x in coverage["unscanned_columns"][:200])])
+        for note in notes:
+            overview.append(["限制", str(note)])
+        overview.column_dimensions["A"].width = 22
+        overview.column_dimensions["B"].width = 90
 
-    rules = list(rule_catalog)
-    if rules:
+    catalog = list(rule_catalog)
+    if rules and catalog:
         rule_ws = wb.create_sheet(_unique_sheet_title(wb, "审查规则"))
         rule_ws.append(["规则代码", "执行状态", "未执行原因", "适用数据", "触发条件",
                         "样本要求", "定位方法", "误报风险", "工作表", "方法版本", "实际检查数", "跳过数", "范围/阈值/截断凭证"])
-        for rule in rules:
+        for rule in catalog:
             rule_ws.append([str(rule.get("check") or ""),
                             str(rule.get("status") or "available"),
                             str(rule.get("reason") or ""),
@@ -355,25 +326,44 @@ def annotate_workbook_multi(data: bytes, *, targets: Iterable[dict[str, Any]],
         rule_ws.freeze_panes = "A2"
         rule_ws.auto_filter.ref = rule_ws.dimensions
 
+    if _data_signature(wb, bounds) != before:
+        raise ValueError("Export changed original data")
     buffer = _io.BytesIO()
     wb.save(buffer)
-    return buffer.getvalue(), {
+    content = _restore_original_cells(data, buffer.getvalue())
+    reopened = load_workbook(_io.BytesIO(content), keep_vba=keep_vba)
+    try:
+        if _data_signature(reopened, bounds) != before:
+            raise ValueError("Serialized export changed original data")
+        if any((reopened[name].max_row, reopened[name].max_column) != extent
+               for name, extent in bounds.items()):
+            raise ValueError("Serialized export expanded original data region")
+    finally:
+        reopened.close()
+    return content, {
+        "added_sheets": [name for name in wb.sheetnames if name not in original_sheets],
+        "data_region_unchanged": True,
+        "scan_reused": True,
         "issues": len(all_rows),
         "cells": total_cells,
         "kinds": counts,
         "sheets": per_sheet,
         "sheet": per_sheet[0]["sheet"] if per_sheet else "",
-        "rule_count": len(rules),
-        "source_sha256": str(source_sha256 or ""),
+        "rule_count": len(catalog),
+        "source_sha256": str(source_sha256 or actual_sha256),
+        "rendering_input_sha256": actual_sha256,
+        "source_representation": "original_workbook" if original_workbook else "host_table_conversion",
     }
 
 
 def annotate_workbook(data: bytes, *, sheet_name: str, header_row: int,
                       findings: Iterable[dict[str, Any]],
                       row_count: int = 0, column_count: int = 0,
-                      notes: Iterable[str] = ()) -> tuple[bytes, dict[str, Any]]:
+                      notes: Iterable[str] = (), issue_list: bool = False,
+                      overview: bool = False, rules: bool = False,
+                      ) -> tuple[bytes, dict[str, Any]]:
     """单表标注入口（CSV 与只用一张表的老调用方），内部走多表实现。"""
     return annotate_workbook_multi(data, targets=[{
         "sheet_name": sheet_name, "header_row": header_row, "findings": findings,
         "row_count": row_count, "column_count": column_count,
-    }], notes=notes)
+    }], notes=notes, issue_list=issue_list, overview=overview, rules=rules)

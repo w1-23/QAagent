@@ -375,16 +375,37 @@ async def _prefetch(state: AgentState) -> dict:
         return _response(_snapshot(STATUS_NO_FAMILY, reason="skipped_no_matching_family",
                                    families=sorted(families)))
 
-    pool = build_candidate_pool(
-        rows=rows,
-        request_id=str(state.get("request_id") or get_request_id() or ""),
-        session_id=session_id,
-        query=query,
-        translation_used=translation_used,
-        families=sorted(families),
-        elapsed_ms=elapsed_ms,
-        size=int(getattr(settings, "CANDIDATE_POOL_SIZE", 12) or 12),
-    )
+    from src.core import tracing
+    scope = None
+    pool = None
+    if tracing.get_user_id() or tracing.get_session_id() or tracing.get_job_id():
+        from src.retrieval.evidence_adapter import _scope
+        scope = _scope(writing=True)
+        owner, session, run = scope
+        if (state.get("user_id") != owner or session_id != session
+                or (state.get("job_id") and state["job_id"] != run)):
+            raise PermissionError("candidate_prefetch_scope_mismatch")
+        if rows and (artifact.get("evidence") or {}).get("status") == "stored":
+            from src.retrieval.candidate_handoff import publish_candidate_pool
+            generation = str((rows[0].get("read_entry") or {}).get("generation") or "")
+            pool = publish_candidate_pool(artifact, generation)
+    if pool is None:
+        pool = build_candidate_pool(
+            rows=rows,
+            request_id=str(state.get("request_id") or get_request_id() or ""),
+            session_id=session_id,
+            query=query,
+            translation_used=translation_used,
+            families=sorted(families),
+            elapsed_ms=elapsed_ms,
+            size=int(getattr(settings, "CANDIDATE_POOL_SIZE", 12) or 12),
+        )
+        if scope is not None:
+            # Zero hits / evidence persistence failure still have real process-
+            # local bytes (possibly empty), scoped to the verified owner/run.
+            pool.owner_user_id, pool.turn_id = scope[0], scope[2]
+    pool.elapsed_ms = elapsed_ms
+    pool.translation_used = translation_used
     pool.status = status
     bind_candidate_pool(pool)
     snapshot = pool.summary()

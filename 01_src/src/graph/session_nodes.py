@@ -18,21 +18,7 @@ async def load_session_context(state: AgentState) -> dict:
     session_id = state.get("session_id", "default")
     mode = "general_agent"
     result: dict = {}
-    from src.core.progress_bus import emit_status, emit_encoded
-
-    def _status(stage: str, **kwargs) -> None:
-        """A progress notice must never take the request down with it.
-
-        ``emit_status`` takes the stage positionally; passing a second
-        ``stage=`` keyword raised TypeError *before* the history load ran, and
-        the broad except below turned every turn into "no history loaded".
-        Notifications are now isolated, so a future event-shape mistake costs
-        one progress line, not the conversation context.
-        """
-        try:
-            emit_status(stage, **kwargs)
-        except Exception:  # noqa: BLE001 - notices are not execution
-            logger.debug("[SessionNodes] status notice failed", exc_info=True)
+    from src.core.progress_bus import emit_encoded
 
     try:
         from src.session.manager import session_manager
@@ -47,9 +33,6 @@ async def load_session_context(state: AgentState) -> dict:
             budget=budget,
         )
         started = time.perf_counter()
-        _status("step_active", step_id="load")
-        _status("agent_progress", stage_label="读取会话",
-                message="正在读取本会话的历史消息与已保存材料。")
         load_coro = ctx_mgr.load(
             session_id, query, mode,
             user_id=int(state.get("user_id") or 0),
@@ -85,19 +68,12 @@ async def load_session_context(state: AgentState) -> dict:
             working.update({key: value for key, value in carried.items()
                             if key not in {"dataset_refs", "source_refs", "script_refs", "run_refs"}})
             result["context_working_state"] = working
-        _status("step_done", step_id="load")
         if ctx.history_load_status == "failed":
-            _status("agent_progress", stage_label="历史读取失败",
-                    message="历史对话未能装入，本轮按当前问题继续。")
             try:
                 emit_encoded("context_degraded", {"stage": "history_load", "status": "failed",
                     "reason_code": "history_load_failed", "message": "本轮历史读取失败，不能依赖既往对话。"})
             except Exception:
                 pass
-        else:
-            _status("agent_progress", stage_label="会话已读取",
-                    message=(f"已装入 {len(ctx.history_messages)} 条历史消息"
-                             + ("，长历史已整理为摘要。" if ctx.compacted else "。")))
         try:
             from src.core.diag import diag
             diag("load", ms=round((time.perf_counter() - started) * 1000, 1),

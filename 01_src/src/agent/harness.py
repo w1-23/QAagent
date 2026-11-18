@@ -1,4 +1,4 @@
-"""Production LangChain agent adapter; LangGraph owns model/tool transitions.
+"""Production Deep Agents adapter; its graph owns model/tool transitions.
 
 Domain-free policy hooks preserve the existing metered ModelDriver, batch
 scheduler, operation runner and publication boundary. No direct tool fallback.
@@ -15,8 +15,8 @@ from pathlib import Path
 import time
 from typing import Any
 
-from langchain.agents import create_agent
-from langchain.agents.middleware import AgentMiddleware, AgentState, hook_config
+from deepagents import DeepAgentState
+from langchain.agents.middleware import AgentMiddleware, hook_config
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
@@ -28,14 +28,20 @@ from typing_extensions import NotRequired
 
 from .events import LoopCheckpoint, LoopEvent
 from .runtime import AdmissionStopped, RunResult, RunLimits
+from .deep_agent_runtime import create_host_agent, EXECUTOR_ID, MODEL_PROVIDER
 
 
-class HarnessState(AgentState):
+class HarnessState(DeepAgentState):
+    executor_id: NotRequired[str]
     model_steps: NotRequired[int]
     host_state: NotRequired[dict]
     batch_notes: NotRequired[list[str]]
     batch_status: NotRequired[str]
     unknown_operations: NotRequired[list[str]]
+    execution_waits: NotRequired[list[str]]
+    # A synchronously committed wake awaiting host acknowledgment. Keep it in
+    # the checkpoint until all acknowledgments succeed, including after a crash.
+    execution_wake: NotRequired[list[str]]
     stop_status: NotRequired[str]
     stop_reason: NotRequired[str]
     # Raw rejected responses remain in the encrypted execution checkpoint,
@@ -46,12 +52,23 @@ class HarnessState(AgentState):
 class _DriverModel(BaseChatModel):
     driver: Any = Field(exclude=True)
     identity: Any = Field(exclude=True)
+    model_name: str = "citrus-host-main-loop"
+    expected_tools: frozenset[str] = Field(default_factory=frozenset, exclude=True)
+
+    def _get_ls_params(self, stop=None, **kwargs):
+        return {**super()._get_ls_params(stop=stop, **kwargs),
+                "ls_provider": MODEL_PROVIDER, "ls_model_name": self.model_name}
 
     @property
     def _llm_type(self):
         return "citrus-metered-provider"
 
     def bind_tools(self, tools, **kwargs):
+        # Fail closed if an SDK default adds native tools behind the host's back.
+        from langchain_core.utils.function_calling import convert_to_openai_tool
+        names = {convert_to_openai_tool(tool)["function"]["name"] for tool in tools}
+        if names != self.expected_tools:
+            raise RuntimeError("unexpected_deepagents_tool_inventory")
         # ModelDriver binds the authoritative allowed schemas after admission.
         return self
 
@@ -122,6 +139,10 @@ class HarnessRuntime:
     # Optional sync/async emitter with emit_public_progress's keyword contract.
     # Kept last so existing positional adapters remain compatible.
     on_public_progress: Any = None
+    # Trusted host callbacks only. Resolution reads actual queue facts; ack is
+    # called only after a synchronous checkpoint commit, before another model.
+    resolve_execution_waits: Any = None
+    acknowledge_execution_waits: Any = None
 
     async def _publish_working_note(self, response, identity, model_step):
         try:
@@ -178,6 +199,12 @@ class HarnessRuntime:
             async def abefore_model(self, state, runtime):
                 await observed(state)
                 status = state.get("batch_status", "")
+                if status == "execution":
+                    from .runtime import validate_execution_waits
+                    waits = validate_execution_waits(tuple(state.get("execution_waits", ())))
+                    if not waits:
+                        raise ValueError("execution_suspension_requires_wait")
+                    return {"stop_status": "suspended", "stop_reason": "execution_pending", "jump_to": "end"}
                 if status in {"waiting", "unknown"}:
                     return {"stop_status": "waiting" if status == "waiting" else "incomplete",
                             "stop_reason": "user_input_required" if status == "waiting" else "operation_outcome_unknown",
@@ -280,24 +307,79 @@ class HarnessRuntime:
                 if message.tool_call_id == key[0]:
                     return Command(update={"messages": [message], "host_state": host_snapshot(),
                         "batch_notes": list(batch.context_notes),
-                        "batch_status": "unknown" if batch.unknown_operations else "waiting" if batch.pending_question else "",
+                        "batch_status": "unknown" if batch.unknown_operations else "waiting" if batch.pending_question else "execution" if batch.execution_waits else "",
+                        "execution_waits": list(batch.execution_waits),
                         "unknown_operations": list(batch.unknown_operations)})
                 return message
 
         tools = [StructuredTool(name=s["function"]["name"], description=s["function"]["description"],
                                 args_schema=s["function"]["parameters"], func=_forbidden_tool) for s in self.schemas]
-        graph = create_agent(_DriverModel(driver=self.model, identity=identity), tools=tools,
-                             middleware=[Policy()], checkpointer=saver)
+        graph = create_host_agent(_DriverModel(driver=self.model, identity=identity,
+            expected_tools=frozenset(tool.name for tool in tools)),
+            tools, Policy(), saver, HarnessState)
         config = {"configurable": checkpoint_config or {"thread_id": identity.run_id},
                   "recursion_limit": max(64, self.limits.max_model_steps * 6 + 20)}
         snapshot = await graph.aget_state(config)
         if snapshot.values:
             if not resume:
                 raise ValueError("existing_turn_requires_explicit_resume")
+            # Old executor checkpoints remain readable but cannot silently adopt
+            # new graph behavior. Pause them without mutating or redispatching.
+            if snapshot.values.get("executor_id") != EXECUTOR_ID:
+                return self._result({**snapshot.values, "stop_status": "incomplete",
+                    "stop_reason": "executor_checkpoint_incompatible"})
             await observed(snapshot.values)
             if self.validate_resume:
                 self.validate_resume()
-            if snapshot.values.get("stop_status"):
+            async def acknowledge_wake(committed):
+                from .runtime import validate_execution_waits, _pending_calls
+                wait_ids = validate_execution_waits(tuple(committed.values["execution_wake"]))
+                if _pending_calls(committed.values["messages"]):
+                    raise ValueError("execution_wake_requires_paired_messages")
+                if not adapter.acknowledge_execution_waits:
+                    return False
+                reference = committed.config["configurable"]["checkpoint_id"]
+                await adapter.acknowledge_execution_waits(identity, wait_ids, reference)
+                # Ack failure leaves the committed wake intact. A new process
+                # retries only acknowledgment before it can enter the model.
+                cleared = await graph.aupdate_state(config, {"execution_wake": [], "jump_to": "model"},
+                                                   as_node="Policy.after_model")
+                # Deadline/cancellation may fire before the next graph hook.
+                # Its fallback must include the COMMITTED completion observation,
+                # not the old suspended state loaded at entry.
+                await observed((await graph.aget_state(cleared)).values)
+                return True
+
+            if snapshot.values.get("execution_wake"):
+                if not await acknowledge_wake(snapshot):
+                    return self._result({**snapshot.values, "stop_status": "suspended",
+                        "stop_reason": "execution_wake_commit_required",
+                        "execution_waits": snapshot.values["execution_wake"]})
+            elif snapshot.values.get("stop_status") == "suspended":
+                if (snapshot.values.get("stop_reason") != "execution_pending"
+                        or not adapter.resolve_execution_waits or not adapter.acknowledge_execution_waits):
+                    return self._result(snapshot.values)
+                from .runtime import validate_execution_waits, _pending_calls
+                wait_ids = validate_execution_waits(tuple(snapshot.values.get("execution_waits", ())))
+                if not wait_ids or _pending_calls(snapshot.values["messages"]):
+                    raise ValueError("execution_wake_requires_paired_messages")
+                notes = await adapter.resolve_execution_waits(identity, wait_ids)
+                if notes is None:
+                    return self._result(snapshot.values)
+                if (type(notes) is not tuple or not notes or any(type(note) is not str for note in notes)
+                        or sum(len(note) for note in notes) > 65536):
+                    raise ValueError("invalid_execution_completion_observations")
+                # A new host control observation reports actual completion. The
+                # original ToolMessage remains paired and immutable; this never
+                # fabricates another provider call or replays its operation.
+                committed_config = await graph.aupdate_state(config, {
+                    "messages": [control(note) for note in notes], "execution_waits": [],
+                    "execution_wake": list(wait_ids), "batch_status": "",
+                    "stop_status": "", "stop_reason": "", "host_state": host_snapshot(),
+                    "jump_to": "model"}, as_node="Policy.after_model")
+                committed = await graph.aget_state(committed_config)
+                await acknowledge_wake(committed)
+            elif snapshot.values.get("stop_status"):
                 notes = (await adapter.prepare(identity) if adapter.prepare
                          and snapshot.values.get("stop_reason") == "answered" else ())
                 if not notes:
@@ -311,7 +393,8 @@ class HarnessRuntime:
         else:
             if resume:
                 raise ValueError("execution_checkpoint_missing")
-            initial = {"messages": list(messages), "model_steps": 0, "host_state": host_snapshot()}
+            initial = {"messages": list(messages), "model_steps": 0,
+                       "host_state": host_snapshot(), "executor_id": EXECUTOR_ID}
         await event("run_started", latest)
         timer = asyncio.timeout(max(0, self.limits.deadline-time.monotonic())
                                 if self.limits.deadline != float("inf") else None)
@@ -349,4 +432,5 @@ class HarnessRuntime:
         messages = tuple(state.get("messages", []))
         return RunResult(status, state.get("stop_reason", "execution_stopped"), messages,
             state.get("model_steps", 0), messages[-1] if status == "complete" else None,
-            tuple(state.get("unknown_operations", [])), _pending_calls(messages))
+            tuple(state.get("unknown_operations", [])), _pending_calls(messages),
+            tuple(state.get("execution_waits", [])))

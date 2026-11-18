@@ -21,7 +21,7 @@
     return result;
   }
   // Difference against the exact scene, including reverting a previous preview.
-  function delta(edits, baseline, savedValue) {
+  function delta(edits, baseline, savedValue, preserveEqualEdit) {
     var result = [], keys = new Set(batch(edits).concat(batch(baseline)).map(function (item) {
       return JSON.stringify([item.gid, item.prop]);
     }));
@@ -29,7 +29,11 @@
       var pair = JSON.parse(key), gid = pair[0], prop = pair[1];
       var value = edits[gid] && edits[gid][prop] !== undefined ? edits[gid][prop] : savedValue(gid, prop);
       var before = baseline[gid] && baseline[gid][prop] !== undefined ? baseline[gid][prop] : savedValue(gid, prop);
-      if (!same(value, before)) result.push({ gid: gid, prop: prop, value: value });
+      // An explicit value can replace an inherited mode without changing RGB.
+      var explicit = edits[gid] && edits[gid][prop] !== undefined;
+      if (!same(value, before) || (explicit && preserveEqualEdit && preserveEqualEdit(gid, prop))) {
+        result.push({ gid: gid, prop: prop, value: value });
+      }
     });
     return result;
   }

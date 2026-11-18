@@ -2,10 +2,9 @@
  *
  * The SVG is loaded as an <img>, never as markup. That is the same stance the
  * chat page takes: a figure is a picture, and a picture cannot script the
- * page. The cost of that stance is that the browser cannot tell which shape
- * is the title, so the *manifest* says: the server publishes each object's
- * bounding box in the SVG's own coordinates, and the selection boxes are
- * drawn from those. The box and the drawing therefore agree by construction.
+ * page. Picking reads paths, clips and paint order from the validated detached
+ * SVG paired with the displayed image. Manifest boxes supply coarse rejection,
+ * focus rings and explicit move handles; a box alone never selects an object.
  *
  * Local drafts apply appearance edits to a detached SVG document displayed
  * through a Blob IMG. Unsupported mappings explicitly await the server.
@@ -45,6 +44,7 @@
     previewError: '',
     scene: null, sceneEdits: {}, sceneFlight: null, sceneGeneration: 0,
     blobUrl: null, projectionFrame: null, localUnsupported: [], localRevision: -1,
+    displayedSvg: null, hitDocument: null, hitManifest: null, hitScene: null, hitCoarse: true, hitEpoch: 0, hitCycle: null,
     schemaRequest: 0, schema: null, importing: false,
     drag: null,
     epoch: 0,           // advances at navigation intent, before detail arrives
@@ -54,7 +54,8 @@
     opening: null,
     listRequest: 0,
     view: { zoom: 1, x: 0, y: 0, fit: true, mode: 'select', pan: null },
-    narrow: false
+    narrow: false,
+    qa: null, qaFlight: null, qaError: ''
   };
 
   function ownsProject(figureId, epoch) {
@@ -71,6 +72,7 @@
     state.opening = null;
     resetScene();
     state.current = null;
+    state.qa = null; state.qaFlight = null; state.qaError = ''; renderQa();
     state.selected = '';
     state.selectedGroup = '';
     state.expanded = {};
@@ -107,6 +109,7 @@
     renderCanvasInfo();
     el('overlay').replaceChildren();
     el('propertyPanel').replaceChildren();
+    el('propertyScope').replaceChildren(); el('propertyScope').hidden = true;
     el('objectSelect').replaceChildren();
     renderEditState();
   }
@@ -236,7 +239,89 @@
     });
   }
 
+  function renderQa() {
+    var current = state.current;
+    // A receipt describes only its saved revision; owns() also fences responses.
+    if (state.qa && (!current || state.qa.render_version !== current.render_version)) state.qa = null;
+    var disabled = !current || !!state.qaFlight || !!state.saving || hasEdits() || !Number.isSafeInteger(current.render_version);
+    el('verifyFigureButton').disabled = disabled; el('bundleFigureButton').disabled = disabled;
+    var status = el('figureQaStatus'), checks = el('figureQaChecks'), links = el('figureQaDownloads');
+    checks.replaceChildren(); links.replaceChildren();
+    status.textContent = state.qaError || (state.qaFlight ? '正在检查已保存文件…' : current ? '尚未运行当前文件检查。' : '未打开图件');
+    if (!current) return;
+    var manifest = current.manifest || {};
+    var receipts = state.qa ? [['当前文件检查', state.qa.receipt]] : [
+      ['初始图件检查', manifest.initial_qa_receipt || manifest.qa_receipt],
+      ['初始绘图检查', manifest.initial_nature_skill_receipt || manifest.nature_skill_receipt],
+      ['编辑后检查', manifest.manual_edit_qa_receipt]];
+    var labels = {pass:'通过', warn:'提示', fail:'失败', error:'错误', incomplete:'未完成',
+      not_applicable:'不适用', undetermined:'待确认', not_auditable:'无法审计', review_required:'需复核',
+      not_run:'未运行', attempted:'已尝试', executed:'已执行', complete:'执行完成', partial:'部分执行', not_started:'未开始',
+      unsupported:'不支持', needs_attention:'需处理', measured_checks_pass:'已测量项目通过'};
+    function label(value) { return labels[value] || String(value || '未标注'); }
+    receipts.forEach(function(pair) {
+      var receipt = pair[1]; if (!receipt || typeof receipt !== 'object') return;
+      var section = document.createElement('details');
+      var heading = document.createElement('summary');
+      var overall = receipt.overall || {};
+      heading.textContent = pair[0] + '：' + (receipt.version === 2 ?
+        label(overall.execution) + ' · ' + label(overall.conclusion) : label(receipt.status));
+      section.appendChild(heading);
+      var entries = Array.isArray(receipt.checks) ? receipt.checks.map(function(check) { return [check && check.check, check]; }) :
+        Object.keys(receipt.checks || {}).map(function(key) { return [key, receipt.checks[key]]; });
+      entries.forEach(function(entry) {
+        var check = entry[1]; if (!check || typeof check !== 'object') return;
+        var row = document.createElement('div'); row.className = 'hint';
+        row.textContent = String(entry[0] || '检查项') + '：' + (receipt.version === 2 ?
+          label(check.executed) + ' · 结论：' + label(check.conclusion) : label(check.status)) +
+          (check.reason_code || check.reason ? '；' + String(check.reason_code || check.reason) : '');
+        if (check.artifact && typeof check.artifact === 'object') {
+          var artifact = check.artifact;
+          row.textContent += ' · 文件：' + String(artifact.format || artifact.role || '未标注') +
+            (typeof artifact.sha256 === 'string' ? ' · SHA256 ' + artifact.sha256.slice(0, 12) : '');
+        }
+        section.appendChild(row);
+      });
+      checks.appendChild(section);
+    });
+    if (state.qa) {
+      var overall = state.qa.receipt.overall || {};
+      if (!state.qaError && !state.qaFlight) status.textContent = '当前文件：' + label(overall.execution) + ' · 结论：' + label(overall.conclusion);
+      [['下载检查回执', state.qa.receipt_file], ['下载证据包', state.qa.bundle]].forEach(function(pair) {
+        var file = pair[1], url = file && file.download_url;
+        // Never guess a download from an id, nor accept script/external URLs.
+        if (!file || typeof file.file_id !== 'string' || typeof url !== 'string' ||
+            !/^\/api\/v2\/[A-Za-z0-9_./?=&%+-]+$/.test(url) || /%2f|%5c|%2e|\/\.\./i.test(url)) return;
+        var link = document.createElement('a'); link.href = url; link.textContent = pair[0]; link.setAttribute('download', '');
+        var row = document.createElement('div'); row.appendChild(link); links.appendChild(row);
+      });
+    }
+  }
+
+  function verifyFigure(bundle) {
+    if (!state.current || state.qaFlight || state.saving || hasEdits() || !Number.isSafeInteger(state.current.render_version)) return Promise.resolve();
+    var id = state.current.figure_id, epoch = state.epoch, revision = state.current.render_version;
+    var flight = {}; state.qaFlight = flight; state.qaError = '';
+    function owns() { return ownsProject(id, epoch) && state.current.render_version === revision && state.qaFlight === flight; }
+    var body = {expected_revision: revision};
+    if (state.qa && state.qa.render_version === revision && state.qa.receipt_file) body.supersedes_file_id = state.qa.receipt_file.file_id;
+    renderQa();
+    return jsonRequest(API + '/projects/' + encodeURIComponent(id) + (bundle ? '/bundle' : '/verify'), {
+      method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
+    }, owns).then(function(result) {
+      if (!owns()) return;
+      if (result.figure_id !== id || result.render_version !== revision || !result.receipt || result.receipt.version !== 2 ||
+          !result.receipt.overall || !Array.isArray(result.receipt.checks)) throw new Error('检查回执与当前图件不匹配');
+      state.qa = result;
+    }).catch(function(error) {
+      if (owns()) state.qaError = '检查未完成：' + (error.message || '请稍后重试');
+    }).finally(function() {
+      if (state.qaFlight === flight) { state.qaFlight = null; renderQa(); }
+    });
+  }
+
   function renderDownloads() {
+    renderQa();
     var base = API + '/projects/' + encodeURIComponent(state.current.figure_id);
     ['svg', 'png', 'pdf', 'tiff'].forEach(function (format) {
       var link = el('download' + format.charAt(0).toUpperCase() + format.slice(1));
@@ -447,12 +532,19 @@
       if (!object.bbox || currentValue(object.gid, 'visible', true) === false) return;
       var box = byGid.get(object.gid);
       var fresh = !box;
-      if (fresh) box = document.createElement('div');
+      if (fresh) {
+        box = document.createElement('div');
+        var handle = document.createElement('button');
+        handle.className = 'move-handle'; handle.dataset.moveGid = object.gid;
+        handle.setAttribute('data-move-gid', object.gid);
+        handle.setAttribute('tabindex', '-1'); handle.setAttribute('aria-label', '拖动已选对象');
+        box.appendChild(handle);
+      }
       box.hidden = false;
       // Smaller targets sit above whole-series and axes bounds. Nodes stay
       // mounted throughout a gesture, including implicit touch capture.
       box.style.zIndex = String(index + 1);
-      box.style.pointerEvents = object.role === 'figure' ? 'none' : 'auto';
+      box.style.pointerEvents = 'none';
       box.className = 'overlay-box';
       if (object.gid === state.selected) box.classList.add('is-selected');
       if (canMove(object)) box.classList.add('is-draggable');
@@ -684,7 +776,86 @@
     });
   }
 
+  function propertyNames(object) {
+    return { text: '文字内容', label: object.role === 'colorbar' ? '色条标签' : '系列名称',
+      color: object.artist === 'Line2D' ? '线条颜色' : '颜色', facecolor: '填色', edgecolor: '边色',
+      capsize: '端帽大小', markerfacecolor: '标记填色', markeredgecolor: '标记边色',
+      markeredgewidth: '标记边宽', alpha: '不透明度', ncols: '图例列数', loc: '图例位置',
+      fontstyle: '字形', horizontalalignment: '文字对齐', marker: '标记形状', markersize: '标记大小',
+      linestyle: '线型', fontfamily: '字体', fontweight: '字重', fontsize: '字号', linewidth: '线宽',
+      frameon: '边框', visible: '显示状态', offset_px: '位置', offset_x: '水平偏移', offset_y: '垂直偏移' };
+  }
+
+  function renderPropertyScope() {
+    var scope = el('propertyScope'), object = selectedObject(), members = selectedMembers();
+    scope.replaceChildren();
+    if (state.selectedGroup) {
+      scope.textContent = '编辑范围：' + members.length + ' 个对象的共同属性';
+    } else if (object) {
+      scope.textContent = '编辑范围：' + (ROLE_LABELS[object.role] || '对象');
+      var parentId = object.parent_gid || (object.locator || {}).parent_gid;
+      var parent = manifestObjects().filter(function (item) { return item.gid === parentId; })[0];
+      if (parent && parent.gid !== object.gid) {
+        var button = document.createElement('button');
+        button.type = 'button'; button.className = 'property-parent';
+        button.setAttribute('data-select-parent', parent.gid);
+        button.textContent = '选择所属' + (ROLE_LABELS[parent.role] || '对象') + '：' + objectLabel(parent);
+        scope.appendChild(button);
+      }
+    }
+    scope.hidden = !state.selectedGroup && !object;
+  }
+
+  function renderPropertyResets() {
+    var controls = el('propertyDraftControls'), object = propertyObject(), members = selectedMembers();
+    var props = object && state.current && state.current.editable !== false ? (object.editable || []).filter(function (prop) {
+      return members.some(function (member) { return state.edits[member.gid] && state.edits[member.gid][prop] !== undefined; });
+    }) : [];
+    controls.hidden = !props.length;
+    var names = object ? propertyNames(object) : {};
+    var markup = props.length ? '<h3>未保存的属性</h3><p class="property-empty">只恢复当前选择的这一项，其他修改保留。</p>' + props.map(function (prop) {
+      return '<div class="property-draft-row"><span>' + esc(names[prop] || prop) + '</span><button type="button" data-reset-prop="' + esc(prop) +
+        '" aria-label="恢复' + esc(names[prop] || prop) + '的已保存值"' + (state.saving || state.deleting || state.drag ? ' disabled' : '') + '>恢复已保存值</button></div>';
+    }).join('') : '';
+    if (controls.draftMarkup !== markup) {
+      var active = document.activeElement;
+      var focused = active && controls.contains(active) ? active.getAttribute('data-reset-prop') : null;
+      controls.innerHTML = markup; controls.draftMarkup = markup;
+      var replacement = focused && controls.querySelector('[data-reset-prop="' + focused + '"]');
+      if (replacement) replacement.focus();
+    }
+  }
+
+  function restoreProperty(prop) {
+    var object = propertyObject();
+    if (!state.current || state.current.editable === false || state.saving || state.deleting || state.drag ||
+        !object || (object.editable || []).indexOf(prop) < 0) return;
+    var next = copy(state.edits);
+    selectedMembers().forEach(function (member) {
+      if (next[member.gid]) delete next[member.gid][prop];
+    });
+    next = normalizeEdits(next);
+    if (same(next, state.edits)) return;
+    remember(state.edits, state.editRevision);
+    state.edits = next; state.editRevision += 1;
+    renderProperties(); renderObjectSelect(); renderOverlay(); renderEditState(); schedulePreview();
+    var field = el('propertyPanel').querySelector('[data-prop="' + (prop === 'offset_px' ? 'offset_x' : prop) + '"]');
+    if (field) field.focus();
+  }
+
+  function savedMarkerFollowsLine(gid, prop) {
+    if (prop !== 'markerfacecolor' && prop !== 'markeredgecolor') return false;
+    var object = manifestObjects().filter(function (item) { return item.gid === gid; })[0];
+    var flag = prop === 'markerfacecolor' ? 'markerface_auto' : 'markeredge_auto';
+    return !!object && object[flag] === true && !(state.saved[gid] && state.saved[gid][prop] !== undefined);
+  }
+
+  function markerFollowsLine(gid, prop) {
+    return savedMarkerFollowsLine(gid, prop) && !(state.edits[gid] && state.edits[gid][prop] !== undefined);
+  }
+
   function renderProperties() {
+    renderPropertyScope(); renderPropertyResets();
     var panel = el('propertyPanel');
     var selected = selectedObject();
     el('objectName').textContent = state.selectedGroup ? '批量编辑 · ' + selectedMembers().length + ' 个对象' : selected ? objectLabel(selected) : '未选择对象';
@@ -716,10 +887,13 @@
       if (editable.indexOf(prop) < 0) return;
       var color = currentValue(object.gid, prop);
       var knownColor = typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color);
-      rows.push('<div class="property-row"><label>' + ({ color: '颜色', facecolor: '填色', edgecolor: '边色', markerfacecolor: '标记填色', markeredgecolor: '标记边色' }[prop]) + '</label>' + (knownColor
+      rows.push('<div class="property-row"><label>' + propertyNames(object)[prop] + '</label>' + (knownColor
         ? '<input type="color" data-prop="' + prop + '" value="' + esc(color) + '">'
         : '<input type="text" data-prop="' + prop + '" value="" placeholder="#RRGGBB" maxlength="7" aria-describedby="' + prop + 'State">') + '</div>');
       if (!knownColor) rows.push('<p class="property-empty" id="' + prop + 'State">原色未提供或包含多种颜色；输入十六进制颜色后统一颜色。</p>');
+      if (selectedMembers().every(function (member) { return markerFollowsLine(member.gid, prop); })) {
+        rows.push('<p class="property-empty" id="' + prop + 'Mode">当前随线条颜色；单独设色后独立保存。</p>');
+      }
     });
     if (editable.indexOf('fontfamily') >= 0) {
       var family = currentValue(object.gid, 'fontfamily', '');
@@ -783,9 +957,7 @@
       rows.push('<button class="button ' + (hidden ? 'secondary' : 'danger') + '" data-action="toggle-visible">' + (hidden ? '恢复对象' : '移除对象') + '</button>');
     }
     panel.innerHTML = rows.join('');
-    var names = { text: '文字内容', label: object.role === 'colorbar' ? '色条标签' : '系列名称', color: '颜色', facecolor: '填色', edgecolor: '边色', capsize: '端帽大小', markerfacecolor: '标记填色', markeredgecolor: '标记边色', markeredgewidth: '标记边宽', alpha: '不透明度', ncols: '图例列数', loc: '图例位置', fontstyle: '字形', horizontalalignment: '文字对齐', marker: '标记形状', markersize: '标记大小', linestyle: '线型',
-      fontfamily: '字体', fontweight: '字重', fontsize: '字号', linewidth: '线宽', frameon: '边框',
-      offset_x: '水平偏移', offset_y: '垂直偏移' };
+    var names = propertyNames(object);
     var inputs = panel.querySelectorAll('[data-prop]');
     for (var i = 0; i < inputs.length; i++) if (inputs[i].tagName !== 'BUTTON') inputs[i].setAttribute('aria-label', names[inputs[i].dataset.prop] || '属性');
   }
@@ -813,6 +985,7 @@
     }
     var edits = state.edits[gid];
     if (edits && edits[prop] !== undefined) return edits[prop];
+    if (markerFollowsLine(gid, prop)) return currentValue(gid, 'color', savedValue(gid, prop, fallback));
     return savedValue(gid, prop, fallback);
   }
 
@@ -823,7 +996,9 @@
         var pending = state.saving && state.saving.submitted[gid];
         // Returning to the old saved value during an in-flight save is still
         // a new command if that save is about to persist a different value.
-        if (same(edits[gid][prop], savedValue(gid, prop)) &&
+        // Choosing the displayed auto colour explicitly changes its mode even
+        // when its RGB equals the saved appearance. Keep that intent for replay.
+        if (!savedMarkerFollowsLine(gid, prop) && same(edits[gid][prop], savedValue(gid, prop)) &&
             (!pending || pending[prop] === undefined || same(edits[gid][prop], pending[prop]))) return;
         if (!result[gid]) result[gid] = {};
         result[gid][prop] = edits[gid][prop];
@@ -839,6 +1014,18 @@
   }
 
   function renderEditState() {
+    renderQa(); renderPropertyResets();
+    var object = propertyObject();
+    ['markerfacecolor', 'markeredgecolor'].forEach(function (prop) {
+      var follows = !!object && selectedMembers().every(function (member) { return markerFollowsLine(member.gid, prop); });
+      var hint = document.getElementById(prop + 'Mode');
+      if (hint) hint.hidden = !follows;
+      var field = el('propertyPanel').querySelector('[data-prop="' + prop + '"]');
+      if (follows && field) {
+        var value = currentValue(object.gid, prop);
+        if (typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value)) field.value = value;
+      }
+    });
     var editable = state.current && state.current.editable !== false;
     var blocked = !editable || state.saving || state.deleting || state.drag;
     el('undoButton').disabled = !!blocked || !state.undo.length;
@@ -945,10 +1132,20 @@
 
   // Temporary previews never become the saved baseline or export links.
   var editBatch = model.batch;
-  function showSvg(svg) {
-    var previous = state.blobUrl;
+  function showSvg(svg, doc, manifest, coarse) {
+    // Geometry is eligible only after the exact paired IMG has loaded. Keep
+    // repeated identical drafts from needlessly replacing that image/revision.
+    if (svg === state.displayedSvg && state.hitManifest === manifest && state.hitCoarse === coarse) return;
+    var previous = state.blobUrl, image = el('previewImage');
+    state.hitEpoch += 1; state.hitDocument = null; state.hitScene = null; state.hitCycle = null;
+    state.displayedSvg = svg; state.hitManifest = manifest; state.hitCoarse = coarse;
+    var epoch = state.hitEpoch;
     state.blobUrl = URL.createObjectURL(new Blob([svg], {type: 'image/svg+xml'}));
-    el('previewImage').src = state.blobUrl;
+    image.onload = function () {
+      if (state.hitEpoch !== epoch || image.currentSrc !== state.blobUrl || !image.complete) return;
+      state.hitDocument = doc || null;
+    };
+    image.src = state.blobUrl;
     if (previous) URL.revokeObjectURL(previous);
   }
   function resetScene() {
@@ -956,6 +1153,8 @@
     state.sceneFlight = null; state.sceneGeneration += 1;
     if (state.projectionFrame !== null) cancelAnimationFrame(state.projectionFrame);
     state.projectionFrame = null; state.scene = null; state.sceneEdits = {};
+    state.hitEpoch += 1; state.hitDocument = null; state.hitScene = null; state.hitManifest = null; state.hitCycle = null; state.displayedSvg = null;
+    el('previewImage').onload = null;
     state.localUnsupported = []; state.localRevision = -1;
     if (state.blobUrl) URL.revokeObjectURL(state.blobUrl);
     state.blobUrl = null;
@@ -1007,11 +1206,20 @@
       if (!state.sceneFlight && hasEdits()) { state.previewWanted = true; state.previewTimer = setTimeout(runPreview, 180); }
       renderEditState(); return;
     }
-    var changes = model.delta(state.edits, state.sceneEdits, savedValue);
+    // A temporary server scene can have replaced auto/mixed/unknown values.
+    // Restoring those requires the saved SVG, not an invented setter value.
+    var needsSavedScene = Object.keys(state.sceneEdits).some(function (gid) {
+      return Object.keys(state.sceneEdits[gid]).some(function (prop) {
+        return !(state.edits[gid] && state.edits[gid][prop] !== undefined) &&
+          (savedMarkerFollowsLine(gid, prop) || savedValue(gid, prop) === undefined);
+      });
+    });
+    if (needsSavedScene) { loadSavedScene(); renderEditState(); return; }
+    var changes = model.delta(state.edits, state.sceneEdits, savedValue, savedMarkerFollowsLine);
     var result = state.scene.project(changes, function (gid, prop) {
       return state.sceneEdits[gid] && state.sceneEdits[gid][prop] !== undefined ? state.sceneEdits[gid][prop] : savedValue(gid, prop);
     }, editBatch(state.saved).concat(editBatch(state.edits)));
-    showSvg(result.svg);
+    showSvg(result.svg, result.document, state.scene.manifest, changes.length === 0);
     state.localUnsupported = result.unsupported;
     state.localRevision = result.unsupported.length ? -1 : state.editRevision;
     state.previewWanted = result.unsupported.length > 0;
@@ -1051,7 +1259,7 @@
       state.scene = scene; state.sceneEdits = copy(flight.edits);
       state.preview = { manifest: result.manifest, edits: flight.edits, revision: flight.revision };
       state.localUnsupported = []; state.localRevision = flight.revision;
-      showSvg(result.svg); renderOverlay();
+      showSvg(result.svg, scene.base, result.manifest, true); renderOverlay();
     }).catch(function (error) {
       if (current()) state.previewError = '服务端预览未更新：' + error.message;
     }).then(function () {
@@ -1154,18 +1362,44 @@
     if (focus) focusSelected();
   }
 
+  function pickObject(event, cycle) {
+    if (!state.hitDocument || !state.hitManifest || !window.FigureHitScene) {
+      el('hitStatus').textContent = '画布选择尚未就绪；可用左侧对象树'; return '';
+    }
+    if (document.fonts && document.fonts.status !== 'loaded') {
+      el('hitStatus').textContent = '字体正在载入；可用左侧对象树'; return '';
+    }
+    try {
+      if (!state.hitScene) state.hitScene = new window.FigureHitScene(state.hitDocument, state.hitManifest, state.hitCoarse);
+      var point = state.hitScene.point(event.clientX, event.clientY, el('previewImage').getBoundingClientRect());
+      var hits = state.hitScene.hits(point, !!event.ctrlKey || !!event.metaKey);
+      el('hitStatus').textContent = state.hitScene.unsupported.size ? '部分对象请在左侧选择 · Alt 点击切换重叠对象' : 'Alt 点击切换重叠对象';
+      if (!hits.length) { if (cycle) state.hitCycle = null; return ''; }
+      var previous = state.hitCycle, index = 0;
+      if (cycle && event.altKey && previous && previous.epoch === state.hitEpoch &&
+          Math.hypot(event.clientX - previous.x, event.clientY - previous.y) <= 3 && same(previous.hits, hits)) {
+        index = (previous.index + 1) % hits.length;
+      }
+      if (cycle) state.hitCycle = {epoch: state.hitEpoch, x: event.clientX, y: event.clientY, hits: hits, index: index, time: Date.now()};
+      return hits[index];
+    } catch (error) {
+      el('hitStatus').textContent = '此图暂不可从画布精确选择；请用左侧对象树'; return '';
+    }
+  }
+
   function onOverlayMouseDown(event) {
     if (state.drag || state.view.pan || state.view.mode === 'pan' || (event.button !== undefined && event.button !== 0)) return;
-    var box = event.target.closest ? event.target.closest('.overlay-box') : null;
-    if (!box) return;
+    var handle = event.target.closest ? event.target.closest('[data-move-gid]') : null;
+    var gid = handle && handle.dataset.moveGid === state.selected && canMove(selectedObject()) ? state.selected : pickObject(event, true);
+    if (!gid) return;
     event.preventDefault();
-    selectObject(box.dataset.gid, true);
-    if (!canMove(selectedObject())) return;
+    selectObject(gid, true);
+    if (event.altKey || !canMove(selectedObject())) return;
     state.drag = {
-      gid: box.dataset.gid, pointerId: event.pointerId,
+      gid: gid, pointerId: event.pointerId, geometryEpoch: state.hitEpoch,
       startX: event.clientX, startY: event.clientY,
       before: copy(state.edits), revision: state.editRevision,
-      offset: currentValue(box.dataset.gid, 'offset_px', [0, 0]).slice()
+      offset: currentValue(gid, 'offset_px', [0, 0]).slice()
     };
     var overlay = el('overlay');
     if (event.pointerId !== undefined && overlay.setPointerCapture) overlay.setPointerCapture(event.pointerId);
@@ -1358,6 +1592,8 @@
   function init() {
     el('refreshButton').addEventListener('click', function () { loadProjects(); });
     el('saveButton').addEventListener('click', saveEdits);
+    el('verifyFigureButton').addEventListener('click', function () { return verifyFigure(false); });
+    el('bundleFigureButton').addEventListener('click', function () { return verifyFigure(true); });
     el('checkPreviewButton').addEventListener('click', function () { runPreview(true); });
     el('dataFileSelect').addEventListener('change', loadDataSchema);
     el('importChart').addEventListener('change', updateMapping);
@@ -1392,6 +1628,16 @@
       if (expand === null) { selectTab('properties'); if (state.narrow) setSidebar('right', true); }
     });
     el('objectTree').addEventListener('keydown', onTreeKeyDown);
+    el('propertyDraftControls').addEventListener('click', function (event) {
+      var button = event.target.closest ? event.target.closest('[data-reset-prop]') : null;
+      if (button) restoreProperty(button.getAttribute('data-reset-prop'));
+    });
+    el('propertyScope').addEventListener('click', function (event) {
+      var button = event.target.closest ? event.target.closest('[data-select-parent]') : null;
+      if (button && manifestObjects().some(function (item) { return item.gid === button.getAttribute('data-select-parent'); })) {
+        selectObject(button.getAttribute('data-select-parent'));
+      }
+    });
     el('propertyPanel').addEventListener('input', function (event) {
       var prop = event.target.dataset.prop;
       if (!prop) return;
@@ -1419,9 +1665,14 @@
       }
     });
     el('overlay').addEventListener('dblclick', function (event) {
-      var box = event.target.closest ? event.target.closest('.overlay-box') : null;
-      if (!box || state.view.mode === 'pan' || state.drag) return;
-      var object = manifestObjects().filter(function (item) { return item.gid === box.dataset.gid; })[0];
+      if (state.view.mode === 'pan' || state.drag) return;
+      var gid = pickObject(event, false), last = state.hitCycle;
+      // MouseEvent dblclick rounds client coordinates on Chromium whereas the
+      // selecting PointerEvent retains fractions. Reuse that verified ink hit
+      // only within rounding distance, time and the exact same image revision.
+      if (!gid && last && last.epoch === state.hitEpoch && Date.now() - last.time < 1000 &&
+          Math.hypot(event.clientX - last.x, event.clientY - last.y) <= 1.5 && last.hits[last.index] === state.selected) gid = state.selected;
+      var object = manifestObjects().filter(function (item) { return item.gid === gid; })[0];
       if (!object || (object.editable || []).indexOf('text') < 0 || state.current.editable === false) return;
       selectObject(object.gid); selectTab('properties'); setSidebar('right', true);
       var editor = el('propertyPanel').querySelector('[data-prop="text"]');
