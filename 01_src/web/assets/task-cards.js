@@ -128,14 +128,9 @@
     return {entry: entry, key: key, status: status};
   }
   function createProcessView(options) {
-    var projection = root.CitrusTaskState.createProcess(), rows = new Map(), settled = false;
-    var planBox = node('section', 'research-process-plan'); planBox.hidden = true;
-    var planSummary = node('div', 'research-plan-heading'); planBox.appendChild(planSummary);
-    var drawnPlan = null, drawnSettled = false;
-    options.container.appendChild(planBox);
-    var current = options.currentNode || node('div', 'research-process-stage');
-    if (!options.currentNode) options.container.appendChild(current);
-    current.setAttribute('role', 'status'); current.setAttribute('aria-live', 'polite'); current.hidden = true;
+    var projection = root.CitrusTaskState.createProcess(), rows = new Map(), groups = new Map(), settled = false;
+    // Public model paragraphs and real operations are the complete transcript.
+    // Stage labels and inferred plans are not conversation content.
     var host = node('div', 'research-process-timeline'); options.container.appendChild(host);
     function owns(row) { return (!options.owns || options.owns()) && host.contains(row); }
     function addTextSection(container, title, text) {
@@ -204,24 +199,6 @@
         if (!state.element.hidden) state.load();
       }
     }
-    function drawPlan() {
-      var plan = projection.currentPlan(); planBox.hidden = !plan;
-      if (!plan || plan === drawnPlan && settled === drawnSettled) return;
-      drawnPlan = plan; drawnSettled = settled;
-      planBox.dataset.planId = plan.plan_id;
-      var completed = plan.steps.filter(function (step) { return step.status === 'completed'; }).length;
-      planSummary.textContent = '工作计划 · ' + completed + '/' + plan.steps.length + ' 步已完成';
-      var previous = planBox.querySelector('.research-plan-steps'); if (previous) previous.remove();
-      var list = node('ol', 'research-plan-steps');
-      var names = {pending: '待处理', in_progress: '进行中', completed: '已完成', blocked: '受阻', cancelled: '已取消'};
-      plan.steps.forEach(function (step) {
-        var row = node('li', 'research-plan-step'); row.dataset.status = step.status; row.dataset.stepId = step.id;
-        if (!settled && step.status === 'in_progress') row.setAttribute('aria-current', 'step');
-        row.appendChild(node('span', 'research-plan-status', names[step.status]));
-        row.appendChild(node('span', 'research-plan-title', step.title)); list.appendChild(row);
-      });
-      planBox.appendChild(list);
-    }
     function place(parent, child, index) {
       // Updating an existing action must not detach a focused details control.
       var before = parent.children[index];
@@ -229,17 +206,10 @@
       if (before) parent.insertBefore(child, before); else parent.appendChild(child);
     }
     function draw() {
-      var hostIndex = 0, activeRows = new Set();
-      var active = projection.entries.filter(function (item) { return item.kind === 'action' && ['running', 'resuming'].indexOf(item.data.status || 'running') >= 0; });
-      var last = projection.entries[projection.entries.length - 1], currentItem = active.length ? active[active.length - 1] : last;
-      drawPlan();
-      var plan = projection.currentPlan(), step = plan && plan.steps.find(function (item) { return item.status === 'in_progress'; });
-      var working = active.length ? active.map(function (item) { return options.clean(item.data.display_name || options.toolName(item.data.tool_name || item.data.name) || '科研任务'); }).join('；')
-        : step ? step.title : plan && plan.steps.length && plan.steps.every(function (item) { return item.status === 'completed'; }) ? '等待下一步执行记录'
-        : last && last.kind === 'note' ? options.clean(last.text) : '';
-      current.hidden = settled || !working;
-      var currentText = current.hidden ? '' : '当前工作：' + working;
-      if (current.textContent !== currentText) current.textContent = currentText;
+      var hostIndex = 0, activeRows = new Set(), activeGroups = new Set(), group = null, groupIndex = 0, groupCount = 0;
+      function finishGroup() {
+        if (group) group.summary.textContent = '使用了 ' + groupCount + ' 个工具';
+      }
       projection.entries.forEach(function (item) {
         var row = rows.get(item.id);
         if (!row) { row = node('div', item.kind === 'note' ? 'research-process-note' : 'term-line'); rows.set(item.id, row); }
@@ -250,9 +220,21 @@
           row.dataset.noteId = item.note_id; row.dataset.phase = item.phase; row.dataset.stepId = item.step_id;
           row.dataset.modelStep = item.model_step == null ? '' : String(item.model_step);
           row.dataset.toolCallIds = JSON.stringify(item.tool_call_ids);
-          if (!settled && currentItem === item && !step) row.setAttribute('aria-current', 'step');
+          finishGroup(); group = null;
           place(host, row, hostIndex++); return;
         }
+        if (!group) {
+          group = groups.get(item.id);
+          if (!group) {
+            var disclosure = node('details', 'research-action-group'); disclosure.open = false;
+            var heading = node('summary', 'research-action-summary');
+            var list = node('div', 'research-action-list'); disclosure.appendChild(heading); disclosure.appendChild(list);
+            group = {element: disclosure, summary: heading, body: list}; groups.set(item.id, group);
+          }
+          activeGroups.add(item.id); groupIndex = 0; groupCount = 0;
+          place(host, group.element, hostIndex++);
+        }
+        groupCount++;
         var data = item.data, status = data.status || 'running';
         var resolution = item.resolution && ['failed', 'partial', 'error', 'not_run'].indexOf(status) >= 0 ? item.resolution : null;
         row.dataset.resolution = resolution ? resolution.resolution : '';
@@ -279,12 +261,14 @@
         var msg = row.querySelector('.term-msg');
         if (!msg) { msg = node('span', 'term-msg'); row.appendChild(msg); }
         msg.textContent = text;
-        // The timeline is public prose and flat activity rows. Structured
-        // receipts stay in the existing authorized record endpoint, not cards.
-        place(host, row, hostIndex++);
+        // Keep actual operations under their disclosure; records load only
+        // after the user explicitly expands a tool's parameters/results.
+        place(group.body, row, groupIndex++);
         details(row, item);
-        if (row._toolDetails) place(host, row._toolDetails.element, hostIndex++);
+        if (row._toolDetails) place(group.body, row._toolDetails.element, groupIndex++);
       });
+      finishGroup();
+      groups.forEach(function (value, id) { if (!activeGroups.has(id)) { value.element.remove(); groups.delete(id); } });
       rows.forEach(function (row, id) {
         if (!activeRows.has(id)) {
           if (row._toolDetails) row._toolDetails.element.remove();
@@ -302,15 +286,11 @@
       action: function (data) { projection.action(data); draw(); },
       resolution: function (data) { if (projection.resolution(data)) draw(); },
       progress: function (data) {
-        var phase = data.phase || data.stage || data.kind || 'progress';
-        var object = data.object || data.objects || (data.facts || {}).object || '';
-        projection.action(Object.assign({}, data, {
-          logical_key: data.logical_key || data.operation_id || 'progress:' + phase + ':' + valueText(object),
-          display_name: valueText(data.display_name || data.action || data.stage_label || '任务进度'),
-          summary: valueText(data.summary || data.message || data.text || data.result || ''),
-          status: data.status || 'running'
-        }));
-        draw();
+        // Progress can update an existing real operation, never invent a tool.
+        var keys = [data.tool_call_id, data.operation_id, data.logical_key].filter(Boolean).map(String);
+        if (keys.length && projection.entries.some(function (entry) { return entry.kind === 'action' && keys.some(function (key) { return entry.aliases.indexOf(key) >= 0; }); })) {
+          projection.action(data); draw();
+        }
       }};
   }
   root.CitrusTaskCards = {model: model, render: render, updateToolRow: updateToolRow, createProcessView: createProcessView};

@@ -16,7 +16,10 @@ from openai import OpenAI
 # v6（B1b）：源码搬到 01_src/src，但**运行期数据根仍在 agent/**
 #   （data/ state/ workspace/ .env 按 B3(a) 原地不动）。
 _REPO = Path(__file__).resolve().parents[2]
-PROJECT_ROOT = _REPO / "agent"          # 运行期数据根（data/state/workspace/.env）
+from src.runtime_paths import resolve_project_root
+
+_PROJECT_ROOT_OVERRIDE = os.getenv("CITRUSQA_PROJECT_ROOT")
+PROJECT_ROOT = resolve_project_root(_REPO, _PROJECT_ROOT_OVERRIDE)
 
 
 def _assert_managed_tree(repo: Path, data_root: Path) -> None:
@@ -49,7 +52,8 @@ def _assert_managed_tree(repo: Path, data_root: Path) -> None:
     raise RuntimeError(msg)
 
 
-_assert_managed_tree(_REPO, PROJECT_ROOT)
+if _PROJECT_ROOT_OVERRIDE is None:
+    _assert_managed_tree(_REPO, PROJECT_ROOT)
 MODEL_CACHE_ROOT = Path(os.getenv(
     "CITRUSQA_MODEL_CACHE_ROOT", str(PROJECT_ROOT / ".hf_cache")
 )).expanduser().resolve()
@@ -297,10 +301,11 @@ class Settings(BaseSettings):
     # deadline" into the shortest possible one.
     AGENT_MODEL_TIMEOUT_SEC: int = Field(
         default_factory=lambda: _yaml_val("agent", "model_timeout_sec", default=180))
-    # S1: 断线后后台执行的宽限期（秒）。断线不等于取消；到期仍未完成才记
-    # cancelled(stop_reason=detached_timeout)。0 = 不设上限（不推荐）。
+    # Navigation disconnects the observer, not the task. Its existing execution
+    # budgets, deadline and explicit cancellation still apply. Administrators may
+    # opt into a finite observer grace; 0 disables this additional cancellation.
     AGENT_DETACH_GRACE_SEC: int = Field(
-        default_factory=lambda: _yaml_val("agent", "detach_grace_sec", default=180))
+        default_factory=lambda: _yaml_val("agent", "detach_grace_sec", default=0))
     SEARCH_FETCH_TIMEOUT_SEC: int = Field(
         default_factory=lambda: _yaml_val("agent", "search_fetch_timeout_sec", default=45))
     # v8.15.3b: 单工具超时覆盖（{tool_name: 秒}，覆盖 TOOL_EXEC_TIMEOUT_SEC 默认值）
@@ -714,18 +719,31 @@ class Settings(BaseSettings):
                 or self.FAST_BASE_URL
                 or self.RESOLVED_MAIN_BASE_URL)
 
-settings = Settings()
-settings._load_runtime_deepseek_web_api_key()
+def load_runtime_settings(*, worker: bool = False):
+    # Worker controllers use storage/authorization configuration, never provider
+    # credentials. Skip dotenv and every credential loader before opening files.
+    # This is process hygiene, not OS isolation between processes with one UID.
+    if worker:
+        keys = {name: '' for name in Settings.model_fields
+                if name.endswith(('_API_KEY', '_SECRET_KEY'))}
+        return Settings(_env_file=None, **keys)
+    instance = Settings()
+    instance._load_runtime_deepseek_web_api_key()
+    instance._load_runtime_api_key()
+    instance._load_runtime_provider_api_keys()
+    instance._load_runtime_model_config()
+    instance._load_runtime_configured_model_providers()
+    instance._load_runtime_web_search_config()
+    return instance
+
+
+_worker_role = os.environ.get('CITRUS_RUNTIME_ROLE') == 'code-worker'
+settings = load_runtime_settings(worker=_worker_role)
 
 # v8.5.0 模型镜像兜底：任何启动方式（run.ps1 / 手动 uvicorn）下，
 # HuggingFace 模型（reranker/embedding）首次下载统一走国内镜像，
 # 已有 HF_ENDPOINT 环境变量则尊重用户自定义
 os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
-settings._load_runtime_api_key()
-settings._load_runtime_provider_api_keys()
-settings._load_runtime_model_config()
-settings._load_runtime_configured_model_providers()
-settings._load_runtime_web_search_config()
 
 # ── 启动配置校验（v8.3.3 fail-fast）──
 def validate_config() -> list:
@@ -742,7 +760,7 @@ def validate_config() -> list:
     return issues
 
 
-_config_issues = validate_config()
+_config_issues = [] if _worker_role else validate_config()
 if _config_issues:
     _w = logging.getLogger("src.config")
     for _issue in _config_issues:

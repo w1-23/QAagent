@@ -12,8 +12,6 @@ warnings.filterwarnings("ignore", message=".*incorrect regex pattern.*")
 warnings.filterwarnings("ignore", message=".*Some nodes were not assigned.*")
 warnings.filterwarnings("ignore", message=".*mean pooling instead of CLS.*")
 from typing import List, Dict
-from optimum.onnxruntime import ORTModelForSequenceClassification
-from transformers import AutoTokenizer
 from src.config import settings, MODEL_CACHE_ROOT
 from src.engine.hardware import (
     GPUUnavailableError, get_ort_providers, model_session, profile_compute_providers,
@@ -21,6 +19,12 @@ from src.engine.hardware import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _model_classes():
+    from optimum.onnxruntime import ORTModelForSequenceClassification
+    from transformers import AutoTokenizer
+    return ORTModelForSequenceClassification, AutoTokenizer
 
 # A forward pass that has not finished in this budget means the execution provider
 # stopped progressing; the request is retried on CPU instead of hanging.
@@ -80,11 +84,12 @@ class Reranker:
         logger.info(f"[Reranker] 配置 | Provider: {raw_providers} | 进程内共享模型")
 
     def _create_session(self):
+        if not self._cache_dir.exists() and require_gpu():
+            raise GPUUnavailableError(
+                f"reranker cache missing at {self._cache_dir}; stage the exported ONNX model "
+                "before starting the GPU service (strict readiness never downloads weights)")
+        ORTModelForSequenceClassification, AutoTokenizer = _model_classes()
         if not self._cache_dir.exists():
-            if require_gpu():
-                raise GPUUnavailableError(
-                    f"reranker cache missing at {self._cache_dir}; stage the exported ONNX model "
-                    "before starting the GPU service (strict readiness never downloads weights)")
             logger.info("Exporting Reranker to ONNX (one-time)...")
             model = ORTModelForSequenceClassification.from_pretrained(settings.RERANKER_MODEL, export=True)
             model.save_pretrained(self._cache_dir)
@@ -184,12 +189,12 @@ class Reranker:
         return outcome["outputs"]
 
     def _safe_rerank(self, query: str, chunks: List[Dict], top_k: int) -> List[Dict]:
+        from src.core.cancel import ToolCancelled, raise_if_cancelled
         for attempt in range(2):
             try:
                 model, tokenizer = self._get_model()
                 # Bound attention/activation memory, not the candidate coverage.
                 # All candidates are scored before one global ranking is applied.
-                from src.core.cancel import raise_if_cancelled
                 batch_size = int(settings.RERANK_BATCH_SIZE)
                 logits = []
                 for start in range(0, len(chunks), batch_size):
@@ -218,6 +223,8 @@ class Reranker:
                     c["rerank_score"] = s
                 chunks.sort(key=lambda x: x["rerank_score"], reverse=True)
                 return chunks[:top_k]
+            except ToolCancelled:
+                raise
             except Exception as e:
                 self._inference_verified = False
                 self._runtime_error = f"{type(e).__name__}: {e}"

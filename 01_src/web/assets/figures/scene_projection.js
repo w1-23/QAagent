@@ -245,9 +245,9 @@
       var bad = new Set(failed.map(function (item) { return JSON.stringify([item.gid, item.prop]); }));
       var safe = changes.filter(function (item) { return !bad.has(JSON.stringify([item.gid, item.prop])); });
       var projected = this.project(safe, valueBefore, protectedEdits);
-      return { svg: projected.svg, unsupported: failed.concat(projected.unsupported) };
+      return { svg: projected.svg, document: projected.document, unsupported: failed.concat(projected.unsupported) };
     }
-    return { svg: new XMLSerializer().serializeToString(failed.length ? this.base : doc), unsupported: failed };
+    return { svg: new XMLSerializer().serializeToString(failed.length ? this.base : doc), document: failed.length ? this.base : doc, unsupported: failed };
   };
   var markerPaths = {
     o: function (s) { var r = s / 2; return 'M ' + r + ' 0 A ' + r + ' ' + r + ' 0 1 0 ' + -r + ' 0 A ' + r + ' ' + r + ' 0 1 0 ' + r + ' 0 Z'; },

@@ -1,10 +1,10 @@
 (function (root) {
   'use strict';
   var titles = {'candidate-search':'科研检索', 'reference-verification':'文献核验',
-    'data-audit':'数据审查', 'figure-initial':'科研绘图', 'figure-edit':'图件编辑',
-    'nature-figure':'Nature 绘图方法', statistics:'统计分析', 'word-export':'Word 文档'};
+    'data-audit':'数据审查', 'nature-figure':'科研绘图'};
+  var scenarioIds = Object.keys(titles);
   function create(options) {
-    var selected = [], catalog = [], generation = 0, revision = 0, pending = false;
+    var selected = [], catalog = [], generation = 0, revision = 0;
     var list = options.list, status = options.status, summary = options.summary;
     function closeMenu(focusInput) {
       if (options.menu) options.menu.open = false;
@@ -52,18 +52,22 @@
     async function load() {
       var scope = options.scope();
       if (!scope) { status.textContent = '登录后可选择场景。'; return; }
-      if (pending) return;
-      var ticket = ++generation; pending = true; status.textContent = '正在读取场景目录…';
+      // A new refresh supersedes the old request, including across sessions.
+      var ticket = ++generation; status.textContent = '正在读取场景目录…';
       try {
         var response = await options.fetch('/api/v2/skills');
         if (!response.ok) throw new Error('catalog_unavailable');
         var body = await response.json();
         if (ticket !== generation || scope !== options.scope()) return;
-        if (!Array.isArray(body.skills) || body.skills.length > 100) throw new Error('invalid_catalog');
+        if (!body || !Array.isArray(body.skills) || body.skills.length > 100) throw new Error('invalid_catalog');
+        var seen = Object.create(null);
         catalog = body.skills.filter(function (item) {
-          return item && typeof item.id === 'string' && typeof item.version === 'string' &&
-            /^[a-f0-9]{64}$/.test(item.sha256) && typeof item.description === 'string';
-        });
+          if (!item || scenarioIds.indexOf(item.id) < 0 || seen[item.id] ||
+              typeof item.version !== 'string' || !item.version || item.version.length > 100 ||
+              typeof item.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(item.sha256) ||
+              typeof item.description !== 'string' || item.description.length > 10000) return false;
+          seen[item.id] = true; return true;
+        }).sort(function (a, b) { return scenarioIds.indexOf(a.id) - scenarioIds.indexOf(b.id); });
         var before = selected.length;
         selected = selected.filter(function (pick) { return catalog.some(function (item) { return same(pick, item); }); });
         if (before !== selected.length) revision++;
@@ -73,10 +77,10 @@
       } catch (_) {
         if (ticket !== generation || scope !== options.scope()) return;
         status.textContent = '场景目录暂不可用，可重试或直接提问。';
-      } finally { if (ticket === generation) pending = false; }
+      }
     }
     function reset() {
-      generation++; revision++; pending = false; selected = []; catalog = [];
+      generation++; revision++; selected = []; catalog = [];
       list.replaceChildren(); status.textContent = ''; drawSummary();
       if (options.menu) options.menu.open = false;
     }

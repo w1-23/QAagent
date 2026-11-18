@@ -75,6 +75,14 @@ class ImportRequest(BaseModel):
     mapping: dict[str, str] | None = None
 
 
+class CurrentArtifactRequest(BaseModel):
+    """An existing render revision, never caller paths/source or QA policy."""
+
+    model_config = {"extra": "forbid"}
+    expected_revision: int = Field(ge=0, strict=True)
+    supersedes_file_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{32}$")
+
+
 # ── Helpers ───────────────────────────────────────────────────────────────
 
 def _current_user(request: Request) -> dict:
@@ -248,6 +256,43 @@ async def delete_project(figure_id: str, request: Request):
         if not ok:
             return JSONResponse({"detail": "图件不存在或无权访问。"}, status_code=404)
         return {"status": "ok", "figure_id": figure_id}
+
+
+# ── Current-artifact verification and diagnostic bundles ───────────────────
+
+async def _current_artifact_operation(figure_id: str, body: CurrentArtifactRequest,
+                                      request: Request, *, include_bundle: bool):
+    from src.figures import projects
+    from src.figures.current_artifact_api import verify_project
+
+    owner = _owner(request)
+    with _write_scope(owner) as lease:
+        try:
+            result = await run_account_thread(
+                lease, verify_project, figure_id, owner,
+                expected_revision=body.expected_revision,
+                supersedes_file_id=body.supersedes_file_id,
+                include_bundle=include_bundle)
+        except projects.ProjectError as exc:
+            return _fail(exc)
+    return JSONResponse(result, headers={"Cache-Control": "private, no-store",
+                                         "X-Content-Type-Options": "nosniff"})
+
+
+@router.post("/projects/{figure_id}/verify")
+async def verify_current_artifacts(figure_id: str, body: CurrentArtifactRequest, request: Request):
+    """Audit current authorized bytes; a prior published receipt requests reaudit.
+
+    Source/render/upstream scripts and visual models are never executed here.
+    The receipt records their absent coverage separately from format integrity.
+    """
+    return await _current_artifact_operation(figure_id, body, request, include_bundle=False)
+
+
+@router.post("/projects/{figure_id}/bundle")
+async def bundle_current_artifacts(figure_id: str, body: CurrentArtifactRequest, request: Request):
+    """Publish a hashed v2 diagnostic archive of the current stored artifact set."""
+    return await _current_artifact_operation(figure_id, body, request, include_bundle=True)
 
 
 # ── Preview and download ──────────────────────────────────────────────────

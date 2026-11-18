@@ -12,6 +12,7 @@ from functools import partial
 from importlib import import_module
 from importlib.resources import files
 import json
+import inspect
 from types import MappingProxyType
 
 from src.agent.capabilities import CapabilityCatalog, CapabilityDefinition, CapabilityLoadError
@@ -144,12 +145,20 @@ def _read_manifest() -> dict[str, dict]:
     return schemas
 
 
+def canonical_tool_schema(tool):
+    """Normalize only docstring indentation across Python 3.12 and 3.13."""
+    from langchain_core.utils.function_calling import convert_to_openai_tool
+
+    schema = convert_to_openai_tool(tool)
+    function = schema['function']
+    return {**schema, 'function': {**function,
+        'description': inspect.cleandoc(function['description'])}}
+
+
 def _load(preset: _Preset, expected: dict):
     # Both names are closed-over code-owned values, never manifest targets.
     tool = getattr(import_module(_TARGETS[preset.name]), preset.name)
-    from langchain_core.utils.function_calling import convert_to_openai_tool
-
-    actual = convert_to_openai_tool(tool)
+    actual = canonical_tool_schema(tool)
     if actual != expected:
         def difference(left, right, path=""):
             if isinstance(left, dict) and isinstance(right, dict):

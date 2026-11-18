@@ -1,0 +1,27 @@
+Bootstrap: docker
+From: public.ecr.aws/docker/library/ubuntu@sha256:77eb101c607d6e3d4f5ad0c8a02c2136c689b98aba1f359e6502ba517e5c57ec
+
+%labels
+    org.opencontainers.image.title CitrusScholar trusted namespace controller
+    org.citrusscholar.role trusted-control
+
+%post
+    set -eu
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y --no-install-recommends python3 systemd dbus util-linux libseccomp2 ca-certificates libfuse3-3 liblzo2-2 liblz4-1 libzstd1 liblzma5 zlib1g
+    rm -rf /var/lib/apt/lists/*
+    # Match the host helper ABI; no application, generated code or credentials.
+    mkdir -p /usr/local/bin /usr/libexec/apptainer /etc/apptainer /var/lib/apptainer/mnt/session
+    ln -s /usr/bin/python3 /usr/local/bin/python
+    dpkg-query -W > /opt/installed-packages.txt
+
+%environment
+    export PYTHONDONTWRITEBYTECODE=1
+    export PYTHONUNBUFFERED=1
+    export PYTHONUTF8=1
+
+%test
+    /usr/bin/unshare --version
+    /usr/bin/systemctl --version
+    /usr/local/bin/python -I -c 'import ctypes, json, socket; [ctypes.CDLL(x) for x in ("libseccomp.so.2", "libfuse3.so.3", "liblzo2.so.2", "libz.so.1", "liblzma.so.5", "liblz4.so.1", "libzstd.so.1")]'

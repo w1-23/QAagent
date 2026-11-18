@@ -91,6 +91,22 @@ def sanitize(text: str) -> str:
     return cleaned
 
 
+def public_content_text(content) -> str:
+    """Extract public text blocks without exposing provider reasoning or data."""
+    if isinstance(content, str):
+        return content
+    if not isinstance(content, (list, tuple)):
+        return ""
+    return "".join(
+        block if isinstance(block, str) else block["text"]
+        for block in content
+        if isinstance(block, str) or (
+            isinstance(block, dict) and block.get("type") == "text"
+            and isinstance(block.get("text"), str)
+        )
+    )
+
+
 def public_progress_text(chunks, has_tool_calls: bool) -> str:
     """Classify one model round: working note vs final answer.
 
@@ -102,18 +118,7 @@ def public_progress_text(chunks, has_tool_calls: bool) -> str:
     if not chunks:
         return ""
     try:
-        if isinstance(chunks, str):
-            chunks = [chunks]
-        # Native content blocks can mix text with provider reasoning/tool data.
-        # Never stringify a block or inspect additional_kwargs/provider state.
-        texts = []
-        for chunk in chunks:
-            if isinstance(chunk, str):
-                texts.append(chunk)
-            elif (isinstance(chunk, dict) and chunk.get("type") == "text"
-                  and isinstance(chunk.get("text"), str)):
-                texts.append(chunk["text"])
-        return sanitize("".join(texts))
+        return sanitize(public_content_text(chunks))
     except Exception:  # noqa: BLE001 - progress must never break execution
         return ""
 
@@ -137,6 +142,7 @@ def emit_public_progress(text: str, *, step_id: str = "",
         if _last_emitted.get() == (scope, note):
             return False
         emit_progress("assistant_progress", {
+            "visibility": "public", "origin": "model",
             "step_id": step_id or "analysis",
             "phase": phase,
             "text": note,
@@ -156,11 +162,19 @@ def emit_public_progress(text: str, *, step_id: str = "",
 _PROGRESS_SUMMARY_MAX = 200
 
 
-def _persist_last_note(note: str, *, job_id: str = "") -> None:
-    """把最后一条公开进度写进 task_jobs.progress_summary（失败静默）。"""
-    if not job_id:
-        return
+def _persist_last_note(note: str, *, job_id: str | None = None) -> None:
+    """Persist the last public note; an explicit empty host scope stays empty.
+
+    Direct legacy callers may omit job_id and use their current bound request.
+    The event emitter always passes its resolved identity, including an empty
+    value, so a late context change cannot redirect an already classified note.
+    """
     try:
+        if job_id is None:
+            from src.core.tracing import get_job_id
+            job_id = str(get_job_id() or "")
+        if not job_id:
+            return
         from src.core import jobs as jobs_mod
         jobs_mod.update_job(job_id, progress_summary=note[:_PROGRESS_SUMMARY_MAX])
     except Exception:  # noqa: BLE001 - 进度持久化绝不能影响执行

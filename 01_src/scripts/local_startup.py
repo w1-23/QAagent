@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 from contextlib import contextmanager
 import json
 import os
@@ -50,7 +51,8 @@ def reuse_existing(port, distribution, image, record_path):
                        and identity.get("profile") == PROFILE
                        and identity.get("instance_id") == record["instance_id"]
                        and identity.get("pid") == process.pid
-                       and Path(identity["workspace"]).resolve() == ROOT)
+                       and identity.get("workspace_id") == hashlib.sha256(
+                           os.path.normcase(str(ROOT.resolve())).encode("utf-8")).hexdigest())
         if not matches:
             return False
         # A cached HTTP receipt alone cannot prove an idle Docker daemon is
@@ -58,7 +60,7 @@ def reuse_existing(port, distribution, image, record_path):
         from src.figures.wsl_docker import WslDockerBackend
         runner = WslDockerBackend(image=image, distribution=distribution)
         prepare_docker(runner)
-        return runner.image_id == ready["worker"].get("image_id")
+        return hashlib.sha256(str(runner.image_id).encode()).hexdigest() == ready["worker"].get("image_fingerprint")
     except (OSError, ValueError, KeyError, psutil.Error):
         return False
 
@@ -79,7 +81,17 @@ def startup_lock(path):
             msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
 
 
+def verify_support_installation():
+    """Fail before touching Docker/state when the selected interpreter is stale."""
+    from importlib.metadata import version
+    if version("citrusscholar-support") != "2.0.0":
+        raise RuntimeError("Install the citrusscholar-support 2.0.0 wheel in the selected Conda environment first.")
+    from citrus_figures.nature_runtime import validate_vendor
+    validate_vendor(ROOT / "skills/nature-figure/vendor/nature-skills")
+
+
 def configure(distribution, image):
+    verify_support_installation()
     agent = ROOT / "agent"
     cache = agent / ".hf_cache"
     if not (agent / "data/active_index.json").is_file() or not cache.is_dir():

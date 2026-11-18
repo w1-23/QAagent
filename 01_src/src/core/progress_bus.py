@@ -313,8 +313,8 @@ def clear_tool_timers() -> None:
 
 
 def emit_thinking(content: str) -> None:
-    """Emit a safe progress label; never forward model-generated reasoning text."""
-    emit_status("agent_progress", message="正在规划下一步工具操作…")
+    """Compatibility no-op: private reasoning never becomes a progress narration."""
+    return
 
 
 def emit_reasoning(content: str) -> None:
@@ -489,7 +489,10 @@ def emit_text_reset(reason: str = "") -> None:
 
 
 def emit_status(stage: str, **kwargs) -> None:
-    """Emit a generic status event (backward compat)."""
+    """Keep real control state; retired host narration never crosses the bus."""
+    if stage in {"agent_progress", "step_active", "step_done", "loading", "thinking",
+                 "understanding", "preparing_context", "context_injection"}:
+        return
     payload = {"stage": stage}
     payload.update(kwargs)
     emit_encoded("status", payload)

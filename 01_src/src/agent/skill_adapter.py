@@ -1,17 +1,8 @@
-"""Registry-backed progressive Skills adaptation, without another agent loop.
+"""Progressive installed-method guidance with identity-bound source receipts.
 
-API contract: skill_catalog() returns verified metadata only. Validate the exact
-list[{id, version, sha256}] with validate_selected_skills(), then store its return
-value in request state['selected_skills']. Selection does not grant permission.
-The host loads selected roots/dependencies before the model; natural-language
-selection uses read_skill pages. Only authoritative, identity-bound receipts for
-ALL required resources permit specialized tools. Receipt bytes must also remain
-in the active model view. Legacy loaded_methods flags are deliberately ignored.
-
-Deep Agents' public SkillsMiddleware.modify_request supplies compact discovery.
-Its native entrypoint-read/pinned-skills heuristics cannot establish complete
-registry resource coverage and its tool runner would bypass HostTools; those
-parts are intentionally replaced by typed registry reads and host admission.
+The product scenario API advertises the pinned root release. Archived method
+reads retain their exact identities separately from new scenario selection.
+Exact release identities select readers; skills never gate tool admission.
 """
 from __future__ import annotations
 
@@ -23,21 +14,13 @@ import json
 from langchain_core.messages import SystemMessage, ToolMessage
 
 from src.prompts import skill_registry as registry
+from . import research_skill_catalog as research_catalog
 from .runtime import AdmissionStopped
 
 _MAX_LOAD_CHARS = 240000  # Whole-method delivery is bounded, never silently truncated.
 _IDENTITY_FIELDS = ("id", "version", "sha256")
 _CATALOG_FIELDS = (*_IDENTITY_FIELDS, "description", "applicability", "depends_on",
                    "required_resources", "requires_any")
-# These are method-dependent specialist entrypoints, not a global tool allowlist.
-_TOOL_METHODS = {
-    "verify_uploaded_references": "reference-verification",
-    "audit_uploaded_data": "data-audit",
-    "analyze_research_data": "statistics",
-    "create_research_figure": "figure-initial",
-    "run_research_figure_script": "figure-initial",
-    "word_document": "word-export",
-}
 
 
 SCENARIO_SKILLS = frozenset({"candidate-search", "reference-verification", "data-audit", "figure-initial"})
@@ -51,6 +34,37 @@ def skill_catalog(available_tools: set[str] | None = None, *, scenarios_only: bo
             if row.get("verified") and (not scenarios_only or row["id"] in SCENARIO_SKILLS)
             and (available_tools is None or not row.get("requires_any")
                 or set(row["requires_any"]) & available_tools)]
+
+
+def scenario_catalog() -> list[dict]:
+    """Current four product scenarios; availability never grants execution rights."""
+    return [{key: row.get(key, [] if key in {"depends_on", "required_resources", "requires_any"} else "")
+             for key in _CATALOG_FIELDS} for row in research_catalog.list_skills()]
+
+
+def validate_scenario_selection(value) -> list[dict[str, str]]:
+    """Accept only exact current release identities for a new product request.
+
+    Older identities remain readable through SkillSession, but are never silently
+    upgraded or accepted as the current product menu's selection.
+    """
+    if value is None or (type(value) is list and not value):
+        return []
+    if type(value) is not list or len(value) > 4:
+        raise ValueError("invalid_selected_skills")
+    rows = {row["id"]: row for row in scenario_catalog()}
+    result, seen = [], set()
+    for selected in value:
+        if (type(selected) is not dict or set(selected) != set(_IDENTITY_FIELDS)
+                or any(type(selected[key]) is not str for key in _IDENTITY_FIELDS)):
+            raise ValueError("invalid_selected_skill_identity")
+        sid = selected["id"]
+        row = rows.get(sid)
+        if sid in seen or row is None or any(selected[key] != row[key] for key in _IDENTITY_FIELDS):
+            raise ValueError("selected_skill_identity_mismatch")
+        seen.add(sid)
+        result.append({key: row[key] for key in _IDENTITY_FIELDS})
+    return result
 
 
 def _closure(ids, rows):
@@ -99,7 +113,17 @@ def directory_prompt(available_tools: set[str]) -> str:
     from deepagents.backends import StateBackend
     from deepagents.middleware.skills import SkillsMiddleware
     from langchain.agents.middleware import ModelRequest
-    rows = skill_catalog(available_tools)
+    rows = research_catalog.list_skills()
+    try:
+        ordinary = [entry["id"] for entry in registry._catalog()
+                    if entry["id"] not in SCENARIO_SKILLS | {"nature-figure"}]
+    except (OSError, ValueError, KeyError, TypeError):
+        ordinary = []
+    for sid in ordinary:
+        try:
+            rows.append(registry.skill_info(sid))
+        except (OSError, ValueError, KeyError, TypeError):
+            continue  # One archived method failure does not disable other guidance.
     if not rows:
         return "No verified skills are available; generic authorized tools remain usable."
     metadata = [{"name": row["id"], "description": row["description"] + " " + row["applicability"],
@@ -108,10 +132,12 @@ def directory_prompt(available_tools: set[str]) -> str:
                 for row in rows]
     middleware = SkillsMiddleware(backend=StateBackend(), sources=[("/installed-skills/", "Verified registry")],
         system_prompt="{skills_locations}\n{skills_list}\n{skills_load_warnings}\n"
-        "Use load_skill(skill_id, version, sha256) for the complete method and dependencies, or "
-        "read_skill(skill_id, version, sha256) to read the entrypoint, then every required_resource "
-        "and dependency. Follow next_start_char until complete. These ids are registry keys, not filesystem paths. "
-        "Only complete current-version reads unlock dependent specialist tools; skills never grant authorization.")
+        "Use load_skill(skill_id, version, sha256) for the method documents and dependencies, or "
+        "read_skill(skill_id, version, sha256) for declared resource pages. Follow next_start_char "
+        "when more text is useful. Optional resources require exact manifest paths; vendor trees are not "
+        "loaded by default. These ids are registry keys, not filesystem paths. "
+        "Skills guide methods; missing or partial reads never gate authorized tools or dispatch. "
+        "Read/discovery failures are local and do not block the task; skills never grant authorization.")
     request = ModelRequest(model=None, messages=[], tools=[], state={"skills_metadata": metadata})
     return middleware.modify_request(request).system_message.text
 
@@ -128,40 +154,67 @@ class SkillSession:
         self.receipts: dict[str, dict] = {}
         self.active: set[str] = set()
         self.required_message_ids: set[str] = set()
+        self.diagnostics: list[str] = []
 
-    def _rows(self):
-        return {row["id"]: row for row in skill_catalog(set(self.available()))}
+    @staticmethod
+    def _validate_identity(selected):
+        if (type(selected) is not dict or set(selected) != set(_IDENTITY_FIELDS)
+                or any(type(selected[key]) is not str for key in _IDENTITY_FIELDS)):
+            raise ValueError("invalid_selected_skill_identity")
+        return selected
 
     def page(self, skill_id, version, sha256, resource="", start_char=0, max_chars=3000):
-        rows = self._rows()
-        selected = {"id": skill_id, "version": version, "sha256": sha256}
-        validate_selected_skills([selected], set(self.available()))
-        info = registry.skill_info(skill_id)
-        if any(info[key] != selected[key] for key in _IDENTITY_FIELDS):
-            raise ValueError("skill_changed_during_read")
-        page = registry.read_resource(skill_id, resource, start_char=start_char, max_chars=max_chars)
-        # Reverify the package after the page read, not just its entrypoint.
-        after = registry.skill_info(skill_id)
-        if any(after[key] != selected[key] for key in _IDENTITY_FIELDS) or page["version"] != version:
-            raise ValueError("skill_changed_during_read")
+        selected = self._validate_identity({"id": skill_id, "version": version, "sha256": sha256})
+        if (type(start_char) is not int or start_char < 0
+                or type(max_chars) is not int or not 1 <= max_chars <= 20000):
+            raise ValueError("invalid_skill_pagination")
+        dependencies = []
+        if research_catalog.PINNED.get(skill_id) == (version, sha256):
+            info, page = research_catalog.read_resource(skill_id, version, sha256, resource,
+                                                       start_char=start_char, max_chars=max_chars)
+        else:
+            info = registry.skill_info(skill_id)
+            if any(info[key] != selected[key] for key in _IDENTITY_FIELDS):
+                raise ValueError("selected_skill_identity_mismatch")
+            if info.get("depends_on"):
+                # Resolve archived dependencies only in their original registry.
+                rows = {row["id"]: row for row in skill_catalog()}
+                dependencies = [{key: rows[dep][key] for key in _IDENTITY_FIELDS}
+                                for dep in _closure(info["depends_on"], rows)]
+            page = registry.read_resource(skill_id, resource, start_char=start_char, max_chars=max_chars)
+            after = registry.skill_info(skill_id)
+            if any(after[key] != selected[key] for key in _IDENTITY_FIELDS) or page["version"] != version:
+                raise ValueError("skill_changed_during_read")
         return {"skill": selected, "identity": asdict(self.identity), "page": page,
-                "required_resources": info["required_resources"],
-                "dependencies": [{key: rows[dep][key] for key in _IDENTITY_FIELDS}
-                                 for dep in _closure(info.get("depends_on", []), rows)]}
+                "required_resources": info["required_resources"], "dependencies": dependencies}
 
     def load(self, selected):
-        """Read only selected roots/dependencies; loading itself grants no receipt."""
-        selected = validate_selected_skills(selected, set(self.available()))
-        if not selected:
-            return {"skill_load": []}
-        rows = self._rows()
-        pages, delivered_chars = [], 0
-        for sid in _closure([row["id"] for row in selected], rows):
-            row = rows[sid]
-            for resource in row["required_resources"]:
+        """Deliver method docs, keeping optional vendor resources out of default loads."""
+        if selected is None:
+            selected = []
+        if type(selected) is not list or len(selected) > 8:
+            raise ValueError("invalid_selected_skills")
+        selected = [self._validate_identity(item) for item in selected]
+        if len({tuple(item[key] for key in _IDENTITY_FIELDS) for item in selected}) != len(selected):
+            raise ValueError("selected_skill_identity_mismatch")
+        pages, delivered_chars, loaded, visiting = [], 0, set(), set()
+
+        def visit(item):
+            nonlocal delivered_chars
+            identity = tuple(item[key] for key in _IDENTITY_FIELDS)
+            if identity in visiting:
+                raise ValueError("skill_dependency_cycle")
+            if identity in loaded:
+                return
+            visiting.add(identity)
+            first = self.page(item["id"], item["version"], item["sha256"], max_chars=20000)
+            for dependency in first["dependencies"]:
+                visit(dependency)
+            for resource in first["required_resources"]:
                 start = 0
                 while True:
-                    payload = self.page(sid, row["version"], row["sha256"], resource, start, 20000)
+                    payload = (first if resource == first["page"]["resource"] and start == 0 else
+                               self.page(item["id"], item["version"], item["sha256"], resource, start, 20000))
                     delivered_chars += len(_encode(payload))
                     if delivered_chars > _MAX_LOAD_CHARS:
                         raise ValueError("skill_load_too_large_use_read_skill_pages")
@@ -169,6 +222,11 @@ class SkillSession:
                     start = payload["page"]["next_start_char"]
                     if start is None:
                         break
+            visiting.remove(identity)
+            loaded.add(identity)
+
+        for item in selected:
+            visit(item)
         return {"skill_load": pages}
 
     def selected_messages(self, selected):
@@ -198,7 +256,7 @@ class SkillSession:
             pages = data["skill_load"] if message.name == "load_skill" else [data]
             for payload in pages:
                 self._verify_page(payload)
-        except (ValueError, KeyError, TypeError, OSError):
+        except (ValueError, KeyError, TypeError, OSError, AttributeError):
             return
         for index, payload in enumerate(pages):
             key = message.tool_call_id if message.name == "read_skill" else f"{message.tool_call_id}:{index}"
@@ -218,20 +276,19 @@ class SkillSession:
 
     def restore(self, saved):
         self.active.clear()
-        if saved is None:  # P3 checkpoints predate authoritative skill receipts.
+        self.required_message_ids.clear()
+        self.diagnostics.clear()
+        if saved is None:  # Checkpoints predating source receipts.
             self.receipts = {}
             return
-        if saved.get("identity") != asdict(self.identity):
+        if type(saved) is not dict or saved.get("identity") != asdict(self.identity):
             raise AdmissionStopped("skill_receipt_identity_mismatch")
-        self.receipts = deepcopy(saved.get("receipts", {}))
+        receipts = saved.get("receipts", {})
+        self.receipts = deepcopy(receipts) if type(receipts) is dict else {}
 
     def verify_view(self, messages):
-        """Recheck permissions, package bytes, full range coverage and active text."""
-        if not self.receipts:
-            self.active.clear()
-            self.required_message_ids.clear()
-            return set()
-        rows = self._rows()
+        """Diagnose source coverage; missing/partial/stale guidance never stops admission."""
+        self.diagnostics.clear()
         visible, message_ids = {}, {}
         for message in messages:
             if isinstance(message, ToolMessage):
@@ -242,27 +299,36 @@ class SkillSession:
                 continue
             visible[key] = message.content
             message_ids[key] = message.id
-        covered = {}
-        valid = {}
+        covered, valid, packages = {}, {}, {}
         for key, receipt in self.receipts.items():
             try:
                 self._verify_page(receipt["payload"])
-            except (ValueError, KeyError, TypeError, OSError):
-                continue  # changed packages/permissions cannot inherit a receipt
-            content = visible.get((receipt["kind"], receipt["message_key"]))
-            if (not isinstance(content, str)
-                    or hashlib.sha256(content.encode()).hexdigest() != receipt["content_sha256"]):
-                raise AdmissionStopped("required_method_missing_from_active_projection")
-            valid[key] = receipt
-            p = receipt["payload"]
-            page = p["page"]
-            covered.setdefault((p["skill"]["id"], page["resource"]), []).append(
-                (page["start_char"], page["start_char"] + len(page["text"]), page["total_chars"]))
+                source_key = (receipt["kind"], receipt["message_key"])
+                content = visible.get(source_key)
+                if (not isinstance(content, str)
+                        or hashlib.sha256(content.encode()).hexdigest() != receipt["content_sha256"]):
+                    self.diagnostics.append("skill_receipt_missing_from_active_projection")
+                    continue
+                # Bind the saved payload to its visible observation as well as
+                # the source bytes, including after checkpoint reconstruction.
+                data = json.loads(content)
+                delivered = data.get("skill_load", [data])
+                if receipt["payload"] not in delivered:
+                    raise ValueError("skill_receipt_bytes_mismatch")
+                p = receipt["payload"]
+                identity = tuple(p["skill"][field] for field in _IDENTITY_FIELDS)
+                page = p["page"]
+                covered.setdefault((identity, page["resource"]), []).append(
+                    (page["start_char"], page["start_char"] + len(page["text"]), page["total_chars"]))
+                packages[identity] = p
+                valid[key] = receipt
+            except (ValueError, KeyError, TypeError, OSError, AttributeError):
+                self.diagnostics.append("skill_receipt_stale_or_invalid")
         loaded = set()
-        for sid, row in rows.items():
+        for identity, payload in packages.items():
             complete = True
-            for resource in row["required_resources"]:
-                ranges = sorted(covered.get((sid, resource), []))
+            for resource in payload["required_resources"]:
+                ranges = sorted(covered.get((identity, resource), []))
                 end = 0
                 for start, stop, total in ranges:
                     if start > end:
@@ -271,46 +337,21 @@ class SkillSession:
                 if not ranges or end != ranges[0][2]:
                     complete = False
             if complete:
-                loaded.add(sid)
-        self.active = {sid for sid in loaded if set(_closure([sid], rows)) <= loaded}
+                loaded.add(identity)
+        self.active = {identity[0] for identity in loaded
+                       if all(tuple(dep[field] for field in _IDENTITY_FIELDS) in loaded
+                              for dep in packages[identity]["dependencies"])}
         self.receipts = valid
+        # Kept for checkpoint/projection compatibility, never an admission rule.
         self.required_message_ids = {message_ids[(receipt["kind"], receipt["message_key"])]
                                      for receipt in valid.values()
                                      if message_ids.get((receipt["kind"], receipt["message_key"]))}
         return set(self.active)
 
-    def _current_methods(self):
-        # Recheck package versions/permissions at dispatch; active-view coverage is
-        # established only immediately before the current model call.
-        if not self.active:
-            return set()
-        rows = self._rows()
-        valid = set()
-        for sid in self.active:
-            if sid not in rows:
-                continue
-            receipts = [r for r in self.receipts.values() if r["payload"]["skill"]["id"] == sid]
-            if receipts and all(all(r["payload"]["skill"][key] == rows[sid][key]
-                                   for key in _IDENTITY_FIELDS) for r in receipts):
-                valid.add(sid)
-        complete = set()
-        for sid in valid:
-            try:
-                if set(_closure([sid], rows)) <= valid:
-                    complete.add(sid)
-            except ValueError:
-                continue  # A missing dependency must not disable generic tools.
-        return complete
-
     def allowed(self, names):
-        valid = self._current_methods()
-        return {name for name in names if name not in _TOOL_METHODS or _TOOL_METHODS[name] in valid}
+        """The caller supplies authorized tool names; guidance cannot narrow them."""
+        return set(names)
 
     def permits_call(self, call):
-        name, args = call["name"], call.get("args", {})
-        if name not in self.allowed(set(self.available())):
-            return False
-        # The shared workspace remains usable for generic reads/code storage.
-        if name == "research_workspace" and args.get("operation") == "figure_edit":
-            return "figure-edit" in self._current_methods()
-        return True
+        """Only the host's ordinary authorization applies, including figure edits."""
+        return call["name"] in set(self.available())

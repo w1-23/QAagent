@@ -1,4 +1,8 @@
-"""Shared fail-closed language guard for local, web and scholarly search."""
+"""Fail-closed English guard for local retrieval; public web retains original text.
+
+``normalize_search_query`` remains a compatibility name for callers that still
+explicitly request English normalization. It must not gate general web queries.
+"""
 from __future__ import annotations
 
 import re

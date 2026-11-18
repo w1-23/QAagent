@@ -113,9 +113,25 @@ def capability_groups() -> dict[str, frozenset[str]]:
     return {key: frozenset(value) for key, value in groups.items()}
 
 
+# Host-owned tools are registered outside the research preset catalog. Keep
+# their presentation metadata here without changing any permission groups.
+HOST_TOOL_LABELS = {
+    "update_task_plan": "更新工作计划",
+    "read_skill": "读取科研方法",
+    "load_skill": "加载科研方法",
+    "read_context_evidence": "回读对话证据",
+    "workspace_list": "列出工作区文件",
+    "workspace_glob": "查找工作区文件",
+    "workspace_search": "搜索工作区内容",
+    "workspace_read": "读取工作区文件",
+    "workspace_write": "保存工作区文件",
+    "workspace_edit": "修改工作区文件",
+}
+
+
 def display_labels() -> dict[str, str]:
     return {**{name: metadata.display_label for name, metadata in TOOL_METADATA.items()},
-            "update_task_plan": "更新工作计划"}
+            **HOST_TOOL_LABELS}
 
 
 def artifact_link_labels() -> dict[str, str]:

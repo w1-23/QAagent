@@ -28,6 +28,22 @@ class BatchObservation:
     unknown_operations: tuple[str, ...] = ()
     # Host-supplied method/update observations, never interpreted as a user turn.
     context_notes: tuple[str, ...] = ()
+    # Host-issued durable wait IDs, never unfinished native tool calls. Every
+    # issuing call already has its paired observation before suspension.
+    execution_waits: tuple[str, ...] = ()
+
+    def __post_init__(self):
+        validate_execution_waits(self.execution_waits)
+
+
+def validate_execution_waits(values):
+    """A bounded, inert checkpoint reference list; authorization stays in host."""
+    import re
+    if (type(values) is not tuple or len(values) > 256
+            or any(type(value) is not str or not re.fullmatch(r"[0-9a-f]{32}", value) for value in values)
+            or len(set(values)) != len(values)):
+        raise ValueError("invalid_execution_wait_references")
+    return values
 
 
 @dataclass(frozen=True)
@@ -55,7 +71,7 @@ class RunLimits:
 
 @dataclass(frozen=True)
 class RunResult:
-    status: Literal["complete", "incomplete", "waiting", "cancelled"]
+    status: Literal["complete", "incomplete", "waiting", "suspended", "cancelled"]
     reason: str
     messages: tuple[BaseMessage, ...]
     model_steps: int
@@ -63,6 +79,7 @@ class RunResult:
     unknown_operations: tuple[str, ...] = ()
     # These are provider IDs needing reconciliation, NOT invented operation IDs.
     pending_tool_calls: tuple[str, ...] = ()
+    execution_waits: tuple[str, ...] = ()
 
 
 class AdmissionStopped(Exception):
@@ -154,9 +171,10 @@ class AgentRuntime:
         phase: Phase = "ready"
         pending = _pending_calls(history)
         unknown: tuple[str, ...] = ()
+        execution_waits: tuple[str, ...] = ()
 
         def finish(status, reason, *, answer=None):
-            return RunResult(status, reason, tuple(history), steps, answer, unknown, pending)
+            return RunResult(status, reason, tuple(history), steps, answer, unknown, pending, execution_waits)
 
         async def boundary(kind, *, status="", reason="", ids=()):
             # Await persistence before announcing a boundary or dispatching work.
@@ -167,7 +185,7 @@ class AgentRuntime:
                 await self.on_event(LoopEvent(kind, identity, steps, tuple(ids), status, reason))
 
         async def loop():
-            nonlocal steps, phase, pending, unknown
+            nonlocal steps, phase, pending, unknown, execution_waits
             await boundary("run_started")
             if pending:
                 return finish("incomplete", "unresolved_tool_calls")
@@ -248,12 +266,15 @@ class AgentRuntime:
                     history.append(self._control(identity, note))
                 pending = ()
                 unknown = batch.unknown_operations
-                phase = "stopped" if unknown or batch.pending_question else "ready"
+                execution_waits = batch.execution_waits
+                phase = "stopped" if unknown or batch.pending_question or execution_waits else "ready"
                 await boundary("batch_finished", ids=ids)
                 if unknown:
                     return finish("incomplete", "operation_outcome_unknown")
                 if batch.pending_question:
                     return finish("waiting", "user_input_required")
+                if execution_waits:
+                    return finish("suspended", "execution_pending")
             return finish("incomplete", "model_step_limit")
 
         # Bound in-flight awaits as well as scheduling. Cancellation reaches the

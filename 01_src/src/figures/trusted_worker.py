@@ -81,11 +81,24 @@ def decode_resolved(raw: dict):
         style = value.get("style") or {}
         if not isinstance(style, dict) or set(style) - {f.name for f in fields(StyleSpec)}:
             raise SpecError("invalid_resolved", "样式合同无效。")
+        style = dict(style)
+        for key in ("figure_size_in", "palette_colors"):
+            if key in style:
+                if not isinstance(style[key], list):
+                    raise SpecError("invalid_resolved", "样式数组无效。")
+                style[key] = tuple(style[key])
+        annotations = value.get("annotations") or []
+        if not isinstance(annotations, list) or any(not isinstance(item, dict) for item in annotations):
+            raise SpecError("invalid_resolved", "注释合同无效。")
+        value["annotations"] = tuple(annotations)
         value["style"] = StyleSpec(**style)
         value["series"] = tuple(decoded)
         value["panels"] = tuple(decode(child, depth + 1) for child in children)
         value["qa_profile"] = parse_qa_profile(value.get("qa_profile")) if value.get("qa_profile") else {}
-        return ResolvedFigure(**value)
+        resolved = ResolvedFigure(**value)
+        from citrus_figures.distribution_geometry import validate_distribution
+        validate_distribution(resolved)
+        return resolved
 
     return decode(raw)
 
@@ -182,6 +195,8 @@ def run(job_path: Path) -> int:
         formats=formats, dpi=job["dpi"], source=Path(__file__).read_text(encoding="utf-8"))
     manifest = build_manifest(rendered, source="spec", include_qa=mode != "preview")
     manifest["render_receipt"] = render_receipt
+    from src.figures.declarative_snapshot import digest
+    manifest["resolved_data_sha256"] = digest(job["resolved"])
     if nature_receipt is not None:
         manifest["nature_skill_receipt"] = nature_receipt
     out = job_path.parent / "out"

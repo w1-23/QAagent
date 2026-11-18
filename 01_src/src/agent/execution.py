@@ -27,8 +27,11 @@ class ToolExecution:
     operation_id: str = ""
     uncertain: bool = False
     pending_question: bool = False
+    execution_waits: tuple[str, ...] = ()
 
     def __post_init__(self):
+        from .runtime import validate_execution_waits
+        validate_execution_waits(self.execution_waits)
         if not isinstance(self.message, ToolMessage):
             raise TypeError("operation_requires_tool_message")
         if self.uncertain and not self.operation_id:
@@ -127,7 +130,8 @@ class CapabilityExecutor:
         ordered = [results[c["id"]] for c in calls]
         return BatchObservation(tuple(message for _, message in ordered),
             pending_question=any(e.pending_question for e, _ in ordered),
-            unknown_operations=tuple(e.operation_id for e, _ in ordered if e.uncertain))
+            unknown_operations=tuple(e.operation_id for e, _ in ordered if e.uncertain),
+            execution_waits=tuple(dict.fromkeys(w for e, _ in ordered for w in e.execution_waits)))
 
     @staticmethod
     def _check_pair(call, message):

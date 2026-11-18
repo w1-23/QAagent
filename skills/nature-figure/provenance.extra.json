@@ -1,0 +1,30 @@
+{
+  "schema": "citrus.vendor-extras/1",
+  "source": "https://github.com/Yuan1z0825/nature-skills",
+  "commit": "7bff1d0539c0dfad6c30178bb93ce6dd8a5cebf8",
+  "vendor_root": "vendor/nature-skills",
+  "license": "vendor/nature-skills/LICENSE",
+  "verification": "Pinned Git blob SHA-1 and raw-byte SHA-256. Acquisition does not authorize execution.",
+  "files": [
+    {
+      "path": "skills/nature-figure/scripts/panel_alignment.R",
+      "sha256": "aeb2db8355e2026e2f2640d25bf18edfa57fb0165ec2c7811f97bb75ba53d26b",
+      "git_blob_sha1": "bef073f7ae41e232b7f652ed2137f12a7508bcd4"
+    },
+    {
+      "path": "skills/nature-figure/scripts/audit_svg_schematic.py",
+      "sha256": "8776cb9da07dc2ef6edf65c1ad23184567172b03685b880c78f3ef74d7241db8",
+      "git_blob_sha1": "1854aa73c2e56285973ae7af6b0a638e5c675799"
+    },
+    {
+      "path": "skills/nature-figure/scripts/nature_figure_backend.py",
+      "sha256": "ae15bc3f19217250edbbb8bfcb33227d185469f67e81071780369224e63d0dca",
+      "git_blob_sha1": "94b94b102c44b133b016314c12752f3197c4f08d"
+    },
+    {
+      "path": "skills/nature-figure/scripts/generate_openrouter_schematic.py",
+      "sha256": "0b8a9ac399be326fa1b575e800f5d7541516a7f1d0d7696dcc81096a3f4edb4b",
+      "git_blob_sha1": "834f5c3e77003340a17034c3ac53d62362fdc8fa"
+    }
+  ]
+}

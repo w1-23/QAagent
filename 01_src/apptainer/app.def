@@ -1,0 +1,67 @@
+Bootstrap: docker
+From: public.ecr.aws/docker/library/python@sha256:0f086103b026048cc50cb5da25ec435c023c5241a83fc44daea593377abc61c4
+
+%labels
+    org.opencontainers.image.title CitrusScholar application runtime
+    org.citrusscholar.role trusted-application
+
+%files
+    requirements-base.txt /opt/citrusscholar/requirements-base.txt
+    requirements-gpu.txt /opt/citrusscholar/requirements-gpu.txt
+    pyproject.toml /opt/citrusscholar/pyproject.toml
+    README.md /opt/citrusscholar/README.md
+    packages /opt/citrusscholar/packages
+    skills /opt/citrusscholar/skills
+    02_config /opt/citrusscholar/02_config
+    01_src/src /opt/citrusscholar/01_src/src
+    01_src/web /opt/citrusscholar/01_src/web
+    01_src/scripts /opt/citrusscholar/01_src/scripts
+
+%post
+    set -eu
+    apt-get update
+    apt-get install -y --no-install-recommends ca-certificates libgomp1 libglib2.0-0 libgl1 libseccomp2 systemd dbus util-linux fontconfig fonts-dejavu-core fonts-noto-cjk
+    rm -rf /var/lib/apt/lists/*
+    python -m pip install --no-cache-dir -r /opt/citrusscholar/requirements-gpu.txt
+    python -m pip install --no-cache-dir 'setuptools>=68' wheel
+    python -m pip wheel --no-deps --no-build-isolation --wheel-dir /opt/support-wheels /opt/citrusscholar
+    python -m pip install --no-deps /opt/support-wheels/citrusscholar_support-2.0.0-py3-none-any.whl
+    python -m pip check
+    python -m pip freeze --all > /opt/citrusscholar/installed-requirements.txt
+    python -I - <<'PY'
+from importlib.metadata import version, PackageNotFoundError
+assert version('deepagents') == '0.7.38'
+assert version('langgraph') == '1.2.22'
+assert version('onnxruntime-gpu') == '1.21.1'
+for forbidden in ('onnxruntime', 'fastembed'):
+    try:
+        version(forbidden)
+    except PackageNotFoundError:
+        continue
+    raise SystemExit('CPU inference distribution contaminates GPU runtime: ' + forbidden)
+import onnxruntime as ort
+assert 'CUDAExecutionProvider' in ort.get_available_providers()
+# NVIDIA libraries installed by pip must be visible before ORT creates sessions.
+from pathlib import Path
+import site
+paths = sorted(str(p) for root in site.getsitepackages() for p in Path(root).glob('nvidia/*/lib'))
+Path('/opt/citrusscholar/nvidia-libraries.sh').write_text('export LD_LIBRARY_PATH="' + ':'.join(paths) + '${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"\n')
+PY
+    fc-cache -f
+    # Support code must resolve from site-packages, not an editable source tree.
+    python -I -c 'from importlib.metadata import distribution; d=distribution("citrusscholar-support"); assert not d.read_text("direct_url.json") or "editable" not in d.read_text("direct_url.json")'
+
+%environment
+    export PYTHONDONTWRITEBYTECODE=1
+    export PYTHONUNBUFFERED=1
+    export PYTHONUTF8=1
+    export PYTHONIOENCODING=utf-8
+    export MPLBACKEND=Agg
+    export PYTHONPATH=/opt/citrusscholar/01_src
+    . /opt/citrusscholar/nvidia-libraries.sh
+
+%runscript
+    exec /usr/local/bin/python /opt/citrusscholar/01_src/scripts/configured_local.py "$@"
+
+%test
+    python -I -c 'import fastapi, deepagents, langgraph, citrus_figures; from importlib.metadata import version; assert version("citrusscholar-support")=="2.0.0"'

@@ -52,20 +52,55 @@ def validate_original_request_state(value, identity: ExecutionIdentity) -> dict:
 
 
 async def load_recovery_state(root: Path, identity: ExecutionIdentity,
-                              provider_scope: tuple[str, str]) -> dict:
-    """Read the latest authenticated checkpoint using only server identity/scope."""
+                              provider_scope: tuple[str, str], *,
+                              execution_wait: dict | None = None) -> dict:
+    """Read committed state; an internal wait admission must name its exact commit.
+
+    The wait argument is never accepted from an HTTP body. Its values come from
+    the Host suspension or the durable parked segment, under the original fence.
+    """
     if not checkpoint_path(root, identity, provider_scope).is_file():
         raise TaskConflict("recovery_checkpoint_missing")
     async with open_checkpoint(root, identity, provider_scope) as saver:
         saved = await saver.aget_tuple({"configurable": checkpoint_scope(identity, provider_scope)})
-    if saved is None:
-        raise TaskConflict("recovery_checkpoint_missing")
-    values = saved.checkpoint.get("channel_values", {})
+        if saved is None:
+            raise TaskConflict("recovery_checkpoint_missing")
+        from .deep_agent_runtime import EXECUTOR_ID
+        raw_values = saved.checkpoint.get("channel_values", {})
+        if not isinstance(raw_values, dict) or raw_values.get("executor_id") != EXECUTOR_ID:
+            raise TaskConflict("executor_checkpoint_incompatible")
+        from langgraph.graph import END, START, StateGraph
+        from .harness import HarnessState
+        # A schema-only reader has no model, executor, tools or policy hooks.
+        # aget_state reconstructs DeltaChannel values through the saver's
+        # authenticated ancestor writes. Pin the saved checkpoint id: admission
+        # inspects committed state, while the real harness reconciles pending work.
+        reader = StateGraph(HarnessState)
+        reader.add_edge(START, END)
+        graph = reader.compile(checkpointer=saver)
+        values = (await graph.aget_state(saved.config)).values
     if not isinstance(values, dict) or not values.get("messages"):
         raise TaskConflict("recovery_checkpoint_invalid")
     status = values.get("stop_status")
     answered = status == "complete" and values.get("stop_reason") == "answered"
-    if status and not answered:
+    if execution_wait is not None:
+        from dataclasses import asdict
+        from .execution_outcome import validate_execution_suspension
+        from .runtime import _pending_calls
+        try:
+            expected = validate_execution_suspension(
+                {"identity": asdict(identity), **execution_wait}, identity)
+        except (TypeError, ValueError):
+            raise TaskConflict("recovery_execution_wait_invalid") from None
+        if (set(execution_wait) != {"checkpoint_ref", "wait_ids"}
+                or saved.config.get("configurable", {}).get("checkpoint_id") != expected["checkpoint_ref"]
+                or saved.checkpoint.get("id") != expected["checkpoint_ref"]
+                or status != "suspended" or values.get("stop_reason") != "execution_pending"
+                or values.get("execution_waits") != expected["wait_ids"]
+                or values.get("execution_wake") or _pending_calls(values["messages"])
+                or (values.get("host_state") or {}).get("identity") != asdict(identity)):
+            raise TaskConflict("recovery_execution_wait_invalid")
+    elif status and not answered:
         raise TaskConflict("recovery_checkpoint_terminal")
     if values.get("batch_status") in {"unknown", "waiting"} or values.get("unknown_operations"):
         raise TaskConflict("recovery_requires_reconciliation")
@@ -75,8 +110,17 @@ async def load_recovery_state(root: Path, identity: ExecutionIdentity,
     state = validate_original_request_state(host_state.get("original_request_state"), identity)
     # Candidate bytes were process-local and are not present in the protected
     # snapshot. Never pretend those search handles survived a restart.
-    if (state.get("candidate_pool") or {}).get("pool_id") and not answered:
-        raise TaskConflict("recovery_candidate_pool_unavailable")
+    pool_id = (state.get("candidate_pool") or {}).get("pool_id")
+    if pool_id and not answered:
+        from src.retrieval.candidate_pool import get_pool, prune_expired
+        # The stored reference names the original pool, not whichever search
+        # most recently published a pool in this run. Prune before the id lookup
+        # (get_pool itself does not enforce TTL), then check all host boundaries.
+        prune_expired()
+        pool = get_pool(pool_id=pool_id) if execution_wait is not None else None
+        if (pool is None or pool.owner_user_id != identity.owner_user_id
+                or pool.session_id != identity.session_id or pool.turn_id != identity.run_id):
+            raise TaskConflict("recovery_candidate_pool_unavailable")
     state["agent_resume"] = True
     state["messages"] = []  # Harness resumes with None; no new HumanMessage.
     state["answer"] = ""

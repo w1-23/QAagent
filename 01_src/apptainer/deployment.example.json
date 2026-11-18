@@ -1,0 +1,20 @@
+{
+  "source_root": "/srv/citrusscholar/releases/current-source",
+  "runtime_root": "/srv/citrusscholar/acceptance-runtime",
+  "model_config_root": "/srv/citrusscholar/retained-runtime",
+  "corpus_root": "/srv/citrusscholar/retained-runtime/data",
+  "model_cache_root": "/srv/citrusscholar/retained-runtime/.hf_cache",
+  "figure_staging": "/srv/citrusscholar/jobs/fig",
+  "code_staging": "/srv/citrusscholar/jobs/code",
+  "app_sif": "/srv/citrusscholar/images/application.sif",
+  "app_sha256": "REPLACE_WITH_BUILT_APP_SHA256",
+  "sandbox_sif": "/srv/citrusscholar/images/sandbox.sif",
+  "sandbox_sha256": "REPLACE_WITH_BUILT_SANDBOX_SHA256",
+  "namespace_sif": "/srv/citrusscholar/images/namespace.sif",
+  "namespace_sha256": "REPLACE_WITH_BUILT_NAMESPACE_SHA256",
+  "apptainer_path": "/usr/bin/apptainer",
+  "host_python": "/usr/bin/python3.12",
+  "existing_runtime": false,
+  "listen_host": "127.0.0.1",
+  "port": 8031
+}

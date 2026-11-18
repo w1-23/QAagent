@@ -55,11 +55,16 @@ def read_skill(skill_id: str, version: str, sha256: str, resource: str = "",
                start_char: int = 0, max_chars: int = 3000):
     """Read/load a verified installed skill resource page using catalog version/hash.
 
-    Empty resource reads the entrypoint. Read every required_resources item and
-    dependency, following next_start_char until null. Partial reads do not
-    unlock specialist tools. Only host identity and authorization apply.
+    Empty resource reads the entrypoint; optional resources use exact declared
+    manifest paths. Follow next_start_char when more text is useful. Partial or
+    missing reads never gate tools. Only host identity and authorization apply.
+    A read failure is local and explicitly not_run; other tools remain usable.
     """
-    payload = _current_session().page(skill_id, version, sha256, resource, start_char, max_chars)
+    session = _current_session()
+    try:
+        payload = session.page(skill_id, version, sha256, resource, start_char, max_chars)
+    except (ValueError, KeyError, TypeError, OSError) as exc:
+        return _failure(exc)
     return _encode(payload), {"_tool_outcome": {"status": "complete", "reason_code": "skill_page_read"}}
 
 
@@ -67,12 +72,23 @@ def read_skill(skill_id: str, version: str, sha256: str, resource: str = "",
 def load_skill(skill_id: str, version: str, sha256: str):
     """Load a selected installed method and all required resources/dependencies.
 
-    Use the exact catalog identity. Full verified method text is returned;
-    loading is guidance only and cannot execute or authorize domain tools.
-    Use read_skill for individual resource pages or optional references.
+    Use the exact catalog identity. Method documents are returned without loading
+    the full vendor tree. Partial or missing reads never gate tools. Loading is
+    guidance only and cannot execute or authorize domain tools. Use read_skill
+    for optional manifest resources. Failures are local and explicitly not_run.
     """
-    payload = _current_session().load([{"id": skill_id, "version": version, "sha256": sha256}])
+    session = _current_session()
+    try:
+        payload = session.load([{"id": skill_id, "version": version, "sha256": sha256}])
+    except (ValueError, KeyError, TypeError, OSError) as exc:
+        return _failure(exc)
     return _encode(payload), {"_tool_outcome": {"status": "complete", "reason_code": "skill_loaded"}}
+
+
+def _failure(exc):
+    outcome = {"status": "not_run", "reason_code": "skill_resource_unavailable"}
+    return _encode({"error": str(exc), "error_type": type(exc).__name__,
+                    "_tool_outcome": outcome}), {"_tool_outcome": outcome}
 
 
 def _register(reader):

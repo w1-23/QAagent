@@ -373,11 +373,21 @@ def mark_interrupted_jobs() -> int:
     try:
         with _write_lock:
             with _connect() as conn:
+                has_segments = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='agent_execution_segments'").fetchone()
+                segment_guard = (" AND job_id NOT IN (SELECT job_id FROM agent_execution_segments)"
+                                 if has_segments else "")
+                if has_segments:
+                    # A fully parked segment deliberately has no live Host.
+                    # Other crashed phases require reconciliation, not TTL takeover.
+                    conn.execute("UPDATE task_jobs SET current_step='code_reconciliation_required', "
+                                 "error='segment_interrupted',updated_at=? WHERE status IN ('running','detached') "
+                                 "AND job_id IN (SELECT job_id FROM agent_execution_segments WHERE phase<>'parked')",
+                                 (now,))
                 cursor = conn.execute(
                     "UPDATE task_jobs SET status='failed', current_step='interrupted', "
                     "progress_summary='服务进程在任务完成前停止；可显式申请恢复。', "
                     "error='service_restart', updated_at=?, finished_at=? "
-                    "WHERE status IN ('running','detached','cancel_requested')",
+                    "WHERE status IN ('running','detached','cancel_requested')" + segment_guard,
                     (now, now),
                 )
                 from src.core.task_events import recover_interrupted
@@ -511,18 +521,53 @@ def decode_terminal_snapshot(job: Optional[dict]) -> dict:
     return public_terminal_snapshot(value) if isinstance(value, dict) else {}
 
 
-def list_for_session(session_id: str, limit: int = 10) -> list:
+def list_for_session(session_id: str, limit: int = 10, *,
+                     include_active: bool = False,
+                     owner_user_id: int | None = None) -> list:
+    """Recent jobs, optionally retaining every live or waiting task as well."""
+    if owner_user_id is not None and (type(owner_user_id) is not int or owner_user_id <= 0):
+        return []
+    scope = "session_id=?"
+    params = [session_id]
+    if owner_user_id is not None:
+        scope += " AND owner_user_id=?"
+        params.append(owner_user_id)
+    query = f"SELECT * FROM task_jobs WHERE {scope}"
+    if include_active:
+        active = sorted(OPEN_STATUS | {"queued", "awaiting_input"})
+        placeholders = ",".join("?" for _ in active)
+        query += (f" AND (status IN ({placeholders}) OR job_id IN ("
+                  f"SELECT job_id FROM task_jobs WHERE {scope} "
+                  "ORDER BY created_at DESC LIMIT ?)) ORDER BY created_at DESC")
+        params = [*params, *active, *params, limit]
+    else:
+        query += " ORDER BY created_at DESC LIMIT ?"
+        params.append(limit)
     try:
-        with _connect() as conn:
+        with closing(_connect()) as conn:
             conn.row_factory = sqlite3.Row
-            rows = conn.execute(
-                "SELECT * FROM task_jobs WHERE session_id=? "
-                "ORDER BY created_at DESC LIMIT ?",
-                (session_id, limit)).fetchall()
-            return [dict(r) for r in rows]
+            return [dict(r) for r in conn.execute(query, params)]
     except Exception as e:
         logger.warning(f"[Jobs] list_for_session failed: {e}")
         return []
+
+
+def sessions_with_jobs(session_ids: list[str], owner_user_id: int) -> set[str]:
+    """Batch task presence for an owner's listed sessions, including empty ones."""
+    if type(owner_user_id) is not int or owner_user_id <= 0:
+        return set()
+    keys = list(dict.fromkeys(sid for sid in session_ids if isinstance(sid, str) and sid))
+    if not keys:
+        return set()
+    result = set()
+    with closing(_connect()) as conn:
+        for start in range(0, len(keys), 500):
+            batch = keys[start:start + 500]
+            placeholders = ",".join("?" for _ in batch)
+            result.update(row[0] for row in conn.execute(
+                f"SELECT DISTINCT session_id FROM task_jobs WHERE owner_user_id=? "
+                f"AND session_id IN ({placeholders})", [owner_user_id, *batch]))
+    return result
 
 
 def purge_protocol_for_owner(owner_user_id: int) -> None:
@@ -541,7 +586,8 @@ def purge_protocol_for_owner(owner_user_id: int) -> None:
         if "owner_user_id" not in columns:
             return
         for table in ("task_events", "task_updates", "task_approvals", "task_operations",
-                      "task_model_attempts", "task_budgets", "task_questions"):
+                      "task_model_attempts", "task_budgets", "task_questions",
+                      "agent_execution_segments"):
             if table in tables:
                 conn.execute(f"DELETE FROM {table} WHERE job_id IN ("
                              "SELECT job_id FROM task_jobs WHERE owner_user_id=?)", (int(owner_user_id),))

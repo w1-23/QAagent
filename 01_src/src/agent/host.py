@@ -1,4 +1,4 @@
-"""Production supervisor adapter. LangChain/LangGraph owns the model/action loop.
+"""Production supervisor adapter. Deep Agents owns the single model/action graph.
 
 The surrounding graph remains a load/save compatibility shell. Presets supply
 capabilities and local methods; they do not supply a second task controller.
@@ -9,6 +9,7 @@ import asyncio
 from copy import deepcopy
 from dataclasses import asdict
 import logging
+import os
 from pathlib import Path
 import time
 
@@ -41,13 +42,24 @@ async def general_agent_node(state: dict) -> dict:
     epoch_token = _epoch.set(ContextEpoch(history_load_status=str(state.get("history_load_status") or "unknown")))
     question_token = bind_question_context({})
     # Scientific task scope is loaded only if its capability is actually used.
+    output = None
+    preserve_pool = False
     try:
-        return await _run(state, identity, ledger)
+        output = await _run(state, identity, ledger)
+        if output.get("execution_suspension"):
+            from .execution_outcome import validate_execution_suspension
+            validate_execution_suspension(output["execution_suspension"], identity)
+            preserve_pool = True
+        return output
     finally:
         reset_question_context(question_token)
         _epoch.reset(epoch_token)
         reset_execution_ledger(ledger_token)
-        _release_candidate_pool(state)
+        if preserve_pool:
+            from src.retrieval.candidate_pool import clear_current_candidate_pool
+            clear_current_candidate_pool()
+        else:
+            _release_candidate_pool(state)
 
 
 async def _run(state, identity, ledger):
@@ -56,7 +68,6 @@ async def _run(state, identity, ledger):
     from src.core.cancel import is_cancelled
     from src.core.context_manager import assemble_supervisor_messages, build_human_message, build_loaded_context
     from src.core.llm_pool import get_llm
-    from src.core.progress_bus import emit_status
     from src.core.request_context import _epoch
     from src.graph import agent_operations as ops
     from src.graph.model_driver import _model_timeout, request_deadline_from_settings
@@ -89,6 +100,8 @@ async def _run(state, identity, ledger):
     register_plan_tools(catalog)
     from .workspace_tools import register_workspace_tools, WORKSPACE_TOOL_NAMES
     register_workspace_tools(catalog)
+    from .code_tools import register_code_tools, CODE_TOOL_NAMES
+    register_code_tools(catalog)
     host = HostTools(identity, state)
     host.assert_context()
     pool = ops._bind_request_candidate_pool(state)
@@ -111,10 +124,16 @@ async def _run(state, identity, ledger):
         host.allowed_names.update({"read_context_evidence", "read_skill", "load_skill"})
         host.allowed_names.update(WORKSPACE_TOOL_NAMES)
         host.allowed_names.update(PLAN_TOOL_NAMES)
+        if os.getenv("CITRUS_CODE_EXECUTION") == "offline-development":
+            from src.code_execution.presence import worker_available
+            from src.config import PROJECT_ROOT as runtime_root
+            host.allowed_names.update(CODE_TOOL_NAMES)
+            if not worker_available(runtime_root / "state" / "code_executions.sqlite3"):
+                host.allowed_names.discard("code_execute")
         tracing.set_request_authorizations(executor_authorizations(str(state.get("query") or "")))
         return set(host.allowed_names)
     refresh_allowed()
-    from .skill_adapter import SkillSession, validate_selected_skills
+    from .skill_adapter import SkillSession, validate_scenario_selection, validate_selected_skills
     from .skill_tools import register_skill_reader, skill_execution_context
     skills = SkillSession(identity, refresh_allowed)
     register_skill_reader(catalog)
@@ -122,10 +141,22 @@ async def _run(state, identity, ledger):
     # registered by the application must not inherit a scientific allowlist.
     loaded = build_loaded_context(state, mode="general_agent", format_hint=state.get("format_hint"))
     human = build_human_message(loaded, retrieval_context=str(state.get("candidate_pool_notice") or "") if pool else "")
+    try:
+        selected_metadata = await asyncio.to_thread(
+            validate_scenario_selection, state.get("selected_skills"))
+    except (OSError, ValueError, KeyError):
+        # The API validates its own selection contract. A package becoming
+        # unavailable afterwards must not disable this request's other tools.
+        try:
+            # Historical request metadata keeps its exact archived identity.
+            # New requests are checked against the current catalog at the API.
+            selected_metadata = await asyncio.to_thread(
+                validate_selected_skills, state.get("selected_skills"))
+        except (OSError, ValueError, KeyError):
+            selected_metadata = []
+        human.content = str(human.content) + "\n所选历史技能不是当前场景发行物；可继续使用其他已授权能力，不得声称已加载该方法。"
     human.additional_kwargs.update(identity.message_metadata("user"), user_text=str(state.get("query") or ""),
-        attachment_refs=state.get("attachment_refs") or [],
-        selected_skills=await asyncio.to_thread(
-            validate_selected_skills, state.get("selected_skills"), refresh_allowed()))
+        attachment_refs=state.get("attachment_refs") or [], selected_skills=selected_metadata)
     if state.get("attachment_context"):
         human.content = str(human.content) + "\n\n" + str(state["attachment_context"])
     images = state.get("image_attachments") or []
@@ -154,21 +185,19 @@ async def _run(state, identity, ledger):
     driver = ModelDriver(model, catalog, lambda _: set(model_allowed),
         max_output_tokens=getattr(settings, "AGENT_MAX_OUTPUT_TOKENS", 16384))
 
-    async def invoke_with_method(tool, call, current_identity):
-        if not await asyncio.to_thread(skills.permits_call, call):
-            return ToolExecution(ToolMessage(content="Tool was not executed: required_skill_not_loaded",
-                tool_call_id=call["id"], name=call["name"], status="error",
-                artifact={"_tool_outcome": {"status": "not_run", "reason_code": "required_skill_not_loaded"}}))
+    async def invoke_scoped(tool, call, current_identity):
+        # Skills supply guidance, never tool admission. HostTools and the
+        # capability executor retain identity, readiness and operation policy.
         with skill_execution_context(skills):
             return await host.invoke(tool, call, current_identity)
 
-    # Readiness is rechecked after scheduler waits; method admission is checked
-    # in the async invoke hook immediately before dispatch, off the event loop.
+    # Recheck actual readiness/authorization after scheduler waits. Method
+    # selection and reading progress do not participate in this decision.
     scheduler = CapabilityExecutor(catalog, lambda _: refresh_allowed(),
-                                   invoke_with_method, host.publish)
+                                   invoke_scoped, host.publish)
     latest = None
-    if not state.get("agent_resume"):
-        messages.extend(await asyncio.to_thread(skills.selected_messages, state.get("selected_skills")))
+    # Selection remains pinned metadata. The main loop reads applicable method
+    # pages as needed; no mandatory preload can block unrelated capabilities.
     update_version = 0
     # Private, identity-bound checkpoint state. Raw final envelopes stay in the
     # graph; only the extracted, validated answer crosses the user boundary.
@@ -260,8 +289,6 @@ async def _run(state, identity, ledger):
     async def event(value):
         payload = asdict(value)
         task_events.append_event(identity.run_id, "agent_loop", payload)
-        if value.kind == "batch_started":
-            emit_status("agent_progress", message=f"执行所选的 {len(value.tool_call_ids)} 项操作")
 
     async def admit(history, _):
         if is_cancelled():
@@ -448,7 +475,6 @@ async def _run(state, identity, ledger):
     from .context_projection import EncryptedContextArchive, WorkingContextProjection
     async def context_projected(payload):
         task_events.append_event(identity.run_id, "context_projection", payload)
-        emit_status("agent_progress", message="已压缩本轮活动上下文；原始记录已保存，可按引用精确回读。")
     projection = WorkingContextProjection(
         archive=EncryptedContextArchive(PROJECT_ROOT / "state", identity,
             (settings.RESOLVED_MAIN_BASE_URL, get_deepseek_model())),
@@ -467,7 +493,7 @@ async def _run(state, identity, ledger):
         # ModelDriver's synchronous schema callback consumes this request-local
         # snapshot; exact hashes are revalidated before every physical proposal.
         model_allowed.clear()
-        model_allowed.update(await asyncio.to_thread(lambda: skills.allowed(refresh_allowed())))
+        model_allowed.update(refresh_allowed())
         return await driver(view, current_identity)
 
     async def durable_execute(response, current_identity):
@@ -485,12 +511,31 @@ async def _run(state, identity, ledger):
         for message in host.messages.values():
             host.validate_observation(message)
 
+    # Construct the storage-backed boundary only when Harness actually wakes a
+    # suspended execution. Ordinary requests do not need workspace/account stores.
+    wait_boundary = None
+
+    def execution_wait_boundary():
+        nonlocal wait_boundary
+        if wait_boundary is None:
+            from src.code_execution.service import ExecutionService
+            from .execution_waits import ExecutionWaitBoundary
+            wait_boundary = ExecutionWaitBoundary(ExecutionService(identity))
+        return wait_boundary
+
+    async def resolve_execution_waits(current_identity, wait_ids):
+        return await execution_wait_boundary().resolve(current_identity, wait_ids)
+
+    async def acknowledge_execution_waits(current_identity, wait_ids, checkpoint_ref):
+        await execution_wait_boundary().acknowledge(current_identity, wait_ids, checkpoint_ref)
+
     runtime = HarnessRuntime(metered_model, durable_execute, admit, check_final,
         RunLimits(max_model_steps=settings.AGENT_MAX_MODEL_CALLS, deadline=deadline),
         schemas=catalog.schemas({row["name"] for row in catalog.describe()}),
         on_event=event, checkpoint=checkpoint, prepare=prepare,
         export_host=export_host, restore_host=restore_host, validate_resume=validate_resume,
-        recover_output=True)
+        recover_output=True, resolve_execution_waits=resolve_execution_waits,
+        acknowledge_execution_waits=acknowledge_execution_waits)
     try:
         with execution_lock(PROJECT_ROOT / "state" / "agent_locks", identity):
             async with open_checkpoint(PROJECT_ROOT / "state", identity,
@@ -498,9 +543,37 @@ async def _run(state, identity, ledger):
                 result = await runtime.run(identity, messages, saver=saver,
                     resume=state.get("agent_resume") is True,
                     checkpoint_config=checkpoint_scope(identity, (settings.RESOLVED_MAIN_BASE_URL, get_deepseek_model())))
+                if result.status == "suspended" and result.reason == "execution_pending":
+                    from .execution_outcome import validate_execution_suspension
+                    from .runtime import _pending_calls
+                    # Read the latest actual commit while the protected saver is
+                    # open. Raw messages may be DeltaChannel fragments; only the
+                    # reconstructed Harness result can establish native pairing.
+                    committed = await saver.aget_tuple({"configurable": checkpoint_scope(identity,
+                        (settings.RESOLVED_MAIN_BASE_URL, get_deepseek_model()))})
+                    values = committed.checkpoint["channel_values"] if committed else {}
+                    if (values.get("stop_status") != "suspended"
+                            or values.get("stop_reason") != "execution_pending"
+                            or (values.get("host_state") or {}).get("identity") != asdict(identity)
+                            or values.get("execution_waits") != list(result.execution_waits)
+                            or values.get("execution_wake") or values.get("unknown_operations")
+                            or host.pending_question or result.unknown_operations
+                            or result.pending_tool_calls or _pending_calls(result.messages)):
+                        raise ValueError("execution_suspension_checkpoint_invalid")
+                    reference = committed.config["configurable"]["checkpoint_id"]
+                    if committed.checkpoint["id"] != reference:
+                        raise ValueError("execution_suspension_checkpoint_invalid")
+                    suspension = validate_execution_suspension({"identity": asdict(identity),
+                        "checkpoint_ref": reference, "wait_ids": list(result.execution_waits)}, identity)
+                    return {"job_id": identity.run_id, "execution_suspension": suspension}
     except Exception as exc:
         # Never restart the loop or retry a possibly dispatched operation here.
-        logger.warning("General agent stopped: %s", type(exc).__name__)
+        # Log frame locations, never exception text/locals that can contain
+        # provider credentials, queries or tool payloads.
+        import traceback
+        frames = traceback.extract_tb(exc.__traceback__)
+        locations = " -> ".join(f"{frame.name}:{frame.lineno}" for frame in frames[-12:])
+        logger.warning("General agent stopped: %s [%s]", type(exc).__name__, locations)
         reason = "execution_error:" + type(exc).__name__
         if isinstance(exc, task_events.TaskConflict):
             code = str(exc).split(" (", 1)[0]
@@ -638,6 +711,7 @@ async def _finish(state, identity, ledger, host, result, trace_start, started, *
     emit_text(answer)
     elapsed = (time.monotonic() - started) * 1000
     return {"query": state["query"], "answer": answer, "gen_time_ms": elapsed,
+        "execution_suspension": {},
         "main_results": host.main_results, "web_results": host.web_results,
         "tools_called": list(dict.fromkeys(r["name"] for r in host.records)),
         "tool_status": list(host.records), "execution_ledger": ledger.as_dict(),

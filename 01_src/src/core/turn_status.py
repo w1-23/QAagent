@@ -16,7 +16,15 @@ CANCELLED_STATUSES = frozenset({"cancelled"})
 
 def derive_turn_status(answer: str = "", tool_status: list[dict] | None = None,
                        missing_groups: list | None = None) -> str:
-    task = build_task_result(tool_status, missing_groups)
+    records = list(tool_status or ())
+    task = build_task_result(records, missing_groups)
     if task.status in {"cancelled", "awaiting_input"}:
+        return task.status
+    # A stopped turn may intentionally have no answer. Preserve the reducer's
+    # partial outcome when a genuine failure preceded cancellation; an absent
+    # answer must not reclassify the user's stop as a fresh failure.
+    if task.status == "partial" and any(
+            isinstance(row, dict) and row.get("status") == "cancelled"
+            for row in records):
         return task.status
     return task.status if str(answer or "").strip() else "failed"

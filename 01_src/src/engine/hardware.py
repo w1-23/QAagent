@@ -10,7 +10,10 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import onnxruntime as ort
+def _ort():
+    """Load the optional inference runtime only for an explicit hardware operation."""
+    import onnxruntime
+    return onnxruntime
 
 from src.config import PROJECT_ROOT, _yaml_val
 
@@ -41,7 +44,9 @@ class GPUUnavailableError(RuntimeError):
 
 
 def require_gpu() -> bool:
-    return os.getenv("CITRUS_REQUIRE_GPU", "").strip() == "1"
+    # A selected GPU mode also forbids model-level CPU retry/fallback. The
+    # administrator can explicitly select cpu/auto when a fallback is desired.
+    return os.getenv("CITRUS_REQUIRE_GPU", "").strip() == "1" or _read_mode() == "gpu"
 
 
 def cpu_thread_budget() -> int:
@@ -49,14 +54,14 @@ def cpu_thread_budget() -> int:
     return max(1, int(os.getenv("CITRUSQA_CPU_THREADS", "8") or 8))
 
 
-def session_options(*, strict: bool = False, provider: str = "") -> ort.SessionOptions:
-    options = ort.SessionOptions()
+def session_options(*, strict: bool = False, provider: str = "") -> Any:
+    options = _ort().SessionOptions()
     options.intra_op_num_threads = cpu_thread_budget()
     options.inter_op_num_threads = 1
     if provider == "DmlExecutionProvider":
         # DirectML does not support ORT memory patterns or parallel execution.
         options.enable_mem_pattern = False
-        options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+        options.execution_mode = _ort().ExecutionMode.ORT_SEQUENTIAL
     if strict:
         options.add_session_config_entry("session.disable_cpu_ep_fallback", "1")
     return options
@@ -198,8 +203,8 @@ def _read_mode() -> str:
             pass
         except Exception as exc:
             logger.warning("Could not read ONNX device preference: %s", exc)
-        _runtime_mode = "auto"
-        return "auto"
+        _runtime_mode = "gpu"
+        return "gpu"
 
 
 def _write_mode(mode: str) -> None:
@@ -220,7 +225,7 @@ def set_device_mode(mode: str) -> dict[str, Any]:
     selected = str(mode or "").strip().casefold()
     if selected not in VALID_DEVICE_MODES:
         raise ValueError("mode must be auto, gpu, or cpu")
-    available = list(ort.get_available_providers())
+    available = list(_ort().get_available_providers())
     if selected == "gpu" and not any(provider in _GPU_PROVIDERS for provider in available):
         raise RuntimeError("GPU ExecutionProvider is not available in this runtime")
     with _DEVICE_LOCK:
@@ -286,7 +291,7 @@ def probe_provider(provider: str) -> tuple[bool, str]:
                 options = session_options(provider=provider)
                 options.enable_profiling = True
                 options.profile_file_prefix = str(Path(profile_dir) / "probe")
-                session = ort.InferenceSession(
+                session = _ort().InferenceSession(
                     str(path), providers=[provider], sess_options=options)
                 actual = list(session.get_providers())
                 if not actual or actual[0] != provider:
@@ -354,7 +359,7 @@ def mark_provider_unusable(provider: str, reason: str) -> None:
 
 
 def get_ort_providers() -> list[str]:
-    available = list(ort.get_available_providers())
+    available = list(_ort().get_available_providers())
     mode = _read_mode()
     logger.info("[Hardware] ONNX available providers=%s mode=%s", available, mode)
     strict = require_gpu()
@@ -371,12 +376,10 @@ def get_ort_providers() -> list[str]:
         if preferred and preferred[0] in _GPU_PROVIDERS:
             return preferred
         logger.error("[Hardware] GPU mode requested but no usable GPU provider is available")
-        if strict:
-            raise GPUUnavailableError(
-                "CITRUS_REQUIRE_GPU=1: no verified GPU execution provider. "
-                f"Available={available}; probe failures={_probe_cache}. "
-                "Check container --nv, CUDA/cuDNN libraries, onnxruntime-gpu and provider_priority.")
-        return ["CPUExecutionProvider"]
+        raise GPUUnavailableError(
+            "GPU mode or CITRUS_REQUIRE_GPU=1: no verified GPU execution provider. "
+            f"Available={available}; probe failures={_probe_cache}. "
+            "Check container --nv, CUDA/cuDNN libraries, onnxruntime-gpu and provider_priority.")
     matched = [
         provider for provider in _provider_priority()
         if provider in available
@@ -384,14 +387,36 @@ def get_ort_providers() -> list[str]:
     return _usable_provider_order(matched)
 
 
-def get_device_status() -> dict[str, Any]:
-    available = list(ort.get_available_providers())
+def get_device_status(*, probe: bool = True) -> dict[str, Any]:
+    """Inspect sessions; only an explicit administrator operation may probe GPUs."""
     selection_error = None
+    runtime_available = True
     try:
-        selected = get_ort_providers()
-    except GPUUnavailableError as exc:
-        selected = []
-        selection_error = str(exc)
+        available = list(_ort().get_available_providers())
+    except (ImportError, OSError) as exc:
+        available = []
+        runtime_available = False
+        selection_error = f"onnx_runtime_unavailable:{type(exc).__name__}"
+    mode = _read_mode()
+    selected = []
+    if runtime_available:
+        if probe:
+            try:
+                selected = get_ort_providers()
+            except GPUUnavailableError as exc:
+                selection_error = str(exc)
+        elif mode == "cpu" and not require_gpu():
+            selected = ["CPUExecutionProvider"] if "CPUExecutionProvider" in available else []
+        else:
+            # Missing evidence stays unverified. Never call _usable_provider_order
+            # here: it launches probe threads and writes a probe model/profile.
+            selected = [p for p in _provider_priority() if p in available
+                        and (p not in _GPU_PROVIDERS or _probe_cache.get(p, (False, ""))[0])
+                        and (p in _GPU_PROVIDERS or (mode == "auto" and not require_gpu()))]
+            if (mode == "gpu" or require_gpu()) and not any(p in _GPU_PROVIDERS for p in selected):
+                selection_error = "gpu_execution_unverified"
+    if mode == "cpu" and require_gpu():
+        selection_error = "CITRUS_REQUIRE_GPU=1 conflicts with ONNX device mode cpu"
     models: dict[str, dict[str, Any]] = {}
     for name, class_name in (("embedder", "Embedder"), ("reranker", "Reranker")):
         module = sys.modules.get(f"src.engine.{name}")
@@ -427,8 +452,8 @@ def runtime_readiness() -> dict[str, Any]:
     tiny EP probe separately proves GPU kernel execution. FastEmbed does not
     expose profiling options, so its evidence is session providers + forward.
     """
-    status = get_device_status()
-    errors = []
+    status = get_device_status(probe=False)
+    errors = [status["selection_error"]] if status["selection_error"] else []
     # Lazy CPU startup remains supported, but a loaded or failed session cannot
     # advertise readiness after a failed forward pass in either device mode.
     for name, model in status["models"].items():
@@ -436,9 +461,7 @@ def runtime_readiness() -> dict[str, Any]:
             errors.append(f"{name}: {model['runtime_error']}")
         elif model["loaded"] and not model["inference_verified"]:
             errors.append(f"{name}: loaded session has not completed a verified inference")
-    if require_gpu():
-        if status["selection_error"]:
-            errors.append(status["selection_error"])
+    if require_gpu() or status["mode"] == "gpu":
         for name, model in status["models"].items():
             if not model["loaded"]:
                 errors.append(f"{name}: load the cached model and run a local inference to verify GPU readiness")

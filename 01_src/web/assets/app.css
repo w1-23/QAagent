@@ -121,9 +121,14 @@ body {
   .turn-status-enter { animation: none; transition: none; transform: none; }
 }
 .tool-trace-count { margin-left: 2px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
-.research-process .tool-trace-summary { gap: 10px; }
-.research-process .tool-trace-summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
-.research-process-body { display: grid; gap: 8px; padding: 4px 1px 12px; font-size: 12px; line-height: 1.65; }
+.research-process { margin: 0; border: 0; }
+.research-process-body { display: grid; gap: 8px; font-size: 12px; line-height: 1.65; }
+.research-task-status { color: var(--text-muted); font-size: 12px; }
+.research-task-status:empty { display: none; }
+.research-action-group { margin: 0; padding: 0; border: 0; }
+.research-action-summary { width: fit-content; cursor: pointer; color: var(--text-muted); font-size: 12px; }
+.research-action-summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
+.research-action-list { display: grid; gap: 8px; padding: 8px 0; }
 .research-process-goal { color: var(--text-secondary); overflow-wrap: anywhere; white-space: pre-wrap; }
 .research-process-stage { color: var(--text-muted); overflow-wrap: anywhere; }
 .research-process-timeline { display: grid; gap: 10px; padding: 2px 0; }
@@ -589,7 +594,7 @@ footer {
 .attachment-preview-name { position: absolute; right: 0; bottom: 0; left: 0; overflow: hidden; padding: 16px 4px 3px; background: linear-gradient(transparent, rgba(0,0,0,.72)); color: #fff; font-size: 10px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
 .attachment-preview-remove { position: absolute; top: 3px; right: 3px; display: flex; width: 22px; height: 22px; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 50%; background: rgba(0,0,0,.68); color: #fff; font-size: 17px; line-height: 1; cursor: pointer; }
 .attachment-preview-remove:hover { background: var(--error, #c33); }
-/* v8.7: 发送与停止同位置切换——小巧圆形按钮（v8.10 起位于底栏右下角） */
+/* Compact composer actions allow appending requirements alongside stopping. */
 .send-btn, .stop-btn {
   width: 32px; height: 32px;
   padding: 0;
@@ -610,7 +615,7 @@ footer {
 /* v8.7: 运行中彻底隐藏发送按钮（display 由 JS 切换；此处兜底防残留重叠） */
 .send-btn:disabled { opacity: 0; pointer-events: none; }
 
-/* v8.7 停止按钮：柔和橙描边圆形，与发送按钮同位置切换 */
+/* Stop remains available while the running task accepts text additions. */
 .stop-btn {
   background: var(--accent-muted);
   border: 1.5px solid var(--accent);
@@ -695,13 +700,12 @@ footer {
 /* Task controls and evidence use the same theme and document flow as chat. */
 .task-controls { margin: 10px 0; font-size: 12px; color: var(--text-secondary); }
 .task-controls[hidden], .task-controls [hidden] { display: none; }
-.task-update > summary, .task-result > summary { cursor: pointer; padding: 6px 0; color: var(--text-primary); }
-.task-update form { display: grid; gap: 8px; max-width: 620px; padding: 6px 0; }
-.task-update label { display: grid; gap: 6px; }
-.task-update textarea { box-sizing: border-box; width: 100%; min-height: 64px; max-height: 220px; resize: vertical; padding: 9px 11px; border: 1px solid var(--border-hover); border-radius: 7px; background: var(--bg-surface); color: var(--text-primary); font: inherit; }
+.task-result > summary { cursor: pointer; padding: 6px 0; color: var(--text-primary); }
+.composer-task-status { margin: 4px 0 0; font-size: 12px; line-height: 1.5; color: var(--text-secondary); }
+.composer-task-status[hidden] { display: none; }
 .task-controls button { justify-self: start; padding: 7px 12px; border: 1px solid var(--border-hover); border-radius: 7px; background: var(--bg-elevated); color: var(--text-primary); font: inherit; cursor: pointer; }
 .task-controls button:disabled, .perm-actions button:disabled { opacity: .55; cursor: default; }
-.task-controls button:focus-visible, .task-controls summary:focus-visible, .task-update textarea:focus-visible, .task-result summary:focus-visible, .perm-actions button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.task-controls button:focus-visible, .task-result summary:focus-visible, .perm-actions button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .task-control-hint, .task-control-status { margin: 4px 0; line-height: 1.65; overflow-wrap: anywhere; }
 .task-control-status:empty { display: none; }
 .task-recovery { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }

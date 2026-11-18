@@ -350,9 +350,12 @@ def recover_interrupted(conn):
     """Called inside jobs' startup reconciliation transaction."""
     for job_id, approval_id, tool_name in conn.execute("SELECT job_id,approval_id,tool_name FROM task_approvals WHERE status='pending'").fetchall():
         _append(conn, job_id, "permission_decision", {"approval_id": approval_id, "tool_name": tool_name, "status": "expired"})
-    for job_id, version in conn.execute("SELECT job_id,version FROM task_updates WHERE status='pending'").fetchall():
+    has_segments = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='agent_execution_segments'").fetchone()
+    parked_guard = (" AND job_id NOT IN (SELECT job_id FROM agent_execution_segments WHERE phase='parked')"
+                    if has_segments else "")
+    for job_id, version in conn.execute("SELECT job_id,version FROM task_updates WHERE status='pending'" + parked_guard).fetchall():
         _append(conn, job_id, "task_update", {"version": version, "status": "not_applied", "reason": "service_restart"})
-    conn.execute("UPDATE task_updates SET status='not_applied' WHERE status='pending'")
+    conn.execute("UPDATE task_updates SET status='not_applied' WHERE status='pending'" + parked_guard)
     conn.execute("UPDATE task_operations SET status='interrupted',lease_until=0 WHERE status='running'")
     conn.execute("UPDATE task_approvals SET status='expired',decided_at=? WHERE status='pending'", (time.time(),))
     # A process died while provider usage was unknown. Keep every reserved call

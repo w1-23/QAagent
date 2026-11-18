@@ -144,7 +144,7 @@ def snippet_around(text, gap: str = "", width: int = 240) -> str:
             needle = term
             break
     if not needle:
-        return cleaned[:width].rstrip() + "…"
+        return cleaned[:width - 1].rstrip() + "…"
     index = cleaned.casefold().find(needle)
     start = max(0, index - width // 3)
     end = min(len(cleaned), start + width)
@@ -152,7 +152,8 @@ def snippet_around(text, gap: str = "", width: int = 240) -> str:
         start = max(0, end - width)
     prefix = "…" if start > 0 else ""
     suffix = "…" if end < len(cleaned) else ""
-    return prefix + cleaned[start:end].strip() + suffix
+    available = width - len(prefix) - len(suffix)
+    return prefix + cleaned[start:start + available].strip() + suffix
 
 
 @dataclass(frozen=True)
@@ -175,6 +176,8 @@ class Candidate:
     rerank_score: float | None
     snippet: str
     text: str
+    provenance: dict = field(default_factory=dict)
+    read_entry: dict = field(default_factory=dict)
 
     @property
     def text_chars(self) -> int:
@@ -193,6 +196,9 @@ class Candidate:
             "rerank_score": (round(float(self.rerank_score), 6)
                              if self.rerank_score is not None else None),
             "text_chars": self.text_chars,
+            **({"ref": self.provenance["source_ref"], "read_entry": self.read_entry,
+                "evidence_level": self.provenance.get("evidence_level", "passage")}
+               if self.provenance.get("source_ref") else {}),
         }
 
     def evidence_row(self, text: str = "") -> dict:
@@ -210,6 +216,8 @@ class Candidate:
             "year": self.year,
             "source_type": self.source_type,
             "_src": self.src,
+            **self.provenance,
+            **({"read_entry": self.read_entry} if self.read_entry else {}),
         }
         if text:
             row["text"] = text
@@ -250,6 +258,10 @@ def candidate_from_row(row: dict, index: int) -> Candidate:
         rerank_score=_optional_float(row.get("rerank_score")),
         snippet=snippet_around(text, "", 240),
         text=text,
+        provenance={key: row[key] for key in (
+            "source_ref", "origin", "document_key", "title", "display_label",
+            "locator", "url", "evidence_level", "retrieved_at", "query_ref") if key in row},
+        read_entry=dict(row.get("read_entry") or {}),
     )
 
 
@@ -258,6 +270,9 @@ class CandidatePool:
     pool_id: str
     request_id: str = ""
     session_id: str = ""
+    owner_user_id: int | None = None
+    turn_id: str = ""
+    generation: str = ""
     query: str = ""
     translation_used: bool = False
     families: tuple[str, ...] = ()
@@ -429,6 +444,16 @@ def get_pool(pool_id: str = "", request_id: str = "") -> CandidatePool | None:
         return max(matches, key=lambda pool: pool.created_at) if matches else None
 
 
+def get_scoped_pool(owner_user_id: int, session_id: str, turn_id: str) -> CandidatePool | None:
+    """Find a live pool across tool contexts, without request-id-only authority."""
+    with _POOLS_LOCK:
+        _prune_locked(time.time())
+        matches = [pool for pool in _POOLS.values()
+                   if pool.owner_user_id == owner_user_id
+                   and pool.session_id == session_id and pool.turn_id == turn_id]
+        return max(matches, key=lambda pool: pool.created_at) if matches else None
+
+
 def clear_pool(pool_id: str = "") -> int:
     pid = str(pool_id or "").strip()
     if not pid:
@@ -482,7 +507,7 @@ def clear_current_candidate_pool() -> None:
 
 __all__ = [
     "Candidate", "CandidatePool", "candidate_from_row", "snippet_around",
-    "build_candidate_pool", "put_pool", "get_pool", "clear_pool",
+    "build_candidate_pool", "put_pool", "get_pool", "get_scoped_pool", "clear_pool",
     "clear_request_pools", "prune_expired", "clear_pools",
     "bind_candidate_pool", "current_candidate_pool",
     "clear_current_candidate_pool", "MAX_POOLS",

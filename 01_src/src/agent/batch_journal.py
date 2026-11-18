@@ -15,7 +15,7 @@ from langchain_core.messages import AIMessage, ToolMessage
 
 from src.core import task_events
 from .identity import ExecutionIdentity
-from .runtime import BatchObservation
+from .runtime import BatchObservation, validate_execution_waits
 
 # A checkpoint must stay bounded. Reject, rather than silently trim a published
 # observation; the host's full-result references remain the source of truth.
@@ -73,6 +73,7 @@ def _calls(response):
 def _validate(batch, calls):
     if not isinstance(batch, BatchObservation):
         raise TypeError("executor_must_return_batch_observation")
+    validate_execution_waits(batch.execution_waits)
     if type(batch.pending_question) is not bool:
         raise TypeError("batch_pending_question_requires_bool")
     for values in (batch.context_notes, batch.unknown_operations):
@@ -90,12 +91,14 @@ def _validate(batch, calls):
 
 def _encode(batch, calls):
     _validate(batch, calls)
-    data = {"version": 1, "messages": [
+    data = {"version": 2 if batch.execution_waits else 1, "messages": [
         {key: getattr(message, key) for key in _MESSAGE_FIELDS}
         for message in batch.messages],
         "pending_question": batch.pending_question,
         "unknown_operations": list(batch.unknown_operations),
         "context_notes": list(batch.context_notes)}
+    if batch.execution_waits:
+        data["execution_waits"] = list(batch.execution_waits)
     encoded = _json(data)
     if len(encoded.encode("utf-8")) > MAX_BATCH_BYTES:
         raise ValueError("batch_observation_exceeds_checkpoint_limit")
@@ -107,9 +110,11 @@ def _decode(encoded, calls):
         if len(encoded.encode("utf-8")) > MAX_BATCH_BYTES:
             raise ValueError("oversized_batch_checkpoint")
         data = json.loads(encoded)
-        if (set(data) != {"version", "messages", "pending_question",
-                          "unknown_operations", "context_notes"}
-                or type(data["version"]) is not int or data["version"] != 1
+        fields = {"version", "messages", "pending_question", "unknown_operations", "context_notes"}
+        version = data.get("version") if isinstance(data, dict) else None
+        if (type(version) is not int or version not in (1, 2)
+                or set(data) != (fields | {"execution_waits"} if version == 2 else fields)
+                or (version == 2 and not isinstance(data["execution_waits"], list))
                 or not isinstance(data["messages"], list)
                 or any(not isinstance(m, dict) or set(m) != _MESSAGE_FIELDS
                        for m in data["messages"])
@@ -122,7 +127,8 @@ def _decode(encoded, calls):
             tuple(ToolMessage(**message) for message in data["messages"]),
             pending_question=data["pending_question"],
             unknown_operations=tuple(data["unknown_operations"]),
-            context_notes=tuple(data["context_notes"]))
+            context_notes=tuple(data["context_notes"]),
+            execution_waits=tuple(data.get("execution_waits", ())))
         _encode(batch, calls)  # Recheck schema, JSON types, size and pairing.
         return batch
     except (ValueError, TypeError, KeyError, AttributeError) as exc:

@@ -19,11 +19,14 @@ import threading
 import time
 import uuid
 
+from citrus_refcheck.compare import (
+    FIELDS, _value, _author_comparison, _journal_comparison, compare_fields,
+)
+
 from src.research import literature as lit
 from src.research.reference_extraction import digest, extract_inventory
 
 RULE_VERSION = 'reference-fields/3'
-FIELDS = ('doi', 'title', 'authors', 'year', 'journal', 'volume', 'issue', 'pages', 'article_number')
 _CACHE = {}
 _CACHE_LOCK = threading.Lock()
 _CACHE_TTL = 6 * 3600
@@ -233,117 +236,6 @@ def cancel_audit(owner, session_id, audit_id):
     return get_audit(owner, session_id, audit_id)
 
 
-def _value(claims, field):
-    value = claims.get(field)
-    if field == 'journal':
-        value = value or claims.get('venue')
-    if isinstance(value, (list, tuple)):
-        return '; '.join(str(item) for item in value)
-    return str(value or '').strip()
-
-
-def _author_comparison(supplied, registered):
-    truncated = bool(re.search(r'\bet\s+al\b', supplied, re.I))
-    left = re.sub(r'\bet\s+al\.?', '', supplied, flags=re.I).strip(' .,;')
-    right = re.sub(r'\bet\s+al\.?', '', registered, flags=re.I).strip(' .,;')
-    if truncated:
-        # et al describes an omitted suffix, not a disagreement in author count.
-        right = re.split(r';|,|\s+and\s+', right)[0]
-    if lit._author_conflict(left, right):
-        return 'conflicting', 'different_authors'
-
-    def abbreviated_name(value):
-        tokens = re.findall(r'[^\W\d_]+', value, re.UNICODE)
-        if len(tokens) < 2:
-            return None
-        for surname, given in ((tokens[0], tokens[1:]), (tokens[-1], tokens[:-1])):
-            if len(surname) > 1 and all(len(t) == 1 or (t.isupper() and len(t) <= 4) for t in given):
-                return lit.norm_title(surname), ''.join(given).casefold()
-        return None
-
-    # Compare explicit initials for the first author without demanding equal
-    # author count, full given names or transliteration.
-    first_left, first_right = (re.split(r';|,|\s+and\s+', value)[0] for value in (left, right))
-    abbreviated = abbreviated_name(first_left)
-    if abbreviated:
-        surname, initials = abbreviated
-        other = abbreviated_name(first_right)
-        if other and surname == other[0] and initials[0] != other[1][0]:
-            return 'conflicting', 'different_author_initials'
-        tokens = lit.norm_title(first_right).split()
-        if not other and len(tokens) >= 2:
-            if tokens[-1] == surname and tokens[0][0] != initials[0]:
-                return 'conflicting', 'different_author_initials'
-    return 'uncertain', 'abbreviated_or_incomplete_authors' if truncated else 'author_order_count_or_transliteration_requires_review'
-
-
-def _journal_comparison(supplied, registered):
-    left, right = (lit.norm_title(value).split() for value in (supplied, registered))
-    skip = {'of', 'the', 'and', 'in', 'for', 'de', 'a'}
-    a, b = ([word for word in words if word not in skip] for words in (left, right))
-    # Abbreviated titles and acronyms are plausible variants, not certified aliases.
-    acronym = lambda words: ''.join(word[0] for word in words)
-    compatible = (a and b and (''.join(a) == acronym(b) or ''.join(b) == acronym(a)
-                  or (len(a) == len(b) and all(x.startswith(y) or y.startswith(x) for x, y in zip(a, b)))
-                  or set(a).issubset(b) or set(b).issubset(a)))
-    if compatible:
-        return 'uncertain', 'possible_journal_abbreviation_or_related_venue'
-    # Very short strings may be opaque acronyms outside the known words.
-    if any(len(lit.norm_title(value).replace(' ', '')) <= 4 and (value.isupper() or '.' in value)
-           for value in (supplied, registered)):
-        return 'uncertain', 'unresolved_journal_abbreviation'
-    return 'conflicting', 'different_journal'
-
-
-def compare_fields(claims, candidate, *, uncertain_fields=()):
-    """Conservative rules: variants are uncertain, never automatic tolerance passes."""
-    checks = {}
-    for field in FIELDS:
-        supplied, registered = _value(claims, field), _value(candidate or {}, field)
-        reason = ''
-        if not supplied:
-            state, reason = 'not_checked', 'not_submitted'
-        elif candidate is None:
-            state, reason = 'not_checked', 'no_identified_record'
-        elif not registered:
-            state, reason = 'missing', 'provider_field_missing'
-        elif field == 'doi':
-            state = 'matched' if lit.normalize_doi(supplied) == lit.normalize_doi(registered) else 'conflicting'
-        elif field == 'year':
-            years = {str(item.get('year')) for item in candidate.get('years', [])
-                     if isinstance(item, dict) and item.get('kind') in {'published-online', 'published-print', 'issued', 'published'}}
-            if supplied == registered or supplied in years:
-                state, reason = 'matched', 'registered_publication_year'
-            elif supplied.isdigit() and registered.isdigit() and abs(int(supplied) - int(registered)) == 1:
-                state, reason = 'uncertain', 'possible_online_print_difference_not_documented'
-            else:
-                state = 'conflicting'
-        else:
-            left, right = lit.norm_title(supplied), lit.norm_title(registered)
-            if field == 'authors' and re.search(r'\bet\s+al\b', supplied, re.I):
-                state, reason = _author_comparison(supplied, registered)
-            elif left and left == right:
-                state = 'matched'
-            elif field == 'title':
-                state = 'uncertain' if lit.title_similarity(supplied, registered) >= .82 else 'conflicting'
-                reason = 'title_variant' if state == 'uncertain' else 'different_title'
-            elif field == 'authors':
-                state, reason = _author_comparison(supplied, registered)
-            elif field == 'journal':
-                state, reason = _journal_comparison(supplied, registered)
-            elif field == 'pages':
-                state, reason = 'conflicting', 'page_range_differs_article_number_not_interchangeable'
-            else:
-                state = 'conflicting'
-        comparison_state = state
-        if field in uncertain_fields and supplied and state not in {'not_checked', 'missing'}:
-            state, reason = 'uncertain', 'heuristic_input_field_requires_confirmation'
-        checks[field] = {'status': state, 'submitted': supplied, 'registered': registered, 'reason': reason,
-                         'input_certainty': 'uncertain' if field in uncertain_fields else 'submitted',
-                         'comparison_status': comparison_state}
-    return checks
-
-
 def _lookup_cached(owner, session_id, key, call, context):
     cache_key = (owner, session_id, digest(key))
     now = time.time()
@@ -357,7 +249,8 @@ def _lookup_cached(owner, session_id, key, call, context):
             return deepcopy(cached[1])
     start = len(context.evidence)
     result = call()
-    if result[0] == 200 and result[1] and not result[2]:
+    if (result[0] == 200 and isinstance(result[1], list) and result[1]
+            and all(isinstance(item, dict) for item in result[1]) and not result[2]):
         with _CACHE_LOCK:
             _CACHE[cache_key] = (now, deepcopy(result), deepcopy(context.evidence[start:]))
             if len(_CACHE) > 2000:
@@ -376,11 +269,12 @@ def verify_record(claims, *, owner=0, session_id='', uncertain_fields=(), deadli
     if not web_search_enabled():
         return {'status': 'not_checked', 'reason': 'network_disabled', 'retryable': True,
                 'existence': 'not_checked', 'identity': 'not_checked', 'rule_version': RULE_VERSION,
-                'fields': compare_fields(claims, None), 'evidence': [], 'candidates': []}
+                'fields': compare_fields(claims, None), 'evidence': [], 'candidates': [],
+                'facts': {'records': [], 'providers': {}, 'errors': {}, 'http_evidence': []}}
     deadline = min(deadline or time.monotonic() + 25, time.monotonic() + 25)
     doi, title = lit.normalize_doi(claims.get('doi')), _value(claims, 'title')
     arxiv_id = _value(claims, 'arxiv_id')
-    records, errors = [], {}
+    records, errors, providers = [], {}, {}
     stopped = ''
     with lit.bounded_lookup(deadline=deadline, check=check, debit=debit) as context:
         def query(provider, kind, value, function):
@@ -398,9 +292,15 @@ def verify_record(claims, *, owner=0, session_id='', uncertain_fields=(), deadli
                 raise
             except (ValueError, TypeError, KeyError, AttributeError) as exc:
                 status, found, error = 0, [], 'invalid_provider_payload:' + type(exc).__name__
+            key = provider + ':' + kind
+            if status not in (200, 404) and not error:
+                error = f'http_{status}' if isinstance(status, int) and 100 <= status <= 599 else 'invalid_response'
+            if status == 200 and (not isinstance(found, list) or any(not isinstance(item, dict) for item in found)):
+                error = error or 'invalid_provider_payload'
+            providers[key] = 'error' if error else 'not_found' if status == 404 else 'ok'
             if error:
-                errors[provider + ':' + kind] = error
-            if status == 200:
+                errors[key] = error
+            if status == 200 and not error:
                 # Preserve provider differences instead of flattening deduplication.
                 for record in found:
                     if record.get('title') or record.get('doi'):
@@ -430,6 +330,22 @@ def verify_record(claims, *, owner=0, session_id='', uncertain_fields=(), deadli
         except AuditStopped as exc:
             stopped = exc.reason
         evidence = deepcopy(context.evidence)
+    facts = {'records': records, 'providers': providers, 'errors': errors,
+             'http_evidence': evidence}
+    return _project_verification(claims, facts, uncertain_fields=uncertain_fields, stopped=stopped)
+
+
+def _project_verification(claims, facts, *, uncertain_fields=(), stopped=''):
+    """Project provider facts into the host's historical verification fields.
+
+    Legacy statuses describe submitted-field observations, never a truth verdict.
+    Keep the underlying facts separate from candidate ranking and field hints.
+    """
+    doi, title = lit.normalize_doi(claims.get('doi')), _value(claims, 'title')
+    arxiv_id = _value(claims, 'arxiv_id')
+    records = deepcopy(facts['records'])
+    errors, evidence = facts['errors'], facts['http_evidence']
+
     def identifier_matches(item):
         return bool(lit.normalize_doi(item.get('doi')) == doi if doi
                     else arxiv_id and item.get('arxiv_id') == arxiv_id)
@@ -479,7 +395,7 @@ def verify_record(claims, *, owner=0, session_id='', uncertain_fields=(), deadli
         for key in conflict['fields']:
             if fields[key]['status'] == 'matched':
                 fields[key].update(status='uncertain', reason='providers_disagree')
-    if provider_conflicts and status == 'metadata_matched':
+    if (provider_conflicts or errors or stopped) and status == 'metadata_matched':
         status = 'metadata_uncertain'
     identities = {lit.normalize_doi(item.get('doi')) or item.get('arxiv_id') or item.get('url')
                   for item in relevant if lit.norm_title(item.get('title')) == lit.norm_title(title)} - {None, ''}
@@ -489,6 +405,7 @@ def verify_record(claims, *, owner=0, session_id='', uncertain_fields=(), deadli
             'metadata_scope': 'submitted_fields_only',
             'rule_version': RULE_VERSION, 'claims_sha256': digest(claims),
             'retryable': bool(errors or stopped), 'stop_reason': stopped,
+            'facts': facts,
             'evidence': evidence, 'errors': errors, 'candidates': candidates,
             'selected_record': best, 'identifier_records': direct,
             'title_candidates': [item for item in candidates if item.get('lookup_kind') == 'title'

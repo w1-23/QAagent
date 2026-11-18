@@ -1,4 +1,0 @@
-# Default CPU runtime. GPU hosts install requirements-gpu.txt instead.
--r requirements-base.txt
-onnxruntime==1.21.1
-fastembed==0.8.0
