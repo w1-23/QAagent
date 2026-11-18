@@ -2746,6 +2746,17 @@ def _require_owned_job(job: dict, user: dict) -> None:
         require_owned_session(str(job["session_id"]), user)
 
 
+@app.get("/api/v2/session/{session_id}/task-by-request/{client_request_id}")
+async def discover_chat_job(session_id: str, client_request_id: str, request: Request):
+    from src.core.jobs import find_chat_job_id
+    user = current_user(request)
+    job_id = find_chat_job_id(session_id, int(user["user_id"]), client_request_id)
+    headers = {"Cache-Control": "no-store"}
+    if not job_id:
+        return JSONResponse({"detail": "Job not found"}, status_code=404, headers=headers)
+    return JSONResponse({"job_id": job_id}, headers=headers)
+
+
 @app.get("/jobs/{job_id}")
 async def get_job_status(job_id: str, request: Request):
     """v8.3.7 M2: 任务状态查询（断连保活后可查 running/completed/failed）。
@@ -2759,10 +2770,8 @@ async def get_job_status(job_id: str, request: Request):
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
     user = current_user(request)
     _require_owned_job(job, user)
-    payload = dict(job)
-    payload["terminal_snapshot"] = jobs_mod.decode_terminal_snapshot(job)
     from src.core.task_events import projection
-    payload.update(projection(job_id))
+    payload = projection(job_id, include_job=True)
     # Legacy jobs are authorized through their session above. They have no
     # durable account identity and cannot own the newer question protocol.
     # Do not feed them into its stricter owner-bound authorization check.
@@ -2772,7 +2781,7 @@ async def get_job_status(job_id: str, request: Request):
                                    session_id=job["session_id"])
         if questions:
             payload["question"] = questions[0]
-    return payload
+    return JSONResponse(payload, headers={"Cache-Control": "no-store"})
 
 
 @app.get("/jobs/{job_id}/events")
@@ -4698,13 +4707,17 @@ async def session_messages(session_id: str, request: Request, limit: int = 60,
     user = current_user(request)
     require_owned_session(session_id, user)
     try:
-        msgs, row_ids = await session_manager.get_messages_with_ids(
-            session_id, for_display=True)
-    except Exception as e:
-        logger.warning(f"[API] session_messages read failed: {e}")
-        return {"session_id": session_id, "messages": [], "count": 0,
-                "context": _build_context_snapshot([])}
-    request_ids = await session_manager.get_user_message_request_ids(session_id)
+        msgs, row_ids, request_ids = await session_manager.get_display_history(session_id)
+    except Exception as exc:
+        logger.warning("[API] session history read failed: %s", type(exc).__name__)
+        turns = []
+        if not before:
+            try:
+                turns = await asyncio.to_thread(_history_with_jobs, [], session_id, int(user["user_id"]))
+            except Exception as jobs_exc:
+                logger.warning("[API] session task discovery failed: %s", type(jobs_exc).__name__)
+        return JSONResponse({"code": "history_unavailable", "session_id": session_id, "turns": turns},
+                            status_code=503, headers={"Cache-Control": "no-store"})
     try:
         from src.session import files as session_files
         files_by_request = await asyncio.to_thread(

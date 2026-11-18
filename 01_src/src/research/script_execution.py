@@ -44,6 +44,7 @@ def publish_script_outputs(*, runner, text: str, title: str, output_name: str,
     from src.figures.script_outputs import output_slots, strict_json, validate_receipt
     from src.research.figure_tools import _owner, _session, _error, _publish, _record_project, _register_figure, _failed_qa_checks
     from src.research.analysis_results import persist_prepared_dataset
+    from src.research.tools import _safe_name
     from src.core.tracing import get_job_id
 
     owner = _owner()
@@ -179,7 +180,9 @@ def publish_script_outputs(*, runner, text: str, title: str, output_name: str,
                 try:
                     mime = {"svg": "image/svg+xml", "png": "image/png", "pdf": "application/pdf", "tiff": "image/tiff"}[fmt]
                     publication_started = True
-                    entry = _publish(f"{output_name or title or 'figure'}_{name}.{fmt}", payload, mime)
+                    suffix = f"_{name}.{fmt}"
+                    stem = _safe_name(output_name or title, fallback="figure", max_len=80 - len(suffix))
+                    entry = _publish(f"{stem}{suffix}", payload, mime)
                     record = {"format": fmt, **entry}
                     figure["exports"].append(record)
                     exports.append(record)

@@ -44,13 +44,23 @@ async def read_context_evidence(checkpoint_id: str, message_count: int,
     text = json.dumps(messages[0], ensure_ascii=False, separators=(",", ":"))
     if start_char > len(text):
         raise ValueError("context_archive_invalid_character_range")
-    end = min(len(text), start_char + max_chars)
-    result = {"checkpoint_id": checkpoint_id, "message_index": message_index,
-              "message_count": message_count, "start_char": start_char, "end_char": end,
-              "total_chars": len(text), "next_start_char": end if end < len(text) else None,
-              "public_message_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
-              "text": text[start_char:end], "complete": end == len(text)}
-    return json.dumps(result, ensure_ascii=False), {"_tool_outcome": {"status": "complete"}}
+    from src.core.tool_result_view import INLINE_CHARS
+    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    size = min(len(text) - start_char, max_chars)
+    while True:
+        end = start_char + size
+        result = {"checkpoint_id": checkpoint_id, "message_index": message_index,
+                  "message_count": message_count, "start_char": start_char, "end_char": end,
+                  "total_chars": len(text), "next_start_char": end if end < len(text) else None,
+                  "public_message_sha256": digest, "text": text[start_char:end],
+                  "complete": end == len(text)}
+        page = json.dumps(result, ensure_ascii=False)
+        # Escape expansion can make a character slice exceed the host delivery cap.
+        if len(page.encode("utf-8")) <= INLINE_CHARS:
+            return page, {"_tool_outcome": {"status": "complete"}}
+        if size <= 1:
+            raise ValueError("context_archive_page_metadata_too_large")
+        size //= 2
 
 
 def register_context_reader(catalog):

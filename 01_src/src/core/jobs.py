@@ -593,6 +593,17 @@ def purge_protocol_for_owner(owner_user_id: int) -> None:
                              "SELECT job_id FROM task_jobs WHERE owner_user_id=?)", (int(owner_user_id),))
 
 
+def find_chat_job_id(session_id: str, owner_user_id: int, client_request_id: str) -> str | None:
+    """Read the original chat claim without admission, recovery or dispatch."""
+    with closing(_connect()) as conn:
+        row = conn.execute(
+            "SELECT job_id FROM task_jobs WHERE owner_user_id=? AND client_request_id=? "
+            "AND session_id=? AND job_type='chat'",
+            (owner_user_id, client_request_id, session_id),
+        ).fetchone()
+    return str(row[0]) if row is not None else None
+
+
 def jobs_for_turns(session_id: str, owner_user_id: int, request_ids: list[str]) -> dict[str, dict]:
     """Resolve exact owner/session turn identities, never recent jobs or prose.
 

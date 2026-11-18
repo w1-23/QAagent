@@ -213,7 +213,7 @@ def create_research_figure(
     数据引用 kind：attachment（本轮上传的表，按列名取）、account_file（资料库
     file_id + 列名）、inline（直接给 values，≤200 行）。
     error：none / sd / se / ci95 —— 误差棒的含义，必须与数据实际算出的量一致。
-    formats_json：需要的格式，默认 svg+png+pdf。
+    formats_json：需要的格式，默认只交付 SVG；其他格式按明确请求导出。
     output_name：文件名（不含扩展名），默认用标题。
 
     先检查数据形状、研究问题和单位；样本编号/高唯一率标签不是默认处理组，
@@ -231,7 +231,7 @@ def create_research_figure(
         if title:
             raw_spec = dict(raw_spec)
             raw_spec.setdefault("title", title)
-        formats = _json_arg(formats_json, "formats_json") or list(FIGURE_FORMATS)
+        formats = _json_arg(formats_json, "formats_json") or ["svg"]
         if isinstance(formats, str):
             formats = [formats]
         formats = [str(item).strip().lower() for item in formats
@@ -377,12 +377,13 @@ def _run_research_figure_script(
     用 df=load_dataset(tidy) 读取保留类型/精度的内部表；普通文件仍用pandas读取。
     默认用冻结表与独立渲染的outputs_json版本2协议，支持后续保真样式编辑。例如：
     {"version":2,"tables":[{"name":"tidy","parents":["data"]}],
-    "figures":[{"name":"relations","title":"变量关系","formats":["svg","png","pdf"],
+    "figures":[{"name":"relations","title":"变量关系","formats":["svg"],
     "parents":["tidy"],"render_script":"frame=data['tidy']; fig,ax=plt.subplots(); ax.scatter(frame['x'],frame['y'])"}]}。
     主script只读取、整理、分析输入，用emit.table('tidy',df,parents=['data'])保存完整结果。
     render_script通过data['tidy']取得冻结DataFrame，仅构造并保留一个Figure；不调用emit、
     不读取主脚本变量/输入路径、不重新抽样或分析。渲染所需数值及标签先保存在表内。
-    最多8表/8图；一个Figure可有多个Axes/panel。导出和Nature审核由worker完成，不自行savefig。
+    最多8表/8图。每张独立图声明不同的 name；只有用户明确要求科学组合图时才共用一个多面板 Figure。
+    导出和Nature审核由worker完成，不自行savefig。
     旧混写v2仍兼容：未声明render_script的图必须emit.figure('relations',fig)明确登记，
     只创建Figure或末尾写fig不算登记；该路径可下载，但没有保真样式编辑凭证。
     emit.report(value)最多调用一次，集中提交结构化观察；过程日志用print，不把报告接口当追加日志。
@@ -403,7 +404,7 @@ def _run_research_figure_script(
     ax.bar(['CK', 'T1'], [10.1, 12.2], color='#0F4D92', label='果实重量')
     ax.set_ylabel('g'); ax.set_title('果实重量')
 
-    formats_json：需要的格式，默认 svg+png+pdf。
+    formats_json：需要的格式，默认只交付 SVG；其他格式按明确请求导出。
     output_name：文件名（不含扩展名）。
 
     失败时返回 [FIGURE_...] 形式的说明，指出问题与改法；沙箱不会执行任何
@@ -419,7 +420,7 @@ def _run_research_figure_script(
         return _error("ARG", f"脚本超过 {_MAX_SCRIPT_CHARS} 字符上限，请精简后重试。")
 
     try:
-        formats = _json_arg(formats_json, "formats_json") or list(FIGURE_FORMATS)
+        formats = _json_arg(formats_json, "formats_json") or ["svg"]
         if isinstance(formats, str):
             formats = [formats]
         formats = [str(item).strip().lower() for item in formats

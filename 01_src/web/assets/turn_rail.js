@@ -29,6 +29,7 @@ var activeLockUntil = 0;   // 跳转后短暂锁定当前刻度，避免滚动�
   var buildTimer = 0, rafPending = false, busy = false;
   var turnsCache = [];       // oldest → newest, from the server index
   var hasMoreTurns = false, nextBefore = 0, loadedSession = '';
+  var generation = 0, loadedEpoch = -1, indexReads = null;
   var pendingTurns = [];   // 本轮已提交、尚未拿到正式 message_id 的提问
 
   function chatBox() {
@@ -65,31 +66,51 @@ var activeLockUntil = 0;   // 跳转后短暂锁定当前刻度，避免滚动�
     return s.length > 46 ? s.slice(0, 46) + '…' : s;
   }
 
+  function accountEpoch() { return typeof authEpoch === 'number' ? authEpoch : 0; }
+
+  function belongs(sid, epoch, version) {
+    return sid === currentSession() && epoch === accountEpoch() && version === generation;
+  }
+
   function fetchTurns(before) {
-    var sid = currentSession();
-    if (!sid || typeof fetch !== 'function') return Promise.resolve(null);
+    var sid = currentSession(), epoch = accountEpoch(), version = generation;
+    if (!sid) return Promise.resolve(null);
     var url = '/api/v2/session/' + encodeURIComponent(sid) + '/turns?limit=' + PAGE;
     if (before) url += '&before=' + encodeURIComponent(before);
-    return fetch(url).then(function (r) { return r.ok ? r.json() : null; })
+    var request = typeof accountFetch === 'function' ? accountFetch : fetch;
+    return request(url, {signal: indexReads && indexReads.signal, cache: 'no-store'})
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) { return belongs(sid, epoch, version) ? data : null; })
       .catch(function () { return null; });
+  }
+
+  function mergeIndex(rows) {
+    var byId = new Map(turnsCache.map(function (turn) { return [turn.message_id, turn]; }));
+    rows.forEach(function (turn) { byId.set(turn.message_id, turn); });
+    turnsCache = Array.from(byId.values()).sort(function (a, b) { return a.message_id - b.message_id; });
   }
 
   /* Load the whole turn index once per session (paged, bounded). */
   function loadTurns() {
     var sid = currentSession();
-    if (!sid) { turnsCache = []; hasMoreTurns = false; loadedSession = ''; build(); return; }
-    if (sid === loadedSession) { build(); return; }
-    loadedSession = sid;
+    var epoch = accountEpoch();
+    if (sid === loadedSession && epoch === loadedEpoch) { build(); return; }
+    if (indexReads) indexReads.abort();
+    indexReads = new AbortController();
+    var version = ++generation;
+    loadedSession = sid; loadedEpoch = epoch;
+    busy = false;
     turnsCache = [];
     pendingTurns = [];
     hasMoreTurns = false;
     nextBefore = 0;
+    build();
+    if (!sid) return;
     var pages = 0;
     function step() {
       return fetchTurns(nextBefore).then(function (d) {
-        if (!d) { build(); return; }
-        var got = d.turns || [];
-        turnsCache = got.concat(turnsCache);
+        if (!d || !belongs(sid, epoch, version)) return;
+        mergeIndex(d.turns || []);
         hasMoreTurns = !!d.has_more;
         nextBefore = Number(d.next_before || 0);
         pages += 1;
@@ -120,13 +141,16 @@ var activeLockUntil = 0;   // 跳转后短暂锁定当前刻度，避免滚动�
       more.title = '还有更早的提问未列出，点击继续加载';
       more.setAttribute('aria-label', '继续加载更早的提问');
       more.addEventListener('click', function () {
-        fetchTurns(nextBefore).then(function (d) {
-          if (!d) return;
-          turnsCache = (d.turns || []).concat(turnsCache);
+        var before = nextBefore;
+        if (!before || more.disabled) return;
+        more.disabled = true;
+        fetchTurns(before).then(function (d) {
+          if (!d || before !== nextBefore) return;
+          mergeIndex(d.turns || []);
           hasMoreTurns = !!d.has_more;
           nextBefore = Number(d.next_before || 0);
           build();
-        });
+        }).finally(function () { more.disabled = false; });
       });
       trackEl.appendChild(more);
     }
@@ -193,32 +217,16 @@ var activeLockUntil = 0;   // 跳转后短暂锁定当前刻度，避免滚动�
   /* P0: 服务端已落库——拉一次最新一页索引，用真实 message_id 替换临时刻度。
      只发一次 GET，不轮询、不改 SSE 协议。 */
   function sync(pendingCrid, text) {
-    var sid = currentSession();
+    var sid = currentSession(), epoch = accountEpoch(), version = generation;
     if (!sid) return Promise.resolve(false);
-    var known = turnsCache.length;
-    return fetchTurns(0).then(function (d) {
-      if (d && sid === currentSession()) {
-        var got = d.turns || [];
-        if (got.length) {
-          var seen = Object.create(null);
-          for (var i = 0; i < turnsCache.length; i++) seen[String(turnsCache[i].message_id)] = 1;
-          var merged = [];
-          for (var k = 0; k < got.length; k++) {
-            var mid = String(got[k].message_id);
-            if (!seen[mid]) { merged.push(got[k]); seen[mid] = 1; }
-          }
-          if (merged.length) turnsCache = turnsCache.concat(merged);
-        }
-      }
-      // 只有真的拿到新轮次才撤临时刻度；否则保留，等下一次确认（避免"提问消失了"）。
-      if (turnsCache.length > known || !pendingCrid) {
-        if (pendingCrid) dropPending(pendingCrid);
-        else build();
-      } else {
-        build();
-      }
+    return fetchTurns(0).then(function (data) {
+      if (!data || !belongs(sid, epoch, version)) return false;
+      var known = turnsCache.length;
+      mergeIndex(data.turns || []);
+      if (pendingCrid && (data.turns || []).some(function (turn) { return turn.request_id === pendingCrid; })) dropPending(pendingCrid);
+      build();
       return turnsCache.length > known;
-    }).catch(function () { build(); return false; });
+    });
   }
 
   /* 按轮次数量算刻度间距与高度：轮次少时稀疏、多了自动压缩、再多就滚动。
@@ -277,7 +285,7 @@ var activeLockUntil = 0;   // 跳转后短暂锁定当前刻度，避免滚动�
     buildTimer = setTimeout(function () {
       buildTimer = 0;
       var sid = currentSession();
-      if (sid !== loadedSession) loadTurns();
+      if (sid !== loadedSession || loadedEpoch !== accountEpoch()) loadTurns();
       else build();
     }, 120);
   }
@@ -381,13 +389,16 @@ var activeLockUntil = 0;   // 跳转后短暂锁定当前刻度，避免滚动�
       return;
     }
     busy = true;
+    var sid = currentSession(), epoch = accountEpoch(), version = generation;
     try {
       var found = findInHistory(mid);
       var steps = 0;
       while (!found && steps < WALK_LIMIT) {
         if (typeof _historyHasMore === 'undefined' || !_historyHasMore) break;
         if (typeof loadEarlierHistory !== 'function') break;
-        await loadEarlierHistory();
+        var loaded = await loadEarlierHistory();
+        if (!belongs(sid, epoch, version)) return;
+        if (!loaded) break;
         found = findInHistory(mid);
         steps += 1;
       }
@@ -398,7 +409,7 @@ var activeLockUntil = 0;   // 跳转后短暂锁定当前刻度，避免滚动�
       if (typeof jumpToMessage === 'function' && jumpToMessage(mid)) { pinActive(mid); return; }
       notify('这一轮已经载入，但页面没能滚动到它，请手动向上查找。');
     } finally {
-      busy = false;
+      if (belongs(sid, epoch, version)) busy = false;
     }
   }
 
@@ -412,6 +423,7 @@ var activeLockUntil = 0;   // 跳转后短暂锁定当前刻度，避免滚动�
       }
     }
     window.addEventListener('resize', function () { layoutTicks(); onScroll(); }, { passive: true });
+    window.addEventListener('citrus:session-changed', loadTurns);
     loadTurns();
     // app.js restores history asynchronously; re-check once it settles.
     setTimeout(scheduleBuild, 600);

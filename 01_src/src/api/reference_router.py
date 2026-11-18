@@ -118,6 +118,8 @@ class AuditCreate(BaseModel):
     data_url: str = Field(default="", max_length=28_000_000)
     text: str = Field(default="", max_length=2_000_000)
     references: list[dict] | None = Field(default=None, max_length=5000)
+    column_map: dict[str, str] | None = Field(default=None, max_length=10)
+    encoding: str = Field(default="", max_length=16)
 
 
 class AuditRun(BaseModel):
@@ -174,7 +176,8 @@ async def create_audit(session_id: str, body: AuditCreate, request: Request):
     content = _create_input(body)
     _rate(user["user_id"], "create", 30)
     return _response(await _call(user, session_id, "create_audit", name=body.name,
-                                content=content, text=body.text, references=body.references))
+                                content=content, text=body.text, references=body.references,
+                                column_map=body.column_map, encoding=body.encoding))
 
 
 @router.get("/api/v2/session/{session_id}/reference-audits")

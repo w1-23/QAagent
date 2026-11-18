@@ -26,7 +26,7 @@ from citrus_refcheck.compare import (
 from src.research import literature as lit
 from src.research.reference_extraction import digest, extract_inventory
 
-RULE_VERSION = 'reference-fields/3'
+RULE_VERSION = 'reference-fields/4'
 _CACHE = {}
 _CACHE_LOCK = threading.Lock()
 _CACHE_TTL = 6 * 3600
@@ -109,10 +109,11 @@ def _load(conn, owner, session_id, audit_id):
 
 
 def create_audit(owner, session_id, *, name='references.txt', content=None, text='', references=None,
-                 request_budget=1200, source_ref=None):
+                 request_budget=1200, source_ref=None, column_map=None, encoding=""):
     _scope(owner, session_id)
     inventory = extract_inventory(name=name, content=content, text=text,
-                                  references=references, source_ref=source_ref)
+                                  references=references, source_ref=source_ref,
+                                  column_map=column_map, encoding=encoding)
     return _create_inventory(owner, session_id, inventory, request_budget=request_budget)
 
 
@@ -202,9 +203,11 @@ def _view(conn, audit, *, offset=0, limit=100):
                         '如需重试，显式 resume=True，仍服从剩余预算；无需为交付持续续跑。'
                         if retry_optional else
                         '登记记录与字段准确性分开呈现；未查到、解析遗漏或联网失败不能证明文献虚构。'),
-            '_tool_outcome': {'status': 'complete' if terminal else 'partial',
-                              'reason_code': 'audit_completed_with_review' if terminal and review_required
-                              else 'audit_complete' if terminal else 'reference_coverage_incomplete',
+            '_tool_outcome': {'status': 'complete' if terminal and complete else 'partial',
+                              'reason_code': 'audit_completed_with_review' if terminal and complete and review_required
+                              else 'audit_complete' if terminal and complete
+                              else 'reference_extraction_incomplete' if terminal
+                              else 'reference_coverage_incomplete',
                               'artifacts': [], 'result_refs': [{'kind': 'reference_audit', 'audit_id': audit['id']}]}}
 
 
@@ -371,16 +374,6 @@ def _project_verification(claims, facts, *, uncertain_fields=(), stopped=''):
         identity = 'identifier_conflict_candidate'
     # A returned record exists, but may be unrelated to the submitted citation.
     existence = 'record_found' if direct or corroborated else 'candidate_records_found' if best else 'not_established'
-    conflicts = [key for key, value in fields.items() if value['status'] == 'conflicting']
-    uncertain = [key for key, value in fields.items() if value['status'] in {'uncertain', 'missing'}]
-    if not best:
-        status = 'not_checked' if not (doi or arxiv_id or title) else 'network_error' if errors or stopped else 'not_found_in_checked_registries'
-    elif conflicts:
-        status = 'metadata_mismatch'
-    elif identity in {'identifier_match', 'metadata_corroborated'} and not uncertain:
-        status = 'metadata_matched'
-    else:
-        status = 'title_candidate' if identity in {'candidate', 'identifier_conflict_candidate'} else 'metadata_uncertain'
     provider_conflicts = []
     if best:
         for item in candidates:
@@ -391,12 +384,32 @@ def _project_verification(claims, facts, *, uncertain_fields=(), stopped=''):
             if different:
                 provider_conflicts.append({'provider': item.get('source'), 'fields': different,
                                            'record_sha256': item['record_sha256']})
-    for conflict in provider_conflicts:
-        for key in conflict['fields']:
-            if fields[key]['status'] == 'matched':
-                fields[key].update(status='uncertain', reason='providers_disagree')
-    if (provider_conflicts or errors or stopped) and status == 'metadata_matched':
-        status = 'metadata_uncertain'
+    # Assess disagreement against the submitted claim, keeping the independent
+    # provider-to-provider differences in the evidence above.
+    same_record = [item for item in relevant if best and item is not best
+                   and (item in direct if best in direct else best.get('doi')
+                        and lit.normalize_doi(item.get('doi')) == lit.normalize_doi(best['doi']))]
+    if fields['year']['reason'] in {'possible_online_print_difference_not_documented', 'provider_field_missing'}:
+        corroborating_year = next((item for item in same_record
+                                   if item['fields']['year']['status'] == 'matched'), None)
+        if corroborating_year:
+            fields['year'] = {**corroborating_year['fields']['year'],
+                              'record_sha256': corroborating_year['record_sha256']}
+    for field, observation in fields.items():
+        if observation['status'] != 'matched':
+            continue
+        if any(item['fields'][field]['status'] == 'conflicting' for item in same_record):
+            observation.update(status='uncertain', reason='providers_disagree_on_submitted_field')
+    conflicts = [key for key, value in fields.items() if value['status'] == 'conflicting']
+    uncertain = any(value['status'] in {'uncertain', 'missing'} for value in fields.values())
+    if not best:
+        status = 'not_checked' if not (doi or arxiv_id or title) else 'network_error' if errors or stopped else 'not_found_in_checked_registries'
+    elif conflicts:
+        status = 'metadata_mismatch'
+    elif identity in {'identifier_match', 'metadata_corroborated'} and not uncertain and not (errors or stopped):
+        status = 'metadata_matched'
+    else:
+        status = 'title_candidate' if identity in {'candidate', 'identifier_conflict_candidate'} else 'metadata_uncertain'
     identities = {lit.normalize_doi(item.get('doi')) or item.get('arxiv_id') or item.get('url')
                   for item in relevant if lit.norm_title(item.get('title')) == lit.norm_title(title)} - {None, ''}
     if len(identities) > 1 and identity == 'metadata_corroborated':
@@ -474,7 +487,7 @@ def run_audit(owner, session_id, audit_id, *, max_rows=20, time_budget=45, resum
             for item in raw:
                 entry = json.loads(item['entry'])
                 prior = json.loads(item['result']) if item['result'] else None
-                pair = (item['ordinal'], entry)
+                pair = (item['ordinal'], entry, prior)
                 if prior is None:
                     pending.append(pair)
                 elif prior.get('rule_version') != RULE_VERSION or prior.get('claims_sha256') != entry['claims_sha256']:
@@ -506,10 +519,19 @@ def run_audit(owner, session_id, audit_id, *, max_rows=20, time_budget=45, resum
                 conn.execute('UPDATE reference_audits SET requests_used=requests_used+1 WHERE id=?', (audit_id,))
 
         try:
-            for ordinal, entry in selected:
+            for ordinal, entry, prior in selected:
                 check()
-                result = verify_record(entry['claims'], owner=owner, session_id=session_id,
-                    uncertain_fields=entry.get('uncertain_fields', []), deadline=deadline, check=check, debit=debit)
+                if entry.get('parse_status') == 'invalid_row':
+                    result = {'status': 'not_checked', 'existence': 'not_checked', 'identity': 'not_checked',
+                              'reason': entry['parse_error'], 'rule_version': RULE_VERSION,
+                              'claims_sha256': entry['claims_sha256'], 'retryable': False}
+                elif (prior and prior.get('rule_version') != RULE_VERSION and not prior.get('retryable')
+                      and prior.get('claims_sha256') == entry['claims_sha256'] and prior.get('facts')):
+                    result = _project_verification(entry['claims'], prior['facts'],
+                        uncertain_fields=entry.get('uncertain_fields', []))
+                else:
+                    result = verify_record(entry['claims'], owner=owner, session_id=session_id,
+                        uncertain_fields=entry.get('uncertain_fields', []), deadline=deadline, check=check, debit=debit)
                 with _connect() as conn:
                     audit = _load(conn, owner, session_id, audit_id)
                     if audit['lease_token'] != token or audit['cancelled']:

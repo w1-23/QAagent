@@ -1487,7 +1487,8 @@ def _profile(frame) -> dict[str, Any]:
 
 def validate_inspection_request(*, file_index: int = 0, sheet_name: str = "", header_row: int = 1,
                                 header_rows_json: str | list[int] = "",
-                                file_ids_json: str | list[str] = ""):
+                                file_ids_json: str | list[str] = "", inspection: str = "auto",
+                                cell_range: str = "", page_rows: int = 10, cursor: str = ""):
     """Pure option validation; source access still checks owner/hash in the loader."""
     _audit_file_ids(file_ids_json)
     if type(file_index) is not int or file_index < 0:
@@ -1496,6 +1497,16 @@ def validate_inspection_request(*, file_index: int = 0, sheet_name: str = "", he
         rows = _parse_header_rows(header_rows_json, header_row)
     except ValueError as exc:
         raise ToolArgumentError(str(exc)) from None
+    if inspection not in {'auto', 'layout', 'cells', 'profile'}:
+        raise ToolArgumentError("inspection 支持 auto、layout、cells 或 profile。")
+    if type(page_rows) is not int or not 1 <= page_rows <= 50:
+        raise ToolArgumentError("page_rows 需要 1 到 50 的整数。")
+    if not isinstance(cursor, str) or len(cursor) > 80 or not isinstance(cell_range, str) or len(cell_range) > 25:
+        raise ToolArgumentError("单元格范围或分页游标无效。")
+    if inspection == 'cells' and not cell_range:
+        raise ToolArgumentError("cells 模式需要明确 cell_range，例如 A1:F40。")
+    if inspection != 'cells' and (cell_range or cursor):
+        raise ToolArgumentError("cell_range 与 cursor 仅用于 cells 模式。")
     if any(row < 1 for row in rows):
         raise ToolArgumentError("表头行从1开始；本次未读取来源。")
 
@@ -1503,17 +1514,22 @@ def validate_inspection_request(*, file_index: int = 0, sheet_name: str = "", he
 @tool
 def inspect_uploaded_table(file_index: int = 0, sheet_name: str = "", header_row: int = 1,
                            header_rows_json: str | list[int] = "",
-                           file_ids_json: str | list[str] = "") -> str:
+                           file_ids_json: str | list[str] = "", inspection: str = "auto",
+                           cell_range: str = "", page_rows: int = 10, cursor: str = "") -> str:
     """查看 CSV/TSV/Excel/PDF/Word 表格结构、字段样例与覆盖。
 
     file_ids_json 显式选择本账号真实文件ID，可跨轮读取，无需重附；不接受latest、文件名或路径。
     非空ID列表是本次源列表，file_index 在该列表内从0选择；不会混入本轮附件或其他历史文件。
     空ID列表保留原本轮附件file_index逻辑。账号来源校验owner、实际SHA-256与大小，合计最多20MB/20文件。
-    header_row 选择表头，header_rows_json=[2,3] 合并多层表头。新规则审查用audit_uploaded_data；
+    XLSX/XLSM 默认 layout，返回工作表、可见性、合并格和前24行/48列中观察到的块；范围外需要单独读取。
+    inspection=cells、cell_range="A1:F40" 按原坐标读取公式或值，默认10行，宽页也按单元格数和字节缩小。
+    续读使用相同工作表和范围及 next_cursor；来源字节变化后游标失效。需要原字段统计时使用 inspection=profile。
+    header_row 选择表头，header_rows_json=[2,3] 指定多层表头。新规则审查用audit_uploaded_data；
     已有review_id仅需导出时用deliver_research_artifact，不重新扫描。
     """
     validate_inspection_request(file_index=file_index, sheet_name=sheet_name, header_row=header_row,
-                                header_rows_json=header_rows_json, file_ids_json=file_ids_json)
+                                header_rows_json=header_rows_json, file_ids_json=file_ids_json, inspection=inspection,
+                                cell_range=cell_range, page_rows=page_rows, cursor=cursor)
     header_rows = _parse_header_rows(header_rows_json, header_row)
     try:
         tables = _audit_source_tables(file_ids_json)
@@ -1521,6 +1537,30 @@ def inspect_uploaded_table(file_index: int = 0, sheet_name: str = "", header_row
         return json.dumps(_audit_source_not_run(exc.reason_code, str(exc)), ensure_ascii=False)
     if not tables:
         return json.dumps(_audit_source_not_run('source_reference_required', '没有本轮附件或显式账号文件引用；未读取表格。'), ensure_ascii=False)
+    if file_index >= len(tables):
+        raise ToolArgumentError("file_index 超出本次授权的文件列表。")
+    item = tables[file_index]
+    name = str(item.get('name') or 'table')
+    source_selection = 'account_file_ids' if _audit_file_ids(file_ids_json) else 'current_turn_attachments'
+    is_workbook = Path(name).suffix.lower() in {'.xlsx', '.xlsm'}
+    if inspection in {'layout', 'cells'} and not is_workbook:
+        raise ToolArgumentError("坐标分页和合并布局适用于 XLSX/XLSM；其他格式可用 profile。")
+    if is_workbook and inspection != 'profile':
+        from citrus_audit.inspection import inspect_workbook
+        data = item.get('data')
+        if not isinstance(data, bytes) or not data or len(data) > _AUDIT_SOURCE_MAX_BYTES:
+            return json.dumps(_audit_source_not_run('source_unavailable', '工作簿字节不足或超过读取上限。'),
+                              ensure_ascii=False)
+        try:
+            result = inspect_workbook(data, name, sheet_name=sheet_name, header_rows=header_rows,
+                mode='layout' if inspection == 'auto' else inspection, cell_range=cell_range,
+                page_rows=page_rows, cursor=cursor)
+        except ValueError as exc:
+            raise ToolArgumentError(str(exc)) from None
+        result.update(file_index=file_index, source_selection=source_selection)
+        if item.get('source_ref'):
+            result['source_ref'] = item['source_ref']
+        return json.dumps(result, ensure_ascii=False, default=str)
     frame, meta = _load_frame(file_index, sheet_name, header_row, header_rows, tables=tables)
     profile = _profile(frame)
     profile.update(meta)
@@ -1535,7 +1575,7 @@ def inspect_uploaded_table(file_index: int = 0, sheet_name: str = "", header_row
             else {str(key): str(value)[:120] for key, value in row.items()} if isinstance(row, dict)
             else str(row)[:120]
             for row in profile["raw_preview"][:8]]
-    profile['source_selection'] = 'account_file_ids' if _audit_file_ids(file_ids_json) else 'current_turn_attachments'
+    profile['source_selection'] = source_selection
     profile['file_index'] = file_index
     profile["notice"] = "字段含义需结合列名与样例确认；仅解析本次明确选中的来源，未自动纳入历史文件或写入知识库。"
     return json.dumps(profile, ensure_ascii=False, default=str)

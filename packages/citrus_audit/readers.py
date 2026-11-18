@@ -199,6 +199,17 @@ def _bound_raw_table(rows: list[list[Any]], header_rows: list[int],
     bounded = rows[:row_limit]
     return bounded, len(rows) > row_limit, len(bounded) * width
 
+def open_xlsx_readonly(data, name, *, data_only):
+    import openpyxl
+    from ._zip_safety import validate_zip_bytes
+
+    validate_zip_bytes(data, label=name)
+    with zipfile.ZipFile(io.BytesIO(data)) as archive:
+        if "xl/workbook.xml" not in archive.namelist():
+            raise ValueError("工作簿缺少必要的 OOXML 结构")
+    return openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=data_only, keep_vba=False)
+
+
 def _load_frame_from_bytes(data: bytes, name: str = "table", sheet_name: str = "",
                            header_row: int = 1, header_rows: list[int] | None = None,
                            discover_only: bool = False) -> tuple[Any, dict[str, Any]]:
@@ -256,15 +267,7 @@ def _load_frame_from_bytes(data: bytes, name: str = "table", sheet_name: str = "
                 except ImportError as exc:
                     raise ValueError(f"读取 {suffix.upper()} 需要安装 python-calamine；文件未被判定为无异常") from exc
             else:
-                import openpyxl
-                from zipfile import ZipFile
-                from ._zip_safety import validate_zip_bytes
-                validate_zip_bytes(data, label=name)
-                with ZipFile(io.BytesIO(data)) as archive:
-                    if "xl/workbook.xml" not in archive.namelist():
-                        raise ValueError("工作簿缺少必要的 OOXML 结构")
-                wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True,
-                                            keep_vba=False)
+                wb = open_xlsx_readonly(data, name, data_only=True)
                 names = wb.sheetnames
                 if discover_only and not sheet_name:
                     wb.close()

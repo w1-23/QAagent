@@ -11,7 +11,9 @@ function accountFetch(url, options) {
   var epoch = authEpoch;
   var opts = Object.assign({}, options || {});
   var lifetimeSignal = authAbortController.signal;
-  if (opts.signal && opts.signal !== lifetimeSignal) {
+  if (opts.signal && opts.signal !== lifetimeSignal && typeof AbortSignal.any === 'function') {
+    opts.signal = AbortSignal.any([opts.signal, lifetimeSignal]);
+  } else if (opts.signal && opts.signal !== lifetimeSignal) {
     var combined = new AbortController();
     var abort = function() { combined.abort(); };
     if (opts.signal.aborted || lifetimeSignal.aborted) abort();
@@ -2007,10 +2009,18 @@ var activeTurnComposer = null;
 var composerRunning = false;
 var historyTaskDisposers = [];
 var historyRestoreVersion = 0;
+var historyRequest = null, historyPageRequest = null;
+
+function abortHistoryRequests() {
+  if (historyRequest) historyRequest.abort();
+  if (historyPageRequest) historyPageRequest.abort();
+  historyRequest = null; historyPageRequest = null;
+}
 
 // Retire observers and view controls only. Navigation never sends cancellation.
 function disposeTaskView() {
   historyRestoreVersion += 1;
+  abortHistoryRequests();
   if (activeTurnCancel) activeTurnCancel('switch');
   else if (activeTurnComposer) activeTurnComposer.cancel('switch');
   historyTaskDisposers.splice(0).forEach(function(dispose) { dispose(); });
@@ -2036,13 +2046,13 @@ function refreshTaskComposer() {
   var canAppend = !!(running && binding && !stopping && binding.controls.canUpdate());
   var button = document.getElementById('send-btn'), stop = document.getElementById('stop-btn');
   if (button) {
-    button.disabled = running && !canAppend;
-    button.style.display = !running || canAppend ? 'flex' : 'none';
+    button.disabled = !!historyRequest || running && !canAppend;
+    button.style.display = !running || canAppend || !state || !state.job_id ? 'flex' : 'none';
     button.title = canAppend ? '追加本轮要求 (Enter)' : '发送 (Enter)';
     button.setAttribute('aria-label', canAppend ? '追加本轮要求' : '发送消息');
   }
   if (stop) {
-    stop.style.display = running ? 'flex' : 'none';
+    stop.style.display = running && state && state.job_id ? 'flex' : 'none';
     stop.title = '停止当前任务，确认后可补充要求继续对话';
   }
   if (userInput) userInput.placeholder = stopping && !terminal
@@ -2078,65 +2088,26 @@ function setSendDisabled(val) {
 // 而不是把会话里所有任务一起停掉。
 var currentJobId = '';
 
-/* v8.4.11 用户中断（书中 §4.7.6 取消式处理）：
-   1) abort SSE 流（服务端普通问答在断开时取消 graph 任务）
-   2) POST /api/v2/chat/cancel 兜底取消该会话所有 running job
-      （覆盖 write 断连保活任务——此类任务客户端断开后仍在后台执行）
-   停止后可修改输入框内容直接重新发送（新请求 = 新 job）。 */
+// Cancel only the job bound to the current composer.
 function stopCurrentTask() {
-  var epoch = authEpoch, cancelSession = sessionId, cancelRound = currentRoundId;
-  function ownsCancel() { return epoch === authEpoch && cancelSession === sessionId && cancelRound === currentRoundId; }
   var binding = activeTurnComposer && activeTurnComposer.owns() ? activeTurnComposer : null;
-  if (binding && CitrusTaskState.isTerminal(binding.store.state)) return;
-  if (!binding && !activeTurnCancel && !currentAbortController && !currentJobId) return;
-  // 停止请求与终态分开；任务回放确认后才显示已停止。
-  // 吉祥物：取消后不能继续演"翻书/敲字"，直接回到待机。
+  if (!binding || binding.stopping || CitrusTaskState.isTerminal(binding.store.state)) return;
+  var cancelJobId = binding.store.state.job_id;
+  if (!cancelJobId) return;
   try { if (window.CitrusMascot) CitrusMascot.setState('idle', { force: true }); } catch (_) {}
-  if (activeTurnCancel) activeTurnCancel('user');
-  else if (activeTurnComposer && activeTurnComposer.owns() && !CitrusTaskState.isTerminal(activeTurnComposer.store.state)) activeTurnComposer.cancel('user');
-  else if (currentAbortController) {
-    currentAbortController.abort();
-    currentAbortController = null;
-  }
-  var cancelJobId = (binding && binding.store.state.job_id) || currentJobId || '';
-  currentJobId = ''; window._currentJobId = '';
-  if (cancelJobId) {
-    try {
-      accountFetch('/api/v2/chat/jobs/' + encodeURIComponent(cancelJobId) + '/cancel', {
-        method: 'POST',
-      }).then(function (r) { if (!ownsCancel()) return; return r.ok ? r.json() : null; }).then(function (d) { if (!ownsCancel()) return;
-        if (d && d.accepted === false && d.note !== 'already_finished') {
-          showBanner('停止请求已发送，但服务端未确认终止该任务。');
-        }
-      }).catch(function () { if (epoch !== authEpoch) return;});
-    } catch (e) {}
-  } else if (sessionId) {
-    try {
-      accountFetch('/api/v2/chat/cancel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: sessionId }),
-      }).then(function (r) { if (!ownsCancel()) return; return r.ok ? r.json() : null; }).then(function (d) { if (!ownsCancel()) return;
-        if (!d) return;
-        // 服务端是否真的接受了停止：in_process 才算"已终止执行"；
-        // not_in_this_process 说明任务不在这台实例上（多实例/已重启），
-        // 此时只能如实说"请求已记录，未确认终止"，不能假装已停止。
-        var rows = d.results || [];
-        var anywhere = false;
-        for (var i = 0; i < rows.length; i++) {
-          if (rows[i] && rows[i].target === 'in_process') { anywhere = true; }
-        }
-        if (rows.length === 0) {
-          showBanner('停止请求已发送：该会话当前没有正在执行的任务。');
-        } else if (!anywhere) {
-          showBanner('停止请求已记录，但未能在本实例确认终止；若仍在运行请稍后再试。');
-        }
-      }).catch(function() { if (epoch !== authEpoch) return;});
-    } catch (e) {}
-  }
-  setSendDisabled(false);
-  try { userInput.focus(); } catch (e) {}
-  refreshTaskComposer();
+  binding.cancel('user');
+  accountFetch('/api/v2/chat/jobs/' + encodeURIComponent(cancelJobId) + '/cancel', {method: 'POST'})
+    .then(function (response) {
+      if (!response.ok) throw new Error('cancel_failed');
+      return response.json();
+    }).then(function (data) {
+      if (data.accepted === false && data.note !== 'already_finished') throw new Error('cancel_unconfirmed');
+    }).catch(function () {
+      if (activeTurnComposer !== binding || !binding.owns() || CitrusTaskState.isTerminal(binding.store.state)) return;
+      binding.stopping = false;
+      showBanner('停止请求未获确认，可以再次尝试。');
+      refreshTaskComposer();
+    });
 }
 
 /* ─── Sidebar ─── */
@@ -3097,15 +3068,15 @@ function createResearchProcessPanel(goal) {
 /* ─── Chat ─── */
 /* v8.10: 反馈栏默认不随气泡创建（回答生成完成后由 appendFeedback 追加，主流时序）；
    历史恢复的 bot 消息同样不带反馈 */
-function addMessage(role, html) {
+function addMessage(role, html, before) {
   var div = document.createElement('div');
   div.className = 'message ' + role;
   div.dataset.messageRole = role;
   div.innerHTML = '<div class="avatar"></div><div class="content">' + html + '</div>';
   if (role === 'user') renderAvatarImage(div.querySelector('.avatar'), currentAccount, 'message-avatar-image', '我的头像');
   else renderAgentAvatar(div.querySelector('.avatar'));
-  chatContainer.appendChild(div);
-  chatContainer.scrollTop = chatContainer.scrollHeight;
+  chatContainer.insertBefore(div, before || null);
+  if (!before) chatContainer.scrollTop = chatContainer.scrollHeight;
   return div.querySelector('.content');
 }
 
@@ -3487,7 +3458,7 @@ function toolStatusText(status, reason) {
 }
 
 async function sendMsg(isFollowUp) {
-  if (!currentAccount || !sessionId || accountDocumentRetired) return;
+  if (!currentAccount || !sessionId || accountDocumentRetired || historyRequest) return;
   var epoch = authEpoch, requestSessionId = sessionId;
   function ownsTurn() { return epoch === authEpoch && requestSessionId === sessionId && (!botContent || chatContainer.contains(botContent)); }
   function ownsControls() { return ownsTurn() && (requestRoundId === undefined || requestRoundId === currentRoundId); }
@@ -3524,6 +3495,7 @@ async function sendMsg(isFollowUp) {
   var clientRequestId = 'crid-' + Date.now().toString(36) + '-' +
     Math.random().toString(36).slice(2, 10);
 
+  if (historyPageRequest) { historyPageRequest.abort(); historyPageRequest = null; }
   activeTurnComposer = null;
   currentRoundId++;
   var requestRoundId = currentRoundId;
@@ -3555,6 +3527,33 @@ async function sendMsg(isFollowUp) {
   var _turnEnvelope = null;
   var spinnerTimeout = null;
   var requestAbortController = null;
+  var requestSubmitted = false, statusRetry = null;
+
+  function followSubmittedRequest() {
+    if (!ownsTurn()) return;
+    var jobId = taskStore.state.job_id;
+    if (jobId) { taskTransport.follow(jobId); return; }
+    if (!requestSubmitted) return;
+    statusLabel.textContent = '连接中断，正在确认原任务';
+    taskTransport.followRequest(requestSessionId, clientRequestId, function (foundJobId) {
+      taskStore.hydrate({job_id: foundJobId});
+      botContent.dataset.jobId = foundJobId;
+      if (statusRetry) { statusRetry.remove(); statusRetry = null; }
+      if (ownsControls()) refreshTaskComposer();
+    }, function () {
+      statusLabel.textContent = '任务状态暂未同步';
+      if (ownsControls()) setSendDisabled(false);
+      if (statusRetry) return;
+      statusRetry = document.createElement('button');
+      statusRetry.type = 'button'; statusRetry.className = 'history-retry';
+      statusRetry.textContent = '重新查看原任务';
+      statusRetry.onclick = function () {
+        statusRetry.remove(); statusRetry = null;
+        followSubmittedRequest();
+      };
+      statusDiv.appendChild(statusRetry);
+    });
+  }
 
   // Keep the answer and completed rows. Aborting receipt or requesting cancel
   // never supplies a business terminal state; replay confirms that state.
@@ -3576,7 +3575,7 @@ async function sendMsg(isFollowUp) {
     if (!ownsControls()) {
       _turnDisconnected = true;
       if (!hasTerminalEvent) { appendNoticeRow('连接中断，任务状态待确认。'); finishStatus(); }
-      if (taskStore.state.job_id) taskTransport.follow(taskStore.state.job_id);
+      followSubmittedRequest();
       return;
     }
     if (reason === 'disconnect') {
@@ -3600,10 +3599,8 @@ async function sendMsg(isFollowUp) {
       }
       appendNoticeRow('连接中断 · 任务可能仍在后台运行', 'is-running');
       finishStatus();
-      showBanner('连接中断；任务可能仍在后台运行。可刷新查看最终结果，或点击停止取消。');
-      setSendDisabled(true);   // keep the stop button available
-      var stoppedJobId = String(currentJobId || window._currentJobId || '');
-      if (stoppedJobId) taskTransport.follow(stoppedJobId);
+      setSendDisabled(requestSubmitted);
+      followSubmittedRequest();
       return;
     }
     isCancelled = true;
@@ -4006,6 +4003,7 @@ async function sendMsg(isFollowUp) {
         }
         break;
       case 'job':
+        if (data.job_id) botContent.dataset.jobId = String(data.job_id);
         // S1: 记下本轮 job_id——点停止时据此精确取消这一个任务。
         currentJobId = String(data.job_id || '');
         window._currentJobId = currentJobId;
@@ -4163,7 +4161,7 @@ async function sendMsg(isFollowUp) {
         : snapshot.display_status === 'partial' ? '部分完成' : (names[job.status] || '状态待确认');
       note.textContent = '这条请求已受理，未重复执行。原任务：' + status + '。';
       statusLabel.textContent = '' + status;
-      processPanel.terminal(CitrusTaskState.displayStatus(job));
+      processPanel.terminal(CitrusTaskState.snapshotStatus(job));
     }
     describe(data);
     answerDiv.appendChild(note);
@@ -4223,6 +4221,7 @@ async function sendMsg(isFollowUp) {
       try {
         var attachments = await Promise.all(filesForRequest.map(async function(file) { return {name:file.name,type:file.type,data:await fileAsDataUrl(file)}; }));
         if (!ownsTurn() || streamAbortController.signal.aborted) return;
+        requestSubmitted = true;
         var response = await accountFetch(API_URL, {method:'POST',headers:{'Content-Type':'application/json'},signal:streamAbortController.signal,body:JSON.stringify({session_id:requestSessionId,query:query,client_request_id:clientRequestId,visualization_enabled:visualizationEnabled,selected_skills:skillsForRequest.items,attachments:attachments,file_refs:fileRefsForRequest.map(function(f){return f.file_id;})})});
         if (!ownsTurn() || streamAbortController.signal.aborted) return;
         if (response.ok && skillPicker) skillPicker.acknowledge(skillsForRequest);
@@ -4269,11 +4268,10 @@ async function sendMsg(isFollowUp) {
         }
       } catch(err){
         if (!ownsTurn() || requestAbortController !== streamAbortController) return;
-        if (err.name === 'AbortError') stopCurrentTurn('user');
-        else {
-          stopCurrentTurn('disconnect');
-          showBanner('连接暂时中断；已完成的步骤保留。');
-        }
+        if (!requestSubmitted) {
+          clearTimeout(spinnerTimeout); clearStatus(); setSendDisabled(false);
+          if (ownsControls()) { userInput.value = userInput.value || query; showBanner('附件读取失败，请重试发送。'); }
+        } else stopCurrentTurn('disconnect');
       }
       finally{
         if (currentAbortController === streamAbortController) currentAbortController = null;
@@ -4557,21 +4555,25 @@ var _historyTurns = null;    // canonical /messages.turns; null = legacy fallbac
 var _historyHasMore = false;
 var HISTORY_PAGE = 60;
 
-async function fetchHistoryPage(limit, before) {
-  var epoch = authEpoch, sid = sessionId;
-  var url = '/api/v2/session/' + encodeURIComponent(sessionId) + '/messages?limit='
+async function fetchHistoryPage(limit, before, signal) {
+  var epoch = authEpoch, sid = sessionId, version = historyRestoreVersion;
+  function owns() { return !signal.aborted && epoch === authEpoch && sid === sessionId && version === historyRestoreVersion; }
+  var url = '/api/v2/session/' + encodeURIComponent(sid) + '/messages?limit='
     + encodeURIComponent(limit) + (before ? '&before=' + encodeURIComponent(before) : '');
-  var resp = await accountFetch(url);
-  if (epoch !== authEpoch || sid !== sessionId) return null;
-  // The API deliberately returns 404 for both absent and owner-invisible sessions.
-  // Authentication, transport and server failures do not invalidate a session.
+  var resp = await accountFetch(url, {signal: signal, cache: 'no-store'});
+  if (!owns()) return null;
   if (resp.status === 404) {
     await recoverMissingSession(epoch, sid);
     return null;
   }
-  if (!resp.ok) return null;
   var data = await resp.json();
-  return epoch === authEpoch && sid === sessionId ? data : null;
+  if (!owns()) return null;
+  if (!resp.ok) {
+    var error = new Error('history_unavailable');
+    if (resp.status === 503 && data.code === 'history_unavailable' && data.session_id === sid) error.turns = data.turns;
+    throw error;
+  }
+  return data;
 }
 
 function buildEarlierHistoryButton() {
@@ -4596,41 +4598,38 @@ function syncEarlierHistoryButton() {
 }
 
 async function loadEarlierHistory() {
-  var epoch = authEpoch, sid = sessionId;
-  if (!sessionId) return;
-  var oldest = 0;
-  for (var i = 0; i < _historyMsgs.length; i++) {
-    var mid = Number(_historyMsgs[i].message_id) || 0;
-    if (mid) { oldest = mid; break; }
+  if (!sessionId || historyRequest || historyPageRequest || !_historyHasMore) return false;
+  var oldest = Number((_historyMsgs.find(function (message) { return Number(message.message_id) > 0; }) || {}).message_id);
+  if (!oldest) return false;
+  var page = new AbortController(), round = currentRoundId;
+  historyPageRequest = page;
+  try {
+    var data = await fetchHistoryPage(HISTORY_PAGE, oldest, page.signal);
+    if (!data || historyPageRequest !== page || round !== currentRoundId) return false;
+    var seen = new Set(_historyMsgs.map(function (message) { return String(message.message_id); }));
+    var fresh = (data.messages || []).filter(function (message) {
+      var id = String(message.message_id);
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+    _historyHasMore = !!data.has_more && fresh.length > 0;
+    if (!fresh.length) { syncEarlierHistoryButton(); return false; }
+    var earlierTurns = normalizeHistoryTurns(data.turns);
+    var knownTurns = _historyTurns || groupHistoryTurns(_historyMsgs);
+    var keys = new Set(knownTurns.map(function (turn) { return turn.turnRequestId; }).filter(Boolean));
+    var insertTurns = (earlierTurns.length ? earlierTurns : groupHistoryTurns(fresh)).filter(function (turn) { return !keys.has(turn.turnRequestId); });
+    _historyMsgs = fresh.concat(_historyMsgs);
+    _historyTurns = mergeHistoryTurns(earlierTurns.length ? earlierTurns : groupHistoryTurns(fresh), knownTurns);
+    renderHistoryMessages(fresh, insertTurns, {prepend: true});
+    jumpToMessage(oldest, {silent: true});
+    return true;
+  } catch (_) {
+    if (historyPageRequest === page) showBanner('更早的对话暂时无法读取，请重试。');
+    return false;
+  } finally {
+    if (historyPageRequest === page) historyPageRequest = null;
   }
-  if (!oldest) return;
-  var data;
-  try { data = await fetchHistoryPage(HISTORY_PAGE, oldest); } catch (_) { return; }
-  if (epoch !== authEpoch || sid !== sessionId || !data) return;
-  var earlier = (data.messages || []);
-  if (!earlier.length) { _historyHasMore = false; syncEarlierHistoryButton(); return; }
-  // P0-A: pages are merged by message_id, so a re-fetched boundary row can
-  // never be rendered twice (and never by "same text" guessing).
-  var seenIds = {};
-  for (var si = 0; si < _historyMsgs.length; si++) {
-    var smid = String((_historyMsgs[si] || {}).message_id || '');
-    if (smid) seenIds[smid] = true;
-  }
-  var fresh = [];
-  for (var ei = 0; ei < earlier.length; ei++) {
-    var emid = String((earlier[ei] || {}).message_id || '');
-    if (emid && seenIds[emid]) continue;
-    if (emid) seenIds[emid] = true;
-    fresh.push(earlier[ei]);
-  }
-  _historyMsgs = fresh.concat(_historyMsgs);
-  var earlierTurns = normalizeHistoryTurns(data.turns);
-  if (earlierTurns.length && _historyTurns) {
-    _historyTurns = mergeHistoryTurns(earlierTurns, _historyTurns);
-  }
-  _historyHasMore = !!data.has_more;
-  renderHistoryMessages(_historyMsgs, _historyTurns);
-  jumpToMessage(oldest, {silent: true});
 }
 
 function jumpToMessage(messageId, opts) {
@@ -4659,13 +4658,10 @@ function jumpToMessage(messageId, opts) {
 window.jumpToFileTurn = async function (targetSessionId, requestId) {
   var epoch = authEpoch;
   if (!targetSessionId || !requestId) return false;
-  if (targetSessionId !== sessionId) {
-    switchSession(targetSessionId);
-    await restoreSessionHistory();
-    if (epoch !== authEpoch || targetSessionId !== sessionId) return false;
-  }
+  if (targetSessionId !== sessionId) switchSession(targetSessionId);
   if (!_historyMsgs.length) await restoreSessionHistory();
   if (epoch !== authEpoch || targetSessionId !== sessionId) return false;
+  var version = historyRestoreVersion;
   var target = null;
   for (var i = 0; i < _historyMsgs.length; i++) {
     if (String(_historyMsgs[i].request_id || '') === String(requestId)) { target = _historyMsgs[i]; break; }
@@ -4673,8 +4669,7 @@ window.jumpToFileTurn = async function (targetSessionId, requestId) {
   if (!target) {
     // The turn may sit in an older page: walk back a bounded number of pages.
     for (var guard = 0; guard < 8 && _historyHasMore && !target; guard++) {
-      await loadEarlierHistory();
-      if (epoch !== authEpoch || targetSessionId !== sessionId) return false;
+      if (!await loadEarlierHistory() || epoch !== authEpoch || targetSessionId !== sessionId || version !== historyRestoreVersion) return false;
       for (var j = 0; j < _historyMsgs.length; j++) {
         if (String(_historyMsgs[j].request_id || '') === String(requestId)) { target = _historyMsgs[j]; break; }
       }
@@ -4685,31 +4680,39 @@ window.jumpToFileTurn = async function (targetSessionId, requestId) {
 };
 
 async function restoreSessionHistory() {
+  if (!sessionId) return false;
+  abortHistoryRequests();
   var epoch = authEpoch, sid = sessionId, round = currentRoundId;
-  var version = ++historyRestoreVersion;
-  if (!sessionId) return;
+  var version = ++historyRestoreVersion, read = new AbortController();
+  historyRequest = read;
+  refreshTaskComposer();
   function ownsRestore() { return epoch === authEpoch && sid === sessionId && round === currentRoundId && version === historyRestoreVersion; }
   try {
-    var data = await fetchHistoryPage(HISTORY_PAGE, 0);
-    if (!ownsRestore()) return;
+    var data = await fetchHistoryPage(HISTORY_PAGE, 0, read.signal);
+    if (!ownsRestore()) return false;
     if (!data) throw new Error('history_unavailable');
     var restoredContext = CitrusTaskState.createContext({session_id: sid});
     var savedContext = data.context_snapshot || data.context;
     if (savedContext) renderContextPanel(restoredContext.receive('context_snapshot', savedContext));
     _historyMsgs = data.messages || [];
-    // Canonical turns are the server's own grouping of the same window. The
-    // local adapter is only for legacy sessions that predate ``turns``.
     _historyTurns = normalizeHistoryTurns(data.turns);
     if (!_historyTurns.length) _historyTurns = null;
     _historyHasMore = !!data.has_more;
     renderHistoryMessages(_historyMsgs, _historyTurns);
-  } catch (e) {
-    if (!ownsRestore()) return;
+    return true;
+  } catch (error) {
+    if (!ownsRestore()) return false;
+    var known = new Set(Array.from(chatContainer.querySelectorAll('[data-job-id]'), function (node) { return node.dataset.jobId; }));
+    var discovered = normalizeHistoryTurns(error.turns).filter(function (turn) { return turn.jobId && !known.has(turn.jobId); });
+    if (discovered.length) renderHistoryMessages([], discovered, {append: true});
     var existing = chatContainer.querySelector('.history-retry'); if (existing) existing.remove();
     var retry = document.createElement('button'); retry.type = 'button'; retry.className = 'history-retry';
-    retry.textContent = '任务和历史暂时无法读取，点击重试';
-    retry.onclick = function() { if (epoch === authEpoch && sid === sessionId) { retry.remove(); restoreSessionHistory(); } };
+    retry.textContent = '历史暂时无法读取，点击重试';
+    retry.onclick = function() { if (ownsRestore()) { retry.remove(); restoreSessionHistory(); } };
     chatContainer.appendChild(retry);
+    return false;
+  } finally {
+    if (historyRequest === read) { historyRequest = null; refreshTaskComposer(); }
   }
 }
 window.addEventListener('pageshow', function(event) {
@@ -5016,13 +5019,7 @@ function showQuestionContinuation(container, childJobId, owns) {
 }
 
 async function refreshQuestionContinuation(result, owns, container) {
-  var epoch = authEpoch, sid = sessionId, round = currentRoundId;
-  try {
-    var data = await fetchHistoryPage(HISTORY_PAGE);
-    if (!data || !owns() || epoch !== authEpoch || sid !== sessionId || round !== currentRoundId) return;
-    _historyMsgs = data.messages || []; _historyTurns = normalizeHistoryTurns(data.turns); _historyHasMore = !!data.has_more;
-    renderHistoryMessages(_historyMsgs, _historyTurns);
-  } catch (_) { if (owns()) showQuestionContinuation(container, result.child_job_id, owns); }
+  if (owns() && !await restoreSessionHistory() && owns()) showQuestionContinuation(container, result.child_job_id, owns);
 }
 
 function projectHistoryTrace(process, trace) {
@@ -5061,6 +5058,9 @@ function bindHistoryTask(turn, content, answer, process, ownsContext, useCompose
     if (terminal) {
       if (activeTurnCancel === cancel) activeTurnCancel = null;
       if (currentJobId === state.job_id) { currentJobId = ''; window._currentJobId = ''; }
+    } else if (state.job_id) {
+      activeTurnCancel = cancel;
+      currentJobId = state.job_id; window._currentJobId = state.job_id;
     }
     var approvals = terminal ? [] : state.approvals;
     if (_pendingPermission && _pendingPermission.job_id === state.job_id) {
@@ -5078,8 +5078,8 @@ function bindHistoryTask(turn, content, answer, process, ownsContext, useCompose
   function snapshot(job) {
     if (!owns()) return;
     process.receive('snapshot', job);
-    answer.dataset.displayStatus = CitrusTaskState.displayStatus(job);
-    if (!process.terminal(CitrusTaskState.displayStatus(job))) {
+    answer.dataset.displayStatus = store.state.display_status;
+    if (!process.terminal(store.state.display_status)) {
       var labels = {queued: '任务排队中', running: '任务执行中', detached: '任务在后台执行', cancel_requested: '停止请求待确认'};
       if (labels[store.state.status]) process.label.textContent = labels[store.state.status];
     }
@@ -5102,6 +5102,7 @@ function bindHistoryTask(turn, content, answer, process, ownsContext, useCompose
   var store = CitrusTaskState.create({request_id: turn.turnRequestId, session_id: sid, onEvent: function (type, data) {
     if (!owns()) return;
     process.receive(type, data);
+    if (type === 'agent_recovery' && data.status === 'admitted') answer.dataset.displayStatus = '';
     if (type.indexOf('context_') === 0 || data.context_snapshot) projectContext();
     if (type === 'answer_start') armed = true;
     if (type === 'text' && armed) { streamedAnswer += data.content || ''; if (!turn.answer || !turn.answer.content) answer.innerHTML = renderMarkdownSafe(streamedAnswer); }
@@ -5140,12 +5141,14 @@ function bindHistoryTask(turn, content, answer, process, ownsContext, useCompose
   if (turn.jobId) transport.follow(turn.jobId);
 }
 
-function renderHistoryMessages(msgs, serverTurns) {
-  disposeTaskView();
-  clearSentAttachmentPreviewUrls();
-  chatContainer.innerHTML = '';
-  if (_historyHasMore) chatContainer.appendChild(buildEarlierHistoryButton());
-  var turns = (serverTurns && serverTurns.length) ? serverTurns : groupHistoryTurns(msgs);
+function renderHistoryMessages(msgs, serverTurns, placement) {
+  if (!placement) {
+    disposeTaskView();
+    clearSentAttachmentPreviewUrls();
+    chatContainer.innerHTML = '';
+  }
+  var before = placement && placement.prepend ? chatContainer.querySelector('.message') : null;
+  var turns = placement ? serverTurns : (serverTurns && serverTurns.length) ? serverTurns : groupHistoryTurns(msgs);
   var composerIndex = -1, lastJobIndex = -1;
   turns.forEach(function(turn, index) {
     if (!turn.jobId) return;
@@ -5154,10 +5157,11 @@ function renderHistoryMessages(msgs, serverTurns) {
         (!turn.jobStatus || ['queued', 'running', 'detached', 'cancel_requested'].indexOf(turn.jobStatus) >= 0)) composerIndex = index;
   });
   if (composerIndex < 0) composerIndex = lastJobIndex;
+  if (placement && (placement.prepend || activeTurnComposer)) composerIndex = -1;
   for (var ti = 0; ti < turns.length; ti++) {
     var turn = turns[ti];
     if (turn.user) {
-      var userContent = addMessage('user', escapeHtml(turn.user.content));
+      var userContent = addMessage('user', escapeHtml(turn.user.content), before);
       // S3: stable anchors so a file can jump back to the exact turn.
       if (turn.user.message_id) userContent.dataset.messageId = String(turn.user.message_id);
       if (turn.user.request_id) userContent.dataset.requestId = String(turn.user.request_id);
@@ -5170,7 +5174,8 @@ function renderHistoryMessages(msgs, serverTurns) {
     if (!turn.user && !answer.content && !turn.trace.length && !turn.files.length && !turn.jobId) continue;
     // P0-A: 每轮只渲染一个助手气泡——与实时流式的形状完全一致
     // （一个气泡、一份执行轨迹、一个最终回答、一次生成文件）。
-    var contentEl = addMessage('bot', '');
+    var contentEl = addMessage('bot', '', before);
+    if (turn.jobId) contentEl.dataset.jobId = turn.jobId;
     if (answer.message_id) contentEl.dataset.messageId = String(answer.message_id);
     if (turn.turnRequestId) contentEl.dataset.requestId = String(turn.turnRequestId);
     contentEl.dataset.sessionId = sessionId;
@@ -5190,8 +5195,9 @@ function renderHistoryMessages(msgs, serverTurns) {
       projectHistoryTrace(process, turn.trace);
       // Unmarked legacy stage labels cannot establish a public model note.
     }
-    if (turn.jobId || turn.question) bindHistoryTask(turn, contentEl, answerBody, process, ti === (composerIndex >= 0 ? composerIndex : turns.length - 1), ti === composerIndex);
-    else if (ti === turns.length - 1) {
+    var ownsContext = (!placement || placement.append) && ti === (composerIndex >= 0 ? composerIndex : turns.length - 1);
+    if (turn.jobId || turn.question) bindHistoryTask(turn, contentEl, answerBody, process, ownsContext, ti === composerIndex);
+    else if (ownsContext) {
       var context = CitrusTaskState.createContext({session_id: sessionId, request_id: turn.turnRequestId});
       if (turn.contextSnapshot) context.receive('context_snapshot', turn.contextSnapshot);
       (turn.trace || []).forEach(function (entry) {

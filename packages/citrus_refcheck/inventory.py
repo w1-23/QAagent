@@ -5,6 +5,8 @@ The existing line parser is reused; its guesses never become certain claims.
 """
 from __future__ import annotations
 
+import codecs
+import csv
 import hashlib
 import io
 import json
@@ -91,10 +93,112 @@ def parse_reference_claims(text: str) -> dict:
     return _parse_claims(text)[0]
 
 
+def _structured_inventory(content, suffix, *, column_map, encoding):
+    from .compare import FIELDS
+
+    supported = {'utf-8', 'utf-8-sig', 'utf-16', 'gbk', 'gb18030', 'big5'}
+    if encoding:
+        encoding = encoding.strip().lower()
+        if encoding not in supported:
+            raise ValueError('Unsupported reference table encoding')
+    elif content.startswith((codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE)):
+        encoding = 'utf-16'
+    else:
+        encoding = 'utf-8-sig' if content.startswith(codecs.BOM_UTF8) else 'utf-8'
+    try:
+        text = content.decode(encoding, errors='strict')
+    except UnicodeError:
+        raise ValueError('Reference table decoding failed; specify its actual encoding') from None
+    if '\x00' in text or len(text) > MAX_TEXT:
+        raise ValueError('Reference table has NUL characters or exceeds the text limit')
+    if encoding == 'utf-8' and text.startswith('\ufeff'):
+        text = text[1:]
+        encoding = 'utf-8-sig'
+
+    delimiter = ',' if suffix == '.csv' else '\t'
+    reader = csv.reader(io.StringIO(text, newline=''), delimiter=delimiter, strict=True)
+    try:
+        header = next(reader)
+    except (StopIteration, csv.Error):
+        raise ValueError('Reference table has no valid header') from None
+    header_end = reader.line_num
+    labels = [label.strip().casefold() for label in header]
+    if not labels or len(labels) > 200 or any(not label for label in labels) or len(set(labels)) != len(labels):
+        raise ValueError('Reference table headers must be nonempty, unique and at most 200 columns')
+    fields = (*FIELDS, 'arxiv_id')
+    if column_map is None:
+        column_map = {field: field for field in fields if field in labels}
+    if (not isinstance(column_map, dict) or not column_map or set(column_map) - set(fields)
+            or any(not isinstance(label, str) or label.strip().casefold() not in labels
+                   for label in column_map.values())):
+        raise ValueError('Map supported claim fields to exact reference table column names')
+    indices = {field: labels.index(label.strip().casefold()) for field, label in column_map.items()}
+    if len(set(indices.values())) != len(indices) or not {'doi', 'title', 'arxiv_id'}.intersection(indices):
+        raise ValueError('Use distinct columns and map DOI, title or arxiv_id')
+
+    entries, limitations = [], []
+    bad_rows = 0
+    lines = io.StringIO(text, newline='').readlines()
+    while True:
+        start = reader.line_num + 1
+        try:
+            row = next(reader)
+        except StopIteration:
+            break
+        except csv.Error:
+            # A malformed quote can absorb the remaining lines. Stop at the
+            # last known boundary instead of guessing where the next row starts.
+            limitations.append(f'invalid_delimited_syntax_from_line:{start}')
+            if len(entries) < MAX_RECORDS:
+                entries.append({'citation': ''.join(lines[start - 1:reader.line_num]),
+                                'claims': {}, 'original': {'values': None},
+                                'positions': [{'line': start, 'line_end': reader.line_num}],
+                                'parse_status': 'invalid_row', 'parse_error': 'invalid_delimited_syntax',
+                                'uncertain_fields': []})
+                bad_rows += 1
+            break
+        if len(entries) == MAX_RECORDS:
+            limitations.append(f'record_limit_from_line:{start}')
+            break
+        error = ''
+        claims = {}
+        if len(row) != len(header):
+            error = 'column_count_mismatch' if row else 'empty_row'
+        else:
+            claims = {field: row[i] for field, i in indices.items() if row[i].strip()}
+            if not any(claims.get(key) for key in ('doi', 'title', 'arxiv_id')):
+                error = 'missing_lookup_field'
+        bad_rows += bool(error)
+        entries.append({'citation': ''.join(lines[start - 1:reader.line_num]),
+                        'claims': claims, 'original': {'values': row},
+                        'positions': [{'line': start, 'line_end': reader.line_num}],
+                        'parse_status': 'invalid_row' if error else 'supplied',
+                        'parse_error': error, 'uncertain_fields': []})
+    if bad_rows:
+        limitations.append('invalid_delimited_rows')
+    if not entries:
+        limitations.append('no_data_rows')
+    coverage = {'status': 'partial' if limitations else 'complete', 'scope': 'delimited_records',
+                'records': len(entries), 'invalid_rows': bad_rows, 'limitations': limitations,
+                'encoding': encoding, 'delimiter': delimiter, 'header': header,
+                'header_line_end': header_end, 'column_map': {field: header[i] for field, i in indices.items()}}
+    return entries, coverage
+
+
 def extract_inventory(*, name='references.txt', content=None, text='', references=None, source_ref=None,
-                      _pdf_pages=None, _pdf_page_count=None) -> dict:
+                      column_map=None, encoding="", _pdf_pages=None, _pdf_page_count=None) -> dict:
     """Retain every entry and its exact input; source_ref is opaque provenance."""
-    if references is not None:
+    suffix = Path(name).suffix.lower()
+    if (column_map is not None or encoding) and (references is not None or suffix not in {'.csv', '.tsv'}):
+        raise ValueError('Column mapping and encoding apply only to CSV or TSV sources')
+    parser_version = PARSER_VERSION
+    if references is None and suffix in {'.csv', '.tsv'}:
+        if not isinstance(content, bytes) or len(content) > MAX_BYTES:
+            raise ValueError('CSV/TSV source must be bytes, at most 20 MB')
+        source_hash = digest(content)
+        entries, coverage = _structured_inventory(content, suffix, column_map=column_map, encoding=encoding)
+        parser_version = 'bibliography-delimited/1'
+    elif references is not None:
         if not isinstance(references, list) or any(not isinstance(item, dict) for item in references):
             raise ValueError('references must be a list of objects')
         if len(references) > MAX_RECORDS:
@@ -145,7 +249,7 @@ def extract_inventory(*, name='references.txt', content=None, text='', reference
             units = [(p.text, {'paragraph': i + 1}) for i, p in enumerate(document.paragraphs)]
             if document.tables:
                 limitations.append('docx_tables_not_in_paragraph_inventory')
-        elif suffix in {'.txt', '.md', '.csv', '.tsv', ''}:
+        elif suffix in {'.txt', '.md', ''}:
             try:
                 value = content.decode('utf-8-sig')
             except UnicodeDecodeError:
@@ -153,7 +257,7 @@ def extract_inventory(*, name='references.txt', content=None, text='', reference
                 limitations.append('invalid_utf8_replaced')
             units = [(value, {})]
         else:
-            raise ValueError('Supported reference sources: DOCX/PDF/TXT/MD/pasted text')
+            raise ValueError('Supported reference sources: CSV/TSV/DOCX/PDF/TXT/MD/pasted text')
         lines, offset = [], 0
         for value, location in units:
             for line_no, line in enumerate(value.splitlines(keepends=True)):
@@ -208,7 +312,7 @@ def extract_inventory(*, name='references.txt', content=None, text='', reference
     for index, entry in enumerate(entries):
         entry.update(record_index=index, record_id=digest([source_hash, index, entry['citation']]),
                      claims_sha256=digest(entry['claims']), source_sha256=source_hash,
-                     parser_version=PARSER_VERSION)
+                     parser_version=parser_version)
     return {'source': {'name': Path(name).name, 'sha256': source_hash,
                        'version': source_hash, 'ref': source_ref or {}},
-            'parser_version': PARSER_VERSION, 'extraction': coverage, 'entries': entries}
+            'parser_version': parser_version, 'extraction': coverage, 'entries': entries}

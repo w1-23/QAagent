@@ -6,6 +6,9 @@
     var status = String(envelope && envelope.display_status || data && (data.display_status || data.turn_status) || '');
     return terminal.indexOf(status) >= 0 ? status : '';
   }
+  function snapshotStatus(job) {
+    return displayStatus(job) || (job && terminal.indexOf(job.status) >= 0 ? job.status : '');
+  }
   function list(value) { return Array.isArray(value) ? value : []; }
   // Event arrival is ordered separately from the public process projection.
   // All aliases identify one logical operation; attempts remain separate facts.
@@ -194,9 +197,11 @@
       if (savedContext) state.context_snapshot = context.receive('context_snapshot', savedContext);
       if (job.question) state.question = newerQuestion(state.question, job.question);
       if (job.status && !state.display_status) state.status = String(job.status);
-      if (job.terminal_snapshot && displayStatus(job)) {
-        state.terminal_snapshot = job.terminal_snapshot;
-        state.display_status = displayStatus(job);
+      var settled = snapshotStatus(job);
+      if (settled) {
+        state.terminal_snapshot = displayStatus(job) ? job.terminal_snapshot || null : null;
+        state.display_status = settled;
+        state.status = settled;
       }
       notify(); return true;
     }
@@ -292,7 +297,7 @@
       }};
   }
   root.CitrusTaskState = {create: create, createProcess: createProcess, createContext: createContext, displayStatus: displayStatus,
-    isTerminal: function (state) { return terminal.indexOf(state.display_status) >= 0; },
+    snapshotStatus: snapshotStatus, isTerminal: function (state) { return terminal.indexOf(state.display_status) >= 0; },
     resumable: function (state) { return list(state.operations).filter(function (op) {
       return op.resumable === true && op.status === 'interrupted' && ['local_read', 'pure_computation'].indexOf(op.recovery_mode) >= 0;
     }); }};

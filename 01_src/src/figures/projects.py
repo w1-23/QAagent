@@ -54,9 +54,8 @@ MIME_BY_FORMAT = {
     "tiff": "image/tiff",
 }
 
-# The formats that are re-published after an edit. SVG is the one the preview
-# shows; PNG and PDF are what a journal asks for.
-DEFAULT_FORMATS = ("svg", "png", "pdf")
+# New projects default to SVG. Edits preserve each project's saved formats.
+DEFAULT_FORMATS = ("svg",)
 MAX_PREVIEW_BYTES = 8 * 1024 * 1024
 MAX_MANIFEST_BYTES = 4 * 1024 * 1024
 MAX_RENDER_BYTES = 64 * 1024 * 1024
@@ -641,7 +640,9 @@ def detail_for_owner(figure_id: str, owner: int, *, upgrade_manifest: bool = Fal
     manifest = _normalise_manifest(project.get("manifest_json"))
     public = _public(project)
     from src.figures.manifest import MANIFEST_VERSION
-    if upgrade_manifest and public["editable"] and manifest.get("version", 1) < MANIFEST_VERSION:
+    legacy_edit = (public["editable"] and "svg" in public["exports"]
+                   and manifest.get("version", 1) < MANIFEST_VERSION)
+    if upgrade_manifest and legacy_edit:
         try:
             _, _, manifest, _ = _render_edits(project, owner, [], formats=("svg",))
             public["manifest_upgraded"] = True
@@ -656,7 +657,10 @@ def detail_for_owner(figure_id: str, owner: int, *, upgrade_manifest: bool = Fal
         "document": (project.get("document_json") or None) if not public.get("manifest_upgraded") else None,
         "overrides": project.get("overrides_json") or [],
         "data_refs": project.get("data_refs_json") or [],
-        "preview_url": f"/api/v2/figures/projects/{project['figure_id']}/preview.svg",
+        "edit_requires_preparation": bool(legacy_edit and not upgrade_manifest),
+        "preview_url": (f"/api/v2/figures/projects/{figure_id}/preview.svg" if "svg" in public["exports"]
+                        else f"/api/v2/figures/projects/{figure_id}/preview.png" if "png" in public["exports"]
+                        else ""),
     }
 
 

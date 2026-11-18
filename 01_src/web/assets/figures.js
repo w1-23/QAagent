@@ -41,7 +41,7 @@
     previewTimer: null,
     previewWanted: false,
     previewGeneration: 0,
-    previewError: '',
+    previewError: '', savedPreviewStatus: '',
     scene: null, sceneEdits: {}, sceneFlight: null, sceneGeneration: 0,
     blobUrl: null, projectionFrame: null, localUnsupported: [], localRevision: -1,
     displayedSvg: null, hitDocument: null, hitManifest: null, hitScene: null, hitCoarse: true, hitEpoch: 0, hitCycle: null,
@@ -103,6 +103,8 @@
     el('objectFilterStatus').hidden = true;
     el('objectSelect').disabled = true;
     el('previewImage').removeAttribute('src');
+    el('prepareEditButton').hidden = true;
+    state.savedPreviewStatus = '';
     ['downloadSvg', 'downloadPng', 'downloadPdf', 'downloadTiff'].forEach(function(id) {
       el(id).removeAttribute('href'); el(id).setAttribute('aria-disabled', 'true');
     });
@@ -192,7 +194,7 @@
 
   // ── Opening a project ──────────────────────────────────────────────────
 
-  function openProject(figureId) {
+  function openProject(figureId, prepareEdit) {
     if ((hasEdits() || state.saving) && !confirm('当前修改尚未全部保存，仍要打开另一图件吗？')) {
       return Promise.resolve();
     }
@@ -200,7 +202,9 @@
     var epoch = state.epoch;
     var controller = new AbortController();
     state.opening = controller;
-    return jsonRequest(API + '/projects/' + encodeURIComponent(figureId), {
+    var url = API + '/projects/' + encodeURIComponent(figureId);
+    if (prepareEdit === true) url += '?prepare_edit=true';
+    return jsonRequest(url, {
       credentials: 'same-origin', signal: controller.signal
     }, function () { return epoch === state.epoch && !controller.signal.aborted; }).then(function (detail) {
       if (epoch !== state.epoch || controller.signal.aborted) return;
@@ -213,13 +217,9 @@
       state.edits = {};
       el('workspace').hidden = false;
       el('projectTitle').textContent = detail.title || '图件';
-      el('projectMeta').textContent =
-        (detail.source_kind === 'script' ? '脚本图件' : '数据图件') +
-        ' · ' +
-        (detail.objects || 0) + ' 个可编辑对象';
-
       state.preview = null;
       loadSavedScene();
+      renderProjectMeta();
       renderDownloads();
       el('emptyState').hidden = true;
       el('deleteButton').disabled = false;
@@ -320,6 +320,14 @@
     });
   }
 
+  function renderProjectMeta() {
+    var detail = state.current;
+    var formats = Object.keys(detail.exports || {}).map(function (format) { return format.toUpperCase(); });
+    el('projectMeta').textContent = (detail.source_kind === 'script' ? '脚本图件' : '数据图件') + ' · ' +
+      (detail.editable === false ? formats.join(' / ') || '无已保存格式' : manifestObjects().length + ' 个图内对象');
+    el('prepareEditButton').hidden = !detail.edit_requires_preparation;
+  }
+
   function renderDownloads() {
     renderQa();
     var base = API + '/projects/' + encodeURIComponent(state.current.figure_id);
@@ -335,13 +343,17 @@
   // ── The overlay ────────────────────────────────────────────────────────
 
   function manifestObjects() {
-    if (!state.current || !state.current.manifest) return [];
+    if (!state.current || state.current.editable === false || !state.current.manifest) return [];
     return state.current.manifest.objects || [];
   }
 
   function canvasSize() {
     var size = (state.current && state.current.manifest
       && state.current.manifest.figure_size_px) || [0, 0];
+    if (state.current && (!size[0] || !size[1])) {
+      var image = el('previewImage');
+      size = [image.naturalWidth / POINT_TO_CSS, image.naturalHeight / POINT_TO_CSS];
+    }
     return { width: Number(size[0]) || 0, height: Number(size[1]) || 0 };
   }
 
@@ -1034,13 +1046,13 @@
     var status = el('editStatus');
     status.classList.toggle('is-dirty', hasEdits());
     el('checkPreviewButton').disabled = !editable || !!state.saving || !!state.deleting || !!state.drag;
-    status.textContent = !state.current ? '未打开图件' : !editable ? '只读图件' : state.saving
+    status.textContent = !state.current ? '未打开图件' : state.savedPreviewStatus || (!editable ? '只读图件' : state.saving
       ? '正在保存；期间的新修改会保留。' : state.saveError && hasEdits() ? state.saveError
       : state.previewError ? '预览未更新 · ' + state.previewError
       : state.previewFlight || state.previewWanted ? '未保存 · 等待服务端校正（本地可映射部分已显示）'
       : hasEdits() ? (state.localRevision === state.editRevision
         ? '未保存 · 本地草稿已显示；字体与布局以保存为准'
-        : '未保存 · 正在准备预览') : state.preview ? '临时检查预览；导出为当前已保存图件。' : '已保存；没有本地修改。';
+        : '未保存 · 正在准备预览') : state.preview ? '临时检查预览；导出为当前已保存图件。' : '已保存；没有本地修改。');
   }
 
   function setProperty(gid, prop, value, transient) {
@@ -1155,6 +1167,7 @@
     state.projectionFrame = null; state.scene = null; state.sceneEdits = {};
     state.hitEpoch += 1; state.hitDocument = null; state.hitScene = null; state.hitManifest = null; state.hitCycle = null; state.displayedSvg = null;
     el('previewImage').onload = null;
+    el('previewImage').onerror = null;
     state.localUnsupported = []; state.localRevision = -1;
     if (state.blobUrl) URL.revokeObjectURL(state.blobUrl);
     state.blobUrl = null;
@@ -1162,27 +1175,93 @@
   function loadSavedScene() {
     if (!state.current) return;
     resetScene();
-    var figureId = state.current.figure_id, epoch = state.epoch, version = state.current.render_version;
+    state.savedPreviewStatus = '';
+    var project = state.current, exports = project.exports || {}, image = el('previewImage');
+    var figureId = project.figure_id, epoch = state.epoch, version = project.render_version;
     var generation = state.sceneGeneration, controller = new AbortController();
-    var url = API + '/projects/' + encodeURIComponent(figureId) + '/preview.svg?v=' + version;
-    state.sceneFlight = controller;
-    el('previewImage').src = url;
+    var base = API + '/projects/' + encodeURIComponent(figureId);
+    var format = exports.svg ? 'svg' : exports.png ? 'png' : '';
+    var url = format ? base + '/preview.' + format + '?v=' + version : '';
+    var maxSceneBytes = 8 * 1024 * 1024;
     function current() { return ownsProject(figureId, epoch) && state.sceneGeneration === generation &&
       state.current.render_version === version && !controller.signal.aborted; }
+    function showImage(src, scene) {
+      image.onload = function () {
+        if (!current() || image.src !== src && image.getAttribute('src') !== src) return;
+        if (scene) {
+          state.hitDocument = scene.base;
+          state.hitManifest = scene.manifest;
+          state.hitCoarse = true;
+        }
+        if (state.view.fit) fitView();
+      };
+      image.onerror = function () {
+        if (!current() || image.src !== src && image.getAttribute('src') !== src) return;
+        state.savedPreviewStatus = '已保存的 ' + format.toUpperCase() + ' 无法预览；请检查下载或重新打开。';
+        renderEditState();
+      };
+      if (image.getAttribute('src') !== src) image.src = src;
+    }
+    function staticOnly(message) {
+      project.editable = false;
+      state.savedPreviewStatus = message;
+      if (url) showImage(url, null);
+      else image.removeAttribute('src');
+    }
+    if (format !== 'svg') {
+      staticOnly(format === 'png' ? '当前显示已保存的 PNG；项目没有 SVG。' :
+        exports.pdf ? '此项目没有画布预览；可下载已保存的 PDF 查看。' : '此项目没有可在画布预览的文件。');
+      return;
+    }
+    if (Number(exports.svg.size_bytes) > maxSceneBytes) {
+      project.edit_requires_preparation = false;
+      staticOnly('SVG 超过 8 MiB，可静态查看并下载原图。');
+      return;
+    }
+    if (project.edit_requires_preparation || project.editable === false) {
+      staticOnly(project.edit_requires_preparation ? '已显示保存的图件，可按需加载旧项目编辑对象。' :
+        (project.edit_error && project.edit_error.message) || '当前图件只支持查看和下载。');
+      return;
+    }
+    state.sceneFlight = controller;
     fetch(url, {credentials: 'same-origin', signal: controller.signal}).then(function (response) {
-      if (!response.ok) throw new Error('已保存 SVG 无法读取');
-      return response.text();
-    }).then(function (svg) {
-      if (!current()) return;
-      state.scene = new window.FigureScene(svg, state.current.manifest);
-      state.sceneEdits = {}; state.preview = null; state.sceneFlight = null;
-      projectLocally();
+      if (!current()) return null;
+      if (!response.ok) throw new Error(response.status === 409 ? '图件版本已更新，请重新打开。' : '已保存的 SVG 无法读取。');
+      var length = Number(response.headers.get('Content-Length'));
+      if (!(length > 0 && length <= maxSceneBytes)) {
+        if (response.body) response.body.cancel().catch(function () {});
+        staticOnly(length > maxSceneBytes ? 'SVG 超过 8 MiB，可静态查看并下载原图。' : '无法确认 SVG 大小，当前使用静态预览。');
+        renderProjectMeta(); renderObjectSelect(); renderOverlay(); renderProperties();
+        return null;
+      }
+      return response.blob();
+    }).then(async function (blob) {
+      if (!blob || !current()) return;
+      state.blobUrl = URL.createObjectURL(blob);
+      showImage(state.blobUrl, null);
+      try {
+        if (blob.size > maxSceneBytes) throw new Error('SVG 超出本地编辑上限');
+        var svg = await blob.text();
+        if (!current()) return;
+        state.scene = new window.FigureScene(svg, project.manifest);
+        state.sceneEdits = {}; state.preview = null;
+        if (image.complete && image.naturalWidth) {
+          state.hitDocument = state.scene.base;
+          state.hitManifest = state.scene.manifest;
+          state.hitCoarse = true;
+        } else {
+          showImage(state.blobUrl, state.scene);
+        }
+      } catch (error) {
+        if (current()) state.previewError = '本地编辑预览不可用；仍可使用服务端检查。';
+      }
     }).catch(function (error) {
+      if (current()) state.savedPreviewStatus = error.message || '已保存的 SVG 无法读取。';
+    }).finally(function () {
       if (!current()) return;
       state.sceneFlight = null;
-      state.previewError = '本地预览不可用；可检查或保存取得服务端结果';
-      if (hasEdits()) { state.previewWanted = true; state.previewTimer = setTimeout(runPreview, 180); }
-      renderEditState();
+      if (hasEdits() && project.editable !== false) projectLocally();
+      else renderEditState();
     });
   }
   function cancelPreview(abort) {
@@ -1281,8 +1360,7 @@
     state.redo = [];
     state.saveError = ''; state.preview = null;
     loadSavedScene();
-    el('projectMeta').textContent = (state.current.source_kind === 'script' ? '脚本图件' : '数据图件') +
-      ' · ' + result.manifest.objects.length + ' 个可编辑对象';
+    renderProjectMeta();
     renderCanvasInfo(); if (state.view.fit) fitView();
     renderOverlay(); renderProperties(); renderObjectSelect(); renderProjects(); renderDownloads();
   }
@@ -1595,6 +1673,9 @@
     el('verifyFigureButton').addEventListener('click', function () { return verifyFigure(false); });
     el('bundleFigureButton').addEventListener('click', function () { return verifyFigure(true); });
     el('checkPreviewButton').addEventListener('click', function () { runPreview(true); });
+    el('prepareEditButton').addEventListener('click', function () {
+      if (state.current && state.current.edit_requires_preparation) openProject(state.current.figure_id, true);
+    });
     el('dataFileSelect').addEventListener('change', loadDataSchema);
     el('importChart').addEventListener('change', updateMapping);
     ['importX', 'importY', 'importGroup'].forEach(function (id) { el(id).addEventListener('change', updateMapping); });

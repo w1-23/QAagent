@@ -669,6 +669,12 @@ async def _finish(state, identity, ledger, host, result, trace_start, started, *
             "deadline": "本轮任务时间预算已用完。",
             "model_step_limit": "本轮模型调用次数已达上限。",
             "context_budget_exhausted": "当前模型上下文无法安全容纳下一次请求。",
+            "context_summary_input_limit": "工作摘要的输入超过模型窗口，没有发出该摘要请求。",
+            "context_summary_incomplete": "工作摘要输出未完成，原始上下文未被替换。",
+            "context_summary_timeout": "工作摘要请求超时，原始上下文未被替换。",
+            "context_projection_deadline": "准备工作上下文时达到任务时限。",
+            "context_summary_attempt_failed": "工作摘要请求失败，原始上下文未被替换。",
+            "model_budget_reserved:finalization": "余量已为最终答复保留，不再发起中间调用。",
             "context_projection_no_safe_reduction": "活动上下文没有可安全压缩的空间。",
         }
         answer = "本轮尚未完成。" + notices.get(result.reason, "执行在完成全部要求前停止。")

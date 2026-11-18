@@ -28,11 +28,12 @@
     }};
   }
   function create(options) {
-    var store = options.store, stopped = false, replaying = null, timer = null;
+    var store = options.store, stopped = false, replaying = null, timer = null, followVersion = 0;
+    var reads = new AbortController();
     function owns() { return !stopped && options.owns(); }
     async function json(url, settings) {
       if (!owns()) return null;
-      var response = await options.fetch(url, settings);
+      var response = await options.fetch(url, settings || {signal: reads.signal, cache: 'no-store'});
       if (!owns()) return null;
       var data = await response.json();
       if (!owns()) return null;
@@ -60,10 +61,12 @@
           (page.events || []).forEach(function (frame) {
             if (owns()) store.receive(frame.event, Object.assign({}, frame.data, {seq: frame.seq}), String(frame.seq));
           });
-          if (store.hasGap()) throw new Error('任务事件尚不连续，请重新读取。');
+          if (store.hasGap() || Number.isSafeInteger(page.next_cursor) && store.state.cursor < page.next_cursor) {
+            throw new Error('任务状态暂未同步，正在补读事件。');
+          }
           more = !!page.has_more;
           if (more && store.state.cursor <= before) throw new Error('任务事件游标未前进。');
-          if (!more) snapshot(page);
+          if (!more) snapshot(Object.assign({}, page, {event_cursor: page.next_cursor}));
         }
       }());
       try { return await replaying; } finally { replaying = null; }
@@ -71,24 +74,58 @@
     async function refresh(jobId, withEvents) {
       var job = await json('/jobs/' + encodeURIComponent(jobId));
       if (!job || !owns()) return null;
-      // Apply events before the terminal snapshot so the final answer and cards
-      // reach the same reducer used by the live stream.
-      if (withEvents !== false && Number(job.event_cursor) > store.state.cursor) await replay(jobId);
+      if (job.job_id !== jobId) throw new Error('任务状态标识不匹配。');
+      var taskState = root.CitrusTaskState;
+      // The status read may see recovery admitted after replay returned a terminal event.
+      if ((withEvents !== false || taskState.snapshotStatus(job) || taskState.isTerminal(store.state)) &&
+          job.event_cursor > store.state.cursor) {
+        await replay(jobId);
+        if (owns() && job.event_cursor > store.state.cursor) throw new Error('任务状态暂未同步，正在补读事件。');
+      }
       if (owns()) snapshot(job);
       return owns() ? job : null;
     }
     function follow(jobId) {
       if (timer) clearTimeout(timer);
+      var version = ++followVersion;
       async function poll() {
-        if (!owns()) return;
+        if (!owns() || version !== followVersion) return;
         try {
           await replay(jobId);
-          if (owns()) await refresh(jobId, false);
-          if (!owns() || root.CitrusTaskState.isTerminal(store.state)) return;
-        } catch (error) { if (owns() && options.onError) options.onError(error); }
-        if (owns()) timer = setTimeout(poll, 2000);
+          if (owns() && version === followVersion) await refresh(jobId, false);
+          if (root.CitrusTaskState.isTerminal(store.state)) return;
+        } catch (error) { if (owns() && version === followVersion && options.onError) options.onError(error); }
+        if (owns() && version === followVersion) timer = setTimeout(poll, 2000);
       }
       return poll();
+    }
+    function followRequest(sessionId, requestId, onFound, onUnavailable) {
+      if (timer) clearTimeout(timer);
+      var version = ++followVersion, attempts = 0;
+      var url = '/api/v2/session/' + encodeURIComponent(sessionId) + '/task-by-request/' + encodeURIComponent(requestId);
+      async function lookup() {
+        if (!owns() || version !== followVersion) return;
+        attempts++;
+        var claim;
+        try { claim = await json(url); }
+        catch (error) {
+          if (!owns() || version !== followVersion) return;
+          if (error.status === 401 || error.status === 403 || attempts >= 8) {
+            onUnavailable(error);
+            return;
+          }
+          timer = setTimeout(lookup, 2000);
+          return;
+        }
+        if (!owns() || version !== followVersion) return;
+        if (!claim || typeof claim.job_id !== 'string' || !claim.job_id) {
+          onUnavailable(new Error('任务标识暂时无法确认。'));
+          return;
+        }
+        onFound(claim.job_id);
+        return follow(claim.job_id);
+      }
+      return lookup();
     }
     async function stream(response, signal) {
       var reader = response.body.getReader(), decoder = new TextDecoder();
@@ -113,14 +150,14 @@
         if (!owns() || signal.aborted) await reader.cancel().catch(function () {});
       }
     }
-    return {stream: stream, replay: replay, refresh: refresh, follow: follow,
+    return {stream: stream, replay: replay, refresh: refresh, follow: follow, followRequest: followRequest,
       answer: function (jobId, questionId, payload) { return json('/api/tasks/' + encodeURIComponent(jobId) + '/questions/' + encodeURIComponent(questionId) + '/answer', {
         method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
       }); },
       post: function (jobId, path, payload) { return json('/api/v2/chat/jobs/' + encodeURIComponent(jobId) + '/' + path, {
         method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
       }); },
-      stop: function () { stopped = true; if (timer) clearTimeout(timer); timer = null; }};
+      stop: function () { stopped = true; reads.abort(); if (timer) clearTimeout(timer); timer = null; }};
   }
   root.CitrusTaskTransport = {parser: parser, create: create};
 }(typeof window !== 'undefined' ? window : globalThis));

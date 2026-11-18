@@ -176,7 +176,7 @@ def effective_tool_records(rows: Iterable[dict]) -> list[dict]:
     # only receipt-proven coverage; preserve raw statuses and execution counts.
     if any((row.get("name") or row.get("tool_name")) == "verify_uploaded_references"
            and row.get("status") == "partial"
-           and (row.get("reason") or row.get("reason_code")) == "coverage_incomplete"
+           and (row.get("reason") or row.get("reason_code")) in {"coverage_incomplete", "reference_coverage_incomplete"}
            and isinstance(row.get("op_receipt"), dict) for row in rows):
         from src.graph.coverage import reconcile_coverage_records
         rows = reconcile_coverage_records(rows)

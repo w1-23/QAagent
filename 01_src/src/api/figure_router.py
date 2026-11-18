@@ -190,7 +190,7 @@ async def list_projects(request: Request, limit: int = 100, offset: int = 0):
 
 
 @router.get("/projects/{figure_id}")
-async def get_project(figure_id: str, request: Request):
+async def get_project(figure_id: str, request: Request, prepare_edit: bool = False):
     """One project: its manifest, its edits and its exports."""
     from src.figures import projects
 
@@ -198,10 +198,10 @@ async def get_project(figure_id: str, request: Request):
     with _write_scope(owner) as lease:
         try:
             detail = await run_account_thread(
-                lease, projects.detail_for_owner, figure_id, owner, upgrade_manifest=True)
+                lease, projects.detail_for_owner, figure_id, owner, upgrade_manifest=prepare_edit)
         except projects.ProjectError as exc:
             return _fail(exc)
-    return detail
+    return JSONResponse(detail, headers={"Cache-Control": "private, no-store"})
 
 
 @router.post("/projects/{figure_id}/preview")
@@ -298,12 +298,17 @@ async def bundle_current_artifacts(figure_id: str, body: CurrentArtifactRequest,
 # ── Preview and download ──────────────────────────────────────────────────
 
 @router.get("/projects/{figure_id}/preview.svg")
-async def preview_svg(figure_id: str, request: Request):
-    """The current version of the figure, as an image.
+async def preview_svg(figure_id: str, request: Request, v: int | None = None):
+    return await _preview_image(figure_id, request, "svg", v)
 
-    The bytes here are the bytes of the published SVG, so what the page shows
-    and what the user downloads are the same file.
-    """
+
+@router.get("/projects/{figure_id}/preview.png")
+async def preview_png(figure_id: str, request: Request, v: int | None = None):
+    return await _preview_image(figure_id, request, "png", v)
+
+
+async def _preview_image(figure_id: str, request: Request, fmt: str, version: int | None):
+    """Serve the same authorized saved bytes used for downloads."""
     from src.figures import projects
     from src.session import files as session_files
 
@@ -313,14 +318,19 @@ async def preview_svg(figure_id: str, request: Request):
     except projects.ProjectError as exc:
         return _fail(exc)
 
-    entry = _find_export(detail, "svg")
+    if version is not None and version != detail["render_version"]:
+        return JSONResponse({"code": "revision_conflict", "detail": "图件版本已更新，请重新打开。"},
+                            status_code=409, headers=_SVG_HEADERS)
+    entry = _find_export(detail, fmt)
     if not entry:
-        return JSONResponse({"detail": "这张图还没有可预览的 SVG。"}, status_code=404)
+        return JSONResponse({"code": "format_missing", "detail": f"这张图没有 {fmt.upper()} 格式。"},
+                            status_code=404, headers=_SVG_HEADERS)
     info = await asyncio.to_thread(session_files.get_account_file,
                                    str(entry.get("file_id") or ""), owner, touch=True)
-    if not info:
-        return JSONResponse({"detail": "图件文件已不可用，请重新出图。"}, status_code=404)
-    return FileResponse(path=info["path"], media_type="image/svg+xml",
+    if not info or not await asyncio.to_thread(Path(info["path"]).is_file):
+        return JSONResponse({"code": "artifact_unavailable", "detail": "已保存的图件文件无法读取。"},
+                            status_code=404, headers=_SVG_HEADERS)
+    return FileResponse(path=info["path"], media_type=projects.MIME_BY_FORMAT[fmt],
                         headers={**_SVG_HEADERS,
                                  "Content-Disposition": "inline"})
 

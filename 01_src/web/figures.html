@@ -11,7 +11,7 @@
   <script src="/assets/figures/edit_model.js?v=2" defer></script>
   <script src="/assets/figures/scene_projection.js?v=2" defer></script>
   <script src="/assets/figures/hit_geometry.js?v=1" defer></script>
-  <script src="/assets/figures.js?v=13" defer></script>
+  <script src="/assets/figures.js?v=14" defer></script>
   <script src="/assets/guide.js?v=4" defer></script>
 </head>
 <body class="figure-app">
@@ -103,7 +103,7 @@
     </aside>
 
     <section class="stage" aria-label="图件画板">
-      <div class="stage-bar"><span id="projectMeta">在左侧打开图件开始编辑</span><span id="canvasSizeBadge"></span></div>
+      <div class="stage-bar"><span id="projectMeta">在左侧打开图件开始编辑</span><button class="button secondary" id="prepareEditButton" hidden>加载编辑对象</button><span id="canvasSizeBadge"></span></div>
       <div class="viewport" id="viewport" tabindex="0" aria-label="画板视口；平移模式下可用方向键平移">
         <div class="empty-workspace" id="emptyState">
           <svg class="empty-page" viewBox="0 0 100 120" fill="none" aria-hidden="true"><rect x="18" y="8" width="64" height="96" rx="3"/><path d="M30 28h40M30 37h24M30 70h40M30 80h40M30 90h26"/><rect x="30" y="48" width="40" height="13" rx="2"/></svg>

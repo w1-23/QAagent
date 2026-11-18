@@ -476,17 +476,19 @@ class SessionManager:
         return await asyncio.to_thread(self._get_messages_sync, session_id)
 
     def _get_messages_sync(self, session_id: str, with_ids: bool = False,
-                           for_display: bool = False):
+                           for_display: bool = False, with_request_ids: bool = False):
         """读回会话历史。with_ids=True 时返回 (messages, row_ids)，
         row_ids 与 messages 一一对应（压缩 checkpoint 定位用）。"""
         import sqlite3
         messages: List[BaseMessage] = []
         row_ids: List[int] = []
+        request_ids: list[str] = []
         with _connect_db(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cur = conn.execute(
                 "SELECT id, msg_type, content, tool_call_id, tool_calls_json, name, reasoning, "
-                "generation_ms, execution_json, context_metadata_json "
+                "generation_ms, execution_json, context_metadata_json, "
+                "COALESCE(NULLIF(client_request_id,''), idempotency_key) AS request_key "
                 "FROM messages WHERE session_id = ? ORDER BY id ASC",
                 (session_id,),
             )
@@ -583,11 +585,23 @@ class SessionManager:
                     messages[-1].additional_kwargs = context_meta
                     messages[-1].additional_kwargs["source_id"] = str(row["id"])
                     row_ids.append(row["id"])
+                    if with_request_ids and msg_type == "human":
+                        key = str(row["request_key"] or "")
+                        if str(row["content"] or "").startswith(_SYNTH_FORCE_FINAL_MARK):
+                            key = ""
+                        request_ids.append(key.removeprefix("crid:"))
                 except Exception as e:
                     logger.debug(f"[SessionManager] skip unparseable message: {e}")
+        if with_request_ids:
+            return messages, row_ids, request_ids
         if with_ids:
             return messages, row_ids
         return messages
+
+    async def get_display_history(self, session_id: str):
+        """Read display messages, row IDs and aligned human keys together."""
+        return await asyncio.to_thread(self._get_messages_sync, session_id,
+                                       for_display=True, with_request_ids=True)
 
     async def get_messages_with_ids(self, session_id: str, for_display: bool = False):
         """v8.4: 返回 (messages, row_ids)（压缩视图构建/checkpoint 定位用）。

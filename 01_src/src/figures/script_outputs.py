@@ -57,7 +57,7 @@ def normalize_output_contract(value: Any) -> dict:
                 title = entry.get("title", "")
                 if not isinstance(title, str) or len(title) > 1000:
                     raise ValueError("Invalid figure title.")
-                formats = entry.get("formats", ["svg", "png", "pdf"])
+                formats = entry.get("formats", ["svg"])
                 if (not isinstance(formats, list) or not formats or len(formats) > 4
                         or any(not isinstance(fmt, str) or fmt not in _FORMATS for fmt in formats)
                         or len(set(formats)) != len(formats)):

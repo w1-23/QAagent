@@ -139,9 +139,14 @@ def replay(job_id, after=0, limit=200):
                 "context_snapshot": _latest_context_snapshot(conn, job_id)}
 
 
-def projection(job_id):
+def projection(job_id, *, include_job=False):
     with transaction() as conn:
         job = _job(conn, job_id)
+        status = {}
+        if include_job:
+            from src.core.jobs import decode_terminal_snapshot
+            status = dict(job)
+            status["terminal_snapshot"] = decode_terminal_snapshot(status)
         updates = [dict(r) for r in conn.execute("SELECT * FROM task_updates WHERE job_id=? ORDER BY version", (job_id,))]
         operations = []
         for row in conn.execute("SELECT * FROM task_operations WHERE job_id=? ORDER BY updated_at", (job_id,)):
@@ -162,7 +167,8 @@ def projection(job_id):
             budget.update(_usage_totals(conn, job_id))
         if budget and not __import__('math').isfinite(budget["deadline"]):
             budget["deadline"] = None
-        return {"event_cursor": conn.execute("SELECT COALESCE(MAX(seq),0) FROM task_events WHERE job_id=?", (job_id,)).fetchone()[0],
+        return {**status,
+                "event_cursor": conn.execute("SELECT COALESCE(MAX(seq),0) FROM task_events WHERE job_id=?", (job_id,)).fetchone()[0],
                 "task_version": updates[-1]["version"] if updates else 0,
                 "applied_version": max((u["version"] for u in updates if u["status"] == "applied"), default=0),
                 "pending_updates": [u for u in updates if u["status"] == "pending"],
@@ -414,11 +420,18 @@ class DurableEventQueue(asyncio.Queue):
         self.put_nowait(item)
 
 
+def model_input_limit(output_tokens):
+    """Configured request input limit, shared by preflight and final admission."""
+    from src.config import settings
+    return max(0, min(int(settings.CONTEXT_ACTIVE_MAX_INPUT_TOKENS),
+        int(settings.RESOLVED_CONTEXT_BUDGET_MAX_TOKENS) - int(output_tokens)
+        - int(settings.CONTEXT_SAFETY_MARGIN_TOKENS)))
+
+
 async def run_model_attempt(model, messages, invoke, *, purpose="supervisor", output_tokens=None, usage_session_id=None):
     from src.core.tracing import get_job_id, get_session_id
     from src.core.cache_metrics import extract_usage, emit_usage_from_response
     from src.core.request_context import model_request, _observation, _epoch, _logical_call
-    from src.config import settings
     from src.core.context_snapshot import build_context_snapshot, emit_context_snapshot
     phase = _epoch.get()
     parent = _observation.get()
@@ -431,8 +444,7 @@ async def run_model_attempt(model, messages, invoke, *, purpose="supervisor", ou
             parent["context_settled"] = True
     logical_call_id = _logical_call.get() or (parent or {}).get("logical_call_id") or uuid.uuid4().hex
     payload, estimate = model_request(model, messages, output_tokens=output_tokens)
-    limit = max(0, min(int(settings.CONTEXT_ACTIVE_MAX_INPUT_TOKENS),
-                int(settings.RESOLVED_CONTEXT_BUDGET_MAX_TOKENS) - estimate["output_tokens"] - int(settings.CONTEXT_SAFETY_MARGIN_TOKENS)))
+    limit = model_input_limit(estimate["output_tokens"])
     scope = {"purpose": purpose, "attempt_id": "", "logical_call_id": logical_call_id,
              "epoch": phase.number if phase else 0,
              "change_reason": "protocol_fallback" if parent and parent.get("redirected") else phase.reason if phase else "initial",

@@ -29,6 +29,10 @@ def make_receipt(name: str, call_id: str, content: Any, artifact: Any) -> dict:
             {k: r[k] for k in ("record_id", "record_index", "source_sha256", "verification_rule",
                                "status", "doi", "input_title", "detail") if k in r}
             for r in payload.get("rows", []) if isinstance(r, dict)]}
+        if payload.get("schema") == "reference_audit/2":
+            targets.update({key: payload[key] for key in (
+                "schema", "audit_id", "rule_version", "terminal", "export_status", "run_reason"
+            ) if key in payload})
     elif name == "audit_uploaded_data":
         targets = {"results": [{k: r[k] for k in ("file_index", "source_file_id", "source_sha256",
             "checks_sha256", "audit_mode", "requested_sheet", "file", "ok", "sheets", "skipped",

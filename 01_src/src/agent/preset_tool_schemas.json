@@ -591,7 +591,7 @@
       "type": "function",
       "function": {
         "name": "inspect_uploaded_table",
-        "description": "查看 CSV/TSV/Excel/PDF/Word 表格结构、字段样例与覆盖。\n\nfile_ids_json 显式选择本账号真实文件ID，可跨轮读取，无需重附；不接受latest、文件名或路径。\n非空ID列表是本次源列表，file_index 在该列表内从0选择；不会混入本轮附件或其他历史文件。\n空ID列表保留原本轮附件file_index逻辑。账号来源校验owner、实际SHA-256与大小，合计最多20MB/20文件。\nheader_row 选择表头，header_rows_json=[2,3] 合并多层表头。新规则审查用audit_uploaded_data；\n已有review_id仅需导出时用deliver_research_artifact，不重新扫描。",
+        "description": "查看 CSV/TSV/Excel/PDF/Word 表格结构、字段样例与覆盖。\n\nfile_ids_json 显式选择本账号真实文件ID，可跨轮读取，无需重附；不接受latest、文件名或路径。\n非空ID列表是本次源列表，file_index 在该列表内从0选择；不会混入本轮附件或其他历史文件。\n空ID列表保留原本轮附件file_index逻辑。账号来源校验owner、实际SHA-256与大小，合计最多20MB/20文件。\nXLSX/XLSM 默认 layout，返回工作表、可见性、合并格和前24行/48列中观察到的块；范围外需要单独读取。\ninspection=cells、cell_range=\"A1:F40\" 按原坐标读取公式或值，默认10行，宽页也按单元格数和字节缩小。\n续读使用相同工作表和范围及 next_cursor；来源字节变化后游标失效。需要原字段统计时使用 inspection=profile。\nheader_row 选择表头，header_rows_json=[2,3] 指定多层表头。新规则审查用audit_uploaded_data；\n已有review_id仅需导出时用deliver_research_artifact，不重新扫描。",
         "parameters": {
           "properties": {
             "file_index": {
@@ -633,6 +633,22 @@
                 }
               ],
               "default": ""
+            },
+            "inspection": {
+              "default": "auto",
+              "type": "string"
+            },
+            "cell_range": {
+              "default": "",
+              "type": "string"
+            },
+            "page_rows": {
+              "default": 10,
+              "type": "integer"
+            },
+            "cursor": {
+              "default": "",
+              "type": "string"
             }
           },
           "type": "object"
@@ -802,7 +818,7 @@
       "type": "function",
       "function": {
         "name": "verify_uploaded_references",
-        "description": "核验文献存在性与书目字段，共用持久 ReferenceAudit。首次提供 references_json、粘贴 text、账号 file_id 或本轮附件 file_index；返回 audit_id 后必须沿该 ID 续查，勿重建库存。默认返回紧凑逐条结果，保留无 DOI、重复条目与原文位置；完整候选、证据和 attempt_history 用各行 evidence_read（operation=read、include_evidence=True）按需回读，导出直接使用 audit_id，无需先回读全部证据。operation=run/create/read/list/cancel；run 每次最多 max_rows（默认20，上限100）并继承任务截止和持久请求预算；取消后或重试联网错误用 resume=True；terminal=True/processing_complete=True 表示库存已全部尝试且无待重试项；next_action=export_and_review 时应先交付并人工复核，即使 partial/retryable 仍为真也无需持续默认 resume；不要因 extraction partial 反复 resume。start_index 已退役，不能跳过条目。batch_size 仅保留兼容，不创建独立线程池。登记库未查到不等于虚构；存在性与逐字段准确性分别报告。allow_web 仅兼容旧接口，通用网页回退未执行，所有登记库查询仍服从当前请求的联网授权。publish=True 按此 audit_id 导出全量 XLSX；其他格式用 deliver_research_artifact(kind=bibliography,audit_id=...)。",
+        "description": "核验文献存在性与书目字段，共用持久 ReferenceAudit。CSV/TSV 可用 column_map 将核验字段映射到来源列名，同名列可省略映射。默认严格读取 UTF-8 或带 BOM 的 UTF-16，GBK/GB18030 等需指定 encoding。首次提供 references_json、粘贴 text、账号 file_id 或本轮附件 file_index；返回 audit_id 后必须沿该 ID 续查，勿重建库存。默认返回紧凑逐条结果，保留无 DOI、重复条目与原文位置；完整候选、证据和 attempt_history 用各行 evidence_read（operation=read、include_evidence=True）按需回读，导出直接使用 audit_id，无需先回读全部证据。operation=run/create/read/list/cancel；run 每次最多 max_rows（默认20，上限100）并继承任务截止和持久请求预算；取消后或重试联网错误用 resume=True；terminal=True/processing_complete=True 表示库存已全部尝试且无待重试项；next_action=export_and_review 时应先交付并人工复核，即使 partial/retryable 仍为真也无需持续默认 resume；不要因 extraction partial 反复 resume。start_index 已退役，不能跳过条目。batch_size 仅保留兼容，不创建独立线程池。登记库未查到不等于虚构；存在性与逐字段准确性分别报告。allow_web 仅兼容旧接口，通用网页回退未执行，所有登记库查询仍服从当前请求的联网授权。publish=True 按此 audit_id 导出全量 XLSX；其他格式用 deliver_research_artifact(kind=bibliography,audit_id=...)。",
         "parameters": {
           "properties": {
             "file_index": {
@@ -872,6 +888,24 @@
             "include_evidence": {
               "default": false,
               "type": "boolean"
+            },
+            "column_map": {
+              "anyOf": [
+                {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "encoding": {
+              "default": "",
+              "type": "string"
             }
           },
           "type": "object"
@@ -1809,7 +1843,7 @@
       "type": "function",
       "function": {
         "name": "create_research_figure",
-        "description": "用受校验的图规格生成科研图（SVG/PNG/PDF），并登记进账号资料库。\n\nspec_json 是图规格的 JSON 文本，例如：\n{\"chart\": \"bar\", \"title\": \"果实重量\", \"x_label\": \"处理\", \"y_label\": \"g\",\n \"x\": {\"kind\": \"inline\", \"column\": \"处理\", \"values\": [\"CK\", \"T1\"]},\n \"y\": {\"kind\": \"inline\", \"column\": \"重量\", \"values\": [10.1, 12.2]},\n \"group\": {\"kind\": \"inline\", \"column\": \"时间\", \"values\": [\"7d\", \"7d\"]},\n \"error\": \"sd\", \"style\": {\"palette\": \"nature\", \"font_size\": 7}}\n\nchart：bar / line / scatter / errorbar / boxplot / histogram。\n数据引用 kind：attachment（本轮上传的表，按列名取）、account_file（资料库\nfile_id + 列名）、inline（直接给 values，≤200 行）。\nerror：none / sd / se / ci95 —— 误差棒的含义，必须与数据实际算出的量一致。\nformats_json：需要的格式，默认 svg+png+pdf。\noutput_name：文件名（不含扩展名），默认用标题。\n\n先检查数据形状、研究问题和单位；样本编号/高唯一率标签不是默认处理组，\n不默认第一列配第一数值列画柱状图。单指标可用分布图，真实低基数组别可用\n箱线图；多指标/矩阵或需要热图时用已加载的 figure-export/nature-figure\n工作流选择脚本路径或询问关键列。不要静默截前 N 行或用密集标签遮挡数据。\n图由服务端根据规格生成，不执行任何调用方代码。误差棒与统计量必须来自\n真实计算好的数据，不得臆造。",
+        "description": "用受校验的图规格生成科研图（SVG/PNG/PDF），并登记进账号资料库。\n\nspec_json 是图规格的 JSON 文本，例如：\n{\"chart\": \"bar\", \"title\": \"果实重量\", \"x_label\": \"处理\", \"y_label\": \"g\",\n \"x\": {\"kind\": \"inline\", \"column\": \"处理\", \"values\": [\"CK\", \"T1\"]},\n \"y\": {\"kind\": \"inline\", \"column\": \"重量\", \"values\": [10.1, 12.2]},\n \"group\": {\"kind\": \"inline\", \"column\": \"时间\", \"values\": [\"7d\", \"7d\"]},\n \"error\": \"sd\", \"style\": {\"palette\": \"nature\", \"font_size\": 7}}\n\nchart：bar / line / scatter / errorbar / boxplot / histogram。\n数据引用 kind：attachment（本轮上传的表，按列名取）、account_file（资料库\nfile_id + 列名）、inline（直接给 values，≤200 行）。\nerror：none / sd / se / ci95 —— 误差棒的含义，必须与数据实际算出的量一致。\nformats_json：需要的格式，默认只交付 SVG；其他格式按明确请求导出。\noutput_name：文件名（不含扩展名），默认用标题。\n\n先检查数据形状、研究问题和单位；样本编号/高唯一率标签不是默认处理组，\n不默认第一列配第一数值列画柱状图。单指标可用分布图，真实低基数组别可用\n箱线图；多指标/矩阵或需要热图时用已加载的 figure-export/nature-figure\n工作流选择脚本路径或询问关键列。不要静默截前 N 行或用密集标签遮挡数据。\n图由服务端根据规格生成，不执行任何调用方代码。误差棒与统计量必须来自\n真实计算好的数据，不得臆造。",
         "parameters": {
           "properties": {
             "spec_json": {
@@ -1847,7 +1881,7 @@
       "type": "function",
       "function": {
         "name": "run_research_figure_script",
-        "description": "在一次性隔离Python环境中探索/整理数据，生成命名科研图（SVG/PNG/PDF）。\n\n首选的科研绘图路径，配合 figure-export 的 nature-figure 工作流。\n仅在服务端已配置隔离沙箱时可用；未配置时本工具不会出现。\nMatplotlib 和产生 Matplotlib Artist 的 Seaborn 均支持，不承诺其他后端。\n先按已加载的 figure-export/nature-figure 工作流确定问题、变量与单位；\n高唯一率编号不默认作处理组，不能默取第一数值列或截前 N 行。多指标按\n研究目的分面/热图，保留原始点及明确的聚合/变换；缺少关键设计时询问。\n单套底部/左侧刻度，实际 draw 后验证标签密度及固定画布边界；布局不合格\n会返回可修正错误，不能以文件生成代替科学表达与视觉检查。\ninputs_json 是变量名到当前账号文件的 JSON 映射，例如\n{\"data\":{\"file_id\":\"...\"}}；脚本中 pd.read_csv(data) 或 pd.read_excel(data,\nsheet_name=..., header=...) 读取完整固定字节快照。模型只需列/类型/维度与\n少量样例的结构摘要；不要分页读出、复述全表或把全表手写进脚本字面量。\n预览截短不等于源数据截短，不用 nrows/head 代替全表；纯绘图不需先做推断检验。\n不允许路径；快照保存摘要并固定引用，原文件变更需新建图件来源。\nanalysis_result_ref_json 接收统计工具返回的 analysis_result_ref，按账号核验；\nanalysis_result 变量是全精度结果 JSON Path，analysis_data 是对应 CSV Path。\nqa_profile_json 支持 name(scientific/nature_single/nature_double)、final_size_mm、\nmin_font_pt、min_linewidth_pt、caption，返回实际测量及明确的 unsupported 检查。\ninputs_json也可绑定 {\"tidy\":{\"dataset_ref\":上一执行返回的dataset_ref}}，\n用 df=load_dataset(tidy) 读取保留类型/精度的内部表；普通文件仍用pandas读取。\n默认用冻结表与独立渲染的outputs_json版本2协议，支持后续保真样式编辑。例如：\n{\"version\":2,\"tables\":[{\"name\":\"tidy\",\"parents\":[\"data\"]}],\n\"figures\":[{\"name\":\"relations\",\"title\":\"变量关系\",\"formats\":[\"svg\",\"png\",\"pdf\"],\n\"parents\":[\"tidy\"],\"render_script\":\"frame=data['tidy']; fig,ax=plt.subplots(); ax.scatter(frame['x'],frame['y'])\"}]}。\n主script只读取、整理、分析输入，用emit.table('tidy',df,parents=['data'])保存完整结果。\nrender_script通过data['tidy']取得冻结DataFrame，仅构造并保留一个Figure；不调用emit、\n不读取主脚本变量/输入路径、不重新抽样或分析。渲染所需数值及标签先保存在表内。\n最多8表/8图；一个Figure可有多个Axes/panel。导出和Nature审核由worker完成，不自行savefig。\n旧混写v2仍兼容：未声明render_script的图必须emit.figure('relations',fig)明确登记，\n只创建Figure或末尾写fig不算登记；该路径可下载，但没有保真样式编辑凭证。\nemit.report(value)最多调用一次，集中提交结构化观察；过程日志用print，不把报告接口当追加日志。\nemit.table的单元格须为标量（字符串、数值、布尔或空），dict/list应拆列或显式编码为JSON字符串。\n纯探索/整理可声明空figures，emit.report返回有界观察；中间表不作默认附件，\n下一执行使用返回的dataset_ref；一次执行也可整理并绘图，不机械分步。\n修复失败时先读取已保存run_id/tool_call_id的具体审核失败项，并复用真实输入与脚本版本；\n不用演示数据、占位图或降低字号/审核要求替代用户要的图件，不把调试图当正式成果。\n图件parents只引用输入绑定名或命名中间表；未声明时保守依赖全部输入与表。\noutputs_json省略时兼容旧协议，最后恰好保留一张Figure。所有脚本必须使用Agg、\n不联网、不创建子进程、不访问沙箱以外文件；类型不明或关键设计不明先探索/必要提问。\n\nscript 是完整的 Python 源码，例如：\nimport matplotlib\nmatplotlib.use('Agg')\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots(figsize=(7, 5))\nax.bar(['CK', 'T1'], [10.1, 12.2], color='#0F4D92', label='果实重量')\nax.set_ylabel('g'); ax.set_title('果实重量')\n\nformats_json：需要的格式，默认 svg+png+pdf。\noutput_name：文件名（不含扩展名）。\n\n失败时返回 [FIGURE_...] 形式的说明，指出问题与改法；沙箱不会执行任何\n需要网络或特权的操作。\n\n\n复用优先：先用research_workspace发现适用内置工具/脚本和任务脚本。\nscript与script_ref_json二选一；源码执行前自动暂存，返回script_ref及run_id，\n失败也保留源码。parameters_json是JSON对象，脚本内通过parameters读取，不拼接代码。\n修复已保存的failed/partial运行时，只提供修改后的script或script_ref_json与repair_from_run_id；\n其余参数留空。宿主继承该运行的固定输入、参数、输出约定和审核选项，重新校验后创建新运行。\n改变输出契约（如改为独立render_script）需显式绑定授权输入发起新运行，不传repair_from_run_id。\n先read_run查看具体失败；running或状态未知的运行不能重放。旧记录缺少完整修复输入时须显式绑定授权来源。\n内置脚本可自动使用其声明的输出契约；任务脚本需要明确绑定输入和输出。\n同一任务局部修改用research_workspace.patch创建子版本，再按引用执行。\n已有工具或参数化脚本能完成时，不从头重写算法。中间表和脚本默认不是下载附件。",
+        "description": "在一次性隔离Python环境中探索/整理数据，生成命名科研图（SVG/PNG/PDF）。\n\n首选的科研绘图路径，配合 figure-export 的 nature-figure 工作流。\n仅在服务端已配置隔离沙箱时可用；未配置时本工具不会出现。\nMatplotlib 和产生 Matplotlib Artist 的 Seaborn 均支持，不承诺其他后端。\n先按已加载的 figure-export/nature-figure 工作流确定问题、变量与单位；\n高唯一率编号不默认作处理组，不能默取第一数值列或截前 N 行。多指标按\n研究目的分面/热图，保留原始点及明确的聚合/变换；缺少关键设计时询问。\n单套底部/左侧刻度，实际 draw 后验证标签密度及固定画布边界；布局不合格\n会返回可修正错误，不能以文件生成代替科学表达与视觉检查。\ninputs_json 是变量名到当前账号文件的 JSON 映射，例如\n{\"data\":{\"file_id\":\"...\"}}；脚本中 pd.read_csv(data) 或 pd.read_excel(data,\nsheet_name=..., header=...) 读取完整固定字节快照。模型只需列/类型/维度与\n少量样例的结构摘要；不要分页读出、复述全表或把全表手写进脚本字面量。\n预览截短不等于源数据截短，不用 nrows/head 代替全表；纯绘图不需先做推断检验。\n不允许路径；快照保存摘要并固定引用，原文件变更需新建图件来源。\nanalysis_result_ref_json 接收统计工具返回的 analysis_result_ref，按账号核验；\nanalysis_result 变量是全精度结果 JSON Path，analysis_data 是对应 CSV Path。\nqa_profile_json 支持 name(scientific/nature_single/nature_double)、final_size_mm、\nmin_font_pt、min_linewidth_pt、caption，返回实际测量及明确的 unsupported 检查。\ninputs_json也可绑定 {\"tidy\":{\"dataset_ref\":上一执行返回的dataset_ref}}，\n用 df=load_dataset(tidy) 读取保留类型/精度的内部表；普通文件仍用pandas读取。\n默认用冻结表与独立渲染的outputs_json版本2协议，支持后续保真样式编辑。例如：\n{\"version\":2,\"tables\":[{\"name\":\"tidy\",\"parents\":[\"data\"]}],\n\"figures\":[{\"name\":\"relations\",\"title\":\"变量关系\",\"formats\":[\"svg\"],\n\"parents\":[\"tidy\"],\"render_script\":\"frame=data['tidy']; fig,ax=plt.subplots(); ax.scatter(frame['x'],frame['y'])\"}]}。\n主script只读取、整理、分析输入，用emit.table('tidy',df,parents=['data'])保存完整结果。\nrender_script通过data['tidy']取得冻结DataFrame，仅构造并保留一个Figure；不调用emit、\n不读取主脚本变量/输入路径、不重新抽样或分析。渲染所需数值及标签先保存在表内。\n最多8表/8图。每张独立图声明不同的 name；只有用户明确要求科学组合图时才共用一个多面板 Figure。\n导出和Nature审核由worker完成，不自行savefig。\n旧混写v2仍兼容：未声明render_script的图必须emit.figure('relations',fig)明确登记，\n只创建Figure或末尾写fig不算登记；该路径可下载，但没有保真样式编辑凭证。\nemit.report(value)最多调用一次，集中提交结构化观察；过程日志用print，不把报告接口当追加日志。\nemit.table的单元格须为标量（字符串、数值、布尔或空），dict/list应拆列或显式编码为JSON字符串。\n纯探索/整理可声明空figures，emit.report返回有界观察；中间表不作默认附件，\n下一执行使用返回的dataset_ref；一次执行也可整理并绘图，不机械分步。\n修复失败时先读取已保存run_id/tool_call_id的具体审核失败项，并复用真实输入与脚本版本；\n不用演示数据、占位图或降低字号/审核要求替代用户要的图件，不把调试图当正式成果。\n图件parents只引用输入绑定名或命名中间表；未声明时保守依赖全部输入与表。\noutputs_json省略时兼容旧协议，最后恰好保留一张Figure。所有脚本必须使用Agg、\n不联网、不创建子进程、不访问沙箱以外文件；类型不明或关键设计不明先探索/必要提问。\n\nscript 是完整的 Python 源码，例如：\nimport matplotlib\nmatplotlib.use('Agg')\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots(figsize=(7, 5))\nax.bar(['CK', 'T1'], [10.1, 12.2], color='#0F4D92', label='果实重量')\nax.set_ylabel('g'); ax.set_title('果实重量')\n\nformats_json：需要的格式，默认只交付 SVG；其他格式按明确请求导出。\noutput_name：文件名（不含扩展名）。\n\n失败时返回 [FIGURE_...] 形式的说明，指出问题与改法；沙箱不会执行任何\n需要网络或特权的操作。\n\n\n复用优先：先用research_workspace发现适用内置工具/脚本和任务脚本。\nscript与script_ref_json二选一；源码执行前自动暂存，返回script_ref及run_id，\n失败也保留源码。parameters_json是JSON对象，脚本内通过parameters读取，不拼接代码。\n修复已保存的failed/partial运行时，只提供修改后的script或script_ref_json与repair_from_run_id；\n其余参数留空。宿主继承该运行的固定输入、参数、输出约定和审核选项，重新校验后创建新运行。\n改变输出契约（如改为独立render_script）需显式绑定授权输入发起新运行，不传repair_from_run_id。\n先read_run查看具体失败；running或状态未知的运行不能重放。旧记录缺少完整修复输入时须显式绑定授权来源。\n内置脚本可自动使用其声明的输出契约；任务脚本需要明确绑定输入和输出。\n同一任务局部修改用research_workspace.patch创建子版本，再按引用执行。\n已有工具或参数化脚本能完成时，不从头重写算法。中间表和脚本默认不是下载附件。",
         "parameters": {
           "properties": {
             "script": {

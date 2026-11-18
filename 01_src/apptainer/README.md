@@ -16,13 +16,15 @@ Web 使用现有 Deep Agents 单一主循环。Worker 不构建模型、不加�
 
 ## 构建输入
 
-从可信源码根执行构建，不能在不可信下载/解压目录运行构建工具。build_linux_deployment.py 使用已有发行脚本的路径及凭据检查，仅选择本体源码、Web、配置、支持包、Skill 和构建定义；排除 runtime、模型、数据、数据库、日志、环境和工程验收材料。清单记录当前文件字节及 HEAD，包含尚未提交的修改，不把 HEAD 当完整来源。
+在可信、独立的源码目录中构建。输入包括 `01_src/apptainer/`、`01_src/src/`、静态 Web、启动脚本、`02_config/`、`packages/`、`skills/`、发行元数据以及 `04_scripts/build_worker_bundle.py`。从已审查的服务源码快照准备构建树，随交付记录构建树的逐文件 SHA-256；如果修改过快照，则同时保存原快照标识和变更清单。使用 `LINUX-SOURCE-MANIFEST.json` 核对发布基线，它只描述生成该清单时的文件。模型、运行数据、数据库、日志、密钥、缓存和验收材料留在源码树之外。
+
+应用及绘图 Worker 的受信输入均可从同一源码树获得。独立核查 Worker 发行包时，使用实际存在的构建脚本：
 
 ```bash
-python -I 04_scripts/build_linux_deployment.py --output /absolute/new/location/linux-source.tar.gz
+python -I 04_scripts/build_worker_bundle.py --output /absolute/new/location/figure-worker
 ```
 
-核对 tar.gz、manifest.json、sha256.json 后，只向新的版本目录上传。定义中的 %files 以该源码根为相对路径：
+如需上传源码，上传已核对清单的完整服务树至新的版本目录。以下定义的 `%files` 以该源码根为相对路径：
 
 ```bash
 apptainer build --fakeroot /absolute/new/images/application.sif 01_src/apptainer/app.def
@@ -40,7 +42,7 @@ namespace.sif 仅含标准库 Python、systemd 客户端、util-linux 与 libsec
 
 构建需要该机器实际允许 fakeroot；具有 subuid 条目不等于构建已经可用。缺 namespace/cgroup/运行时权限即保留阻塞，不使用宿主 Python 执行用户代码，不放宽隔离。构建期网络只用于下载发行依赖，和用户代码 offline 策略分开。
 
-application.sif 实际安装 requirements-gpu.txt 与非 editable 支持 wheel，拒绝额外 CPU ORT/FastEmbed 发行。sandbox.sif 使用 requirements.sandbox.txt、字体与 build_worker_bundle.py，实际 bundle 含 139 个成员。两者完成构建内 pip check、发行/资源检查；其 Python 基础镜像经官方 ECR 固定 linux/amd64 digest。namespace.sif 使用固定 Ubuntu 24.04 digest，匹配宿主 Apptainer/helper glibc 与 libfuse3.so.3 ABI，并检查完整标准库与挂载助手所需动态库。传递依赖仍非完整锁，必须记录实际 SIF SHA-256 和镜像内安装清单。
+application.sif 实际安装 requirements-gpu.txt 与非 editable 支持 wheel，拒绝额外 CPU ORT/FastEmbed 发行。sandbox.sif 使用 requirements.sandbox.txt、字体与 build_worker_bundle.py，构建产物包含 Worker 成员清单和逐文件摘要。两者完成构建内 pip check、发行/资源检查；其 Python 基础镜像经官方 ECR 固定 linux/amd64 digest。namespace.sif 使用固定 Ubuntu 24.04 digest，匹配宿主 Apptainer/helper glibc 与 libfuse3.so.3 ABI，并检查完整标准库与挂载助手所需动态库。传递依赖仍非完整锁，必须记录实际 SIF SHA-256 和镜像内安装清单。
 
 当前受信应用依赖固定于 application SIF，活跃入口来自只读绑定的版本源码；须同时记录上传基线与远程修订来源。Apptainer 的 /environment 为保留路径，Code 依赖 overlay 使用 /code-environment/site.zip，宿主持久协议和 OCI 路线不变。Web 单独只读绑定宿主现有 resolv.conf；Worker/用户 Code 不继承该挂载或 GPU。
 
@@ -70,6 +72,6 @@ python -I 01_src/scripts/apptainer_launch.py --config /absolute/runtime/deployme
 
 先让隔离版本验证通过，再在无活动任务的切换窗口停止已确认身份的旧服务。正式运行可将 runtime_root 指向保留的原 runtime，existing_runtime=true；配置来源可与其相同。这是原地复用状态，不是账号/会话复制或手工数据库迁移。首次运行新源码的正常 schema 初始化仍需兼容性检查与状态备份，不能以隔离空库测试代替。
 
-远程已核对存在两套需要保留的 data、模型缓存和状态根；清理前必须再次确认路径与 symlink。不能删除整个 服务账号的整个主目录，也不能直接删除包含 agent/data、state/data 或账号状态的旧根。用户授权删除的是被替换的旧程序版本；新 SIF、新源码、现用运行区不能继续引用即将删除的旧源码、虚拟环境、SIF 或符号链接。
+远程已核对存在两套需要保留的 data、模型缓存和状态根；清理前必须再次确认路径与 symlink。不能删除服务账号的整个主目录，也不能直接删除包含 agent/data、state/data 或账号状态的旧根。用户授权删除的是被替换的旧程序版本；新 SIF、新源码、现用运行区不能继续引用即将删除的旧源码、虚拟环境、SIF 或符号链接。
 
 旧源码/虚拟环境/镜像只在新版本通过、旧服务确实停止、路径依赖排除之后逐项删除。无关实验和其他项目不属于此次替换。当前仅隔离验收入口运行；正式切换和旧程序删除尚未完成，没有提交或推送。

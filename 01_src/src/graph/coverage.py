@@ -346,6 +346,41 @@ class CoverageLedger:
                 "new_targets": self.new_targets, "repeated_targets": self.repeated_targets}
 
 
+def _modern_audit_scope(record, receipt):
+    """A page is not proof. Only accept aggregate coverage of one durable audit."""
+    payload = receipt.get("coverage")
+    if not isinstance(payload, dict) or payload.get("schema") != "reference_audit/2":
+        return None
+    scope = payload.get("coverage")
+    if not isinstance(scope, dict):
+        return None
+    audit, rule, source = payload.get("audit_id"), payload.get("rule_version"), scope.get("source_sha256")
+    total, submitted, processed, pending, retryable = (scope.get(key) for key in
+        ("total", "submitted", "processed", "pending", "retryable"))
+    if (not all(isinstance(key, str) and key for key in (audit, rule, source))
+            or len(source) != 64 or set(source) - set("0123456789abcdef")
+            or not all(_nonnegative_int(n) for n in (total, submitted, processed, pending, retryable))
+            or not total or submitted != total or processed + pending != total or retryable > processed
+            or scope.get("extraction_complete") is not True
+            or receipt.get("status") != record.get("status")):
+        return None
+    identity = audit, source, rule, total
+    reason = record.get("reason") or record.get("reason_code")
+    if reason != receipt.get("reason_code"):
+        return None
+    if (reason in {"audit_complete", "audit_completed_with_review"}
+            and record.get("status") == "complete" and payload.get("terminal") is True
+            and scope.get("complete") is True and scope.get("processing_complete") is True
+            and not (pending or retryable)):
+        return identity, "settled"
+    if (reason == "reference_coverage_incomplete" and record.get("status") == "partial"
+            and payload.get("terminal") is False and (pending or retryable)
+            and payload.get("export_status") in {None, "not_requested"}
+            and not payload.get("run_reason") in {"cancelled", "cancelled_use_resume", "lease_lost", "already_running"}):
+        return identity, "open"
+    return None
+
+
 def reconcile_coverage_records(records):
     """Return an effective view; never modify the raw execution journal.
 
@@ -353,8 +388,11 @@ def reconcile_coverage_records(records):
     terminal record, after artifact validation, retaining its original call ID,
     status and reason. Legacy records without receipts remain independent.
     """
+    records = list(records)
     ledger = CoverageLedger()
-    for record in records:
+    modern = {}
+    settled = {}
+    for index, record in enumerate(records):
         receipt = record.get("op_receipt")
         name = record.get("name") or record.get("tool_name")
         if (name == "verify_uploaded_references" and isinstance(receipt, dict)
@@ -364,9 +402,17 @@ def reconcile_coverage_records(records):
                 and receipt.get("status") in {"complete", "partial"}
                 and record.get("status") in {"complete", "partial"}):
             ledger.observe(name, artifact={"op_receipt": receipt})
+            proof = _modern_audit_scope(record, receipt)
+            if proof:
+                identity, phase = proof
+                modern[index] = proof
+                if phase == "settled":
+                    settled[identity] = index
     effective = []
-    for record in records:
-        if ledger.reconciles_reference_batch(record):
+    for index, record in enumerate(records):
+        proof = modern.get(index)
+        covered = proof and proof[1] == "open" and settled.get(proof[0], -1) > index
+        if covered or ledger.reconciles_reference_batch(record):
             effective.append({**record, "status": "complete",
                               "reason": "cumulative_coverage_completed",
                               "reason_code": "cumulative_coverage_completed"})
