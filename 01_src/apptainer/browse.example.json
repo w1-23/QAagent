@@ -1,0 +1,10 @@
+{
+  "image": "/srv/citrusscholar/images/playwright.sif",
+  "image_sha256": "REPLACE_WITH_BUILT_PLAYWRIGHT_SHA256",
+  "packages": "/srv/citrusscholar/browser-python",
+  "host_python": "/usr/bin/python3.12",
+  "hosts": [
+    "vincentarelbundock.github.io",
+    "docs.python.org"
+  ]
+}

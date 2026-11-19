@@ -225,6 +225,9 @@ def provider_denials(config) -> frozenset[str]:
         denied.add("deepseek_search")
     if not deepseek_ready:
         denied.update({"deepseek_fetch", "deepseek_fetch_paper"})
+    from src.browse.service import enabled as browse_enabled
+    if not browse_enabled():
+        denied.add("browse_web")
     return frozenset(denied)
 
 

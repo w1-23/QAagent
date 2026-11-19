@@ -62,10 +62,13 @@ from src.research.figure_tools import (
 #   accepts a DOI/title/rows from the model does not require an upload.
 # produces: deliverable kinds the tool actually writes to storage.
 # authorization: execution-time permission; visibility is never affected.
+from src.tools.browse_web import browse_web
+
 _TOOL_DECLARATIONS = (
     (request_user_input, "interaction", "user_question", None, ("session",), (), ""),
     (deepseek_search, "web", "deepseek_search", None, ("network",), (), ""),
     (deepseek_fetch, "web", "deepseek_fetch", None, ("network",), (), ""),
+    (browse_web, "web", "browse_web", "session_artifact", ("network", "session"), (), ""),
     (deepseek_fetch_paper, "web", "deepseek_fetch_paper", None, ("network",), (), ""),
     (local_hybrid_search, "rag", "local_hybrid_search", None, ("local_corpus",), (), ""),
     # Candidate tools read the request-scoped candidate pool that the

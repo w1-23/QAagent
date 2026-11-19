@@ -75,3 +75,17 @@ python -I 01_src/scripts/apptainer_launch.py --config /absolute/runtime/deployme
 远程已核对存在两套需要保留的 data、模型缓存和状态根；清理前必须再次确认路径与 symlink。不能删除服务账号的整个主目录，也不能直接删除包含 agent/data、state/data 或账号状态的旧根。用户授权删除的是被替换的旧程序版本；新 SIF、新源码、现用运行区不能继续引用即将删除的旧源码、虚拟环境、SIF 或符号链接。
 
 旧源码/虚拟环境/镜像只在新版本通过、旧服务确实停止、路径依赖排除之后逐项删除。无关实验和其他项目不属于此次替换。当前仅隔离验收入口运行；正式切换和旧程序删除尚未完成，没有提交或推送。
+
+## 交互式 Browse（可选）
+
+使用 unprivileged Linux 用户构建固定 Chromium 镜像，将本节命令中的输出路径替换为部署路径。宿主需要 Apptainer、用户级 systemd、cgroup v2 以及支持 `--network none` 的用户命名空间环境。
+
+```bash
+apptainer build playwright.sif docker://mcr.microsoft.com/playwright/python@sha256:38dd67fc654b56b3cba611e4c8eb71cd33750e1cd29eea2a5dc00b484817a75f
+/usr/bin/python3.12 -m pip install --only-binary=:all: --no-deps --target browser-python -r browse-requirements.txt
+sha256sum playwright.sif
+```
+
+将 `browse.example.json` 复制到服务配置目录，填写三个绝对路径、镜像的实际 SHA-256 和精确公网主机名。部署 JSON 的可选 `browse_config` 指向该配置。Web 只读挂载配置、镜像及 Python 依赖。省略 `browse_config` 时不暴露 Browse。可设置 `reuse_web_search_settings` 为 `false`，使候选不从源运行环境继承 Search/Fetch 设置。Browse 不依赖其密钥。
+
+每个任务启用一个新 Apptainer 浏览器单元和独立上下文，最多三张标签页。单 Web 进程同时运行两个单元，每账号至多一个。不同账号最多四个请求可按先来顺序等待，每个最多二十秒。所有标签页共同计量该任务的请求、传输、动作和寿命。浏览器无直接网络接口，页面资源及下载通过应用侧 HTTPS 中继。当前 Chromium 启动方式依赖 Apptainer 的外部隔离，浏览器自身沙箱未启用。部署以单 Web 进程运行时，上述槽位才是实例级上限。

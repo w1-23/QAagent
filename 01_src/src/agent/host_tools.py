@@ -104,11 +104,23 @@ class HostTools:
         from src.core.execution_ledger import current_execution_ledger
         from src.core.progress_bus import emit_tool_call_start, emit_tool_executing
         from src.tools.interaction import bind_question_context, reset_question_context
+        # Every provider call in the product loop runs through this adapter, so
+        # it must carry the same operation identity as the graph path. Without
+        # it a corrected retry cannot supersede its own failed attempt and the
+        # completion account keeps the stale failure as an execution blocker.
+        from src.graph.agent_operations import _logical_key
+        logical_key = _logical_key(call["name"], call)
+        attempt = 1 + sum(1 for row in self.records
+                          if str(row.get("logical_key") or "") == logical_key)
+        call["_attempt"] = attempt
         ledger = current_execution_ledger()
         if ledger:
-            ledger.start(call["id"], call["name"], call["args"], source="provider")
-        emit_tool_call_start(call["name"], call["args"], call["id"])
-        emit_tool_executing("正在执行所选操作", call["name"], call["id"])
+            ledger.start(call["id"], call["name"], call["args"], source="provider",
+                         logical_key=logical_key, attempt=attempt)
+        emit_tool_call_start(call["name"], call["args"], call["id"],
+                             logical_key=logical_key, attempt=attempt)
+        emit_tool_executing("正在执行所选操作", call["name"], call["id"],
+                            logical_key=logical_key, attempt=attempt)
         token = bind_question_context(self.question_context())
         from src.core import tracing
         from src.graph.retrieval_router import retrieval_denied, source_scope

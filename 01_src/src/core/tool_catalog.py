@@ -38,6 +38,7 @@ TOOL_METADATA: dict[str, ToolMetadata] = {
     "deepseek_fetch": ToolMetadata(
         "读取网页", capabilities=frozenset({NETWORK, WEB_RETRIEVAL, ROUTE_WEB,
                                            LITERATURE_RETRIEVAL})),
+    "browse_web": ToolMetadata("交互式浏览网页", "下载网页资料", frozenset({NETWORK, WEB_RETRIEVAL, ARTIFACT})),
     "deepseek_fetch_paper": ToolMetadata(
         "获取论文全文", capabilities=frozenset({NETWORK, WEB_RETRIEVAL, ROUTE_WEB,
                                                LITERATURE_RETRIEVAL})),

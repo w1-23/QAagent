@@ -68,6 +68,13 @@ def command(config, role):
     if role != 'worker':
         binds += [(absolute(config['corpus_root']), 'ro'),
                   (absolute(config['model_cache_root']), 'rw')]
+    if role == 'web' and config.get('browse_config'):
+        browse_path = absolute(config['browse_config'])
+        browse = json.loads(Path(browse_path).read_text(encoding='utf-8'))
+        browser_image = absolute(browse['image'])
+        browser_packages = absolute(browse['packages'])
+        binds += [(browse_path, 'ro'), (browser_image, 'ro'), (browser_packages, 'ro')]
+        result += ['--env', 'CITRUS_BROWSE_CONFIG=' + browse_path]
     for path, mode in dict(binds).items():
         result += ['--bind', f'{path}:{path}:{mode}']
     result += [app, '/usr/local/bin/python']
@@ -95,6 +102,8 @@ def command(config, role):
             result += ['--offline-code']
             if config.get('existing_runtime'):
                 result += ['--existing-runtime']
+        if config.get('reuse_web_search_settings') is False:
+            result += ['--without-source-web-search']
         # Existing configuration can live outside the writable runtime during
         # isolated acceptance. The Web alone may read its authorized key source.
         model_root = absolute(config['model_config_root'])

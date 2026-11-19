@@ -1185,7 +1185,11 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
         ledger = current_execution_ledger()
         registered = ledger.record(str(call.get("id") or "")) if ledger else None
         if registered is not None:
-            logical_key, attempt = registered.logical_key, registered.attempt
+            # A registration without an identity (an adapter that started the
+            # call before resolving arguments) must not erase the key computed
+            # here: the completion account reconciles retries by that key.
+            logical_key = registered.logical_key or logical_key
+            attempt = max(attempt, int(registered.attempt or 1))
         step["logical_key"] = logical_key
         step["attempt"] = attempt
         if tool_status_sink is not None:

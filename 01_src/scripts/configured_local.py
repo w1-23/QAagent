@@ -121,19 +121,20 @@ def configure(args):
         settings._runtime_configured_model_providers.add(provider)
     # Reuse the authorized deployment's network configuration in memory only.
     # Runtime-local settings win; no credentials or account DBs are copied.
-    search_config = source / 'state/web_search_config.json'
-    if not settings._runtime_web_search_cfg and search_config.is_file():
-        search_provider = json.loads(search_config.read_text(encoding='utf-8')).get('provider_id')
-        if search_provider in {'deepseek_search_fetch', 'zhipu_web_search'}:
-            settings._runtime_web_search_cfg = {'provider_id': search_provider}
-    search_key = source / 'state/deepseek_web_api_key'
-    if not settings.RESOLVED_DEEPSEEK_WEB_API_KEY and search_key.is_file():
-        settings._runtime_deepseek_web_api_key = search_key.read_text(encoding='utf-8').strip()
-    if settings.RESOLVED_WEB_SEARCH_PROVIDER == 'zhipu_web_search' and not settings.RESOLVED_ZHIPU_API_KEY:
-        source_keys = json.loads((source / 'state/provider_api_keys.json').read_text(encoding='utf-8'))
-        zhipu_key = source_keys.get('zhipu')
-        if isinstance(zhipu_key, str) and zhipu_key.strip():
-            settings._runtime_provider_api_keys['zhipu'] = zhipu_key.strip()
+    if not getattr(args, "without_source_web_search", False):
+        search_config = source / 'state/web_search_config.json'
+        if not settings._runtime_web_search_cfg and search_config.is_file():
+            search_provider = json.loads(search_config.read_text(encoding='utf-8')).get('provider_id')
+            if search_provider in {'deepseek_search_fetch', 'zhipu_web_search'}:
+                settings._runtime_web_search_cfg = {'provider_id': search_provider}
+        search_key = source / 'state/deepseek_web_api_key'
+        if not settings.RESOLVED_DEEPSEEK_WEB_API_KEY and search_key.is_file():
+            settings._runtime_deepseek_web_api_key = search_key.read_text(encoding='utf-8').strip()
+        if settings.RESOLVED_WEB_SEARCH_PROVIDER == 'zhipu_web_search' and not settings.RESOLVED_ZHIPU_API_KEY:
+            source_keys = json.loads((source / 'state/provider_api_keys.json').read_text(encoding='utf-8'))
+            zhipu_key = source_keys.get('zhipu')
+            if isinstance(zhipu_key, str) and zhipu_key.strip():
+                settings._runtime_provider_api_keys['zhipu'] = zhipu_key.strip()
     if backend == 'apptainer':
         from src.figures.readiness import validate_apptainer_staging
         validate_apptainer_staging()
@@ -169,6 +170,8 @@ def main():
                         help='Enable trusted local offline Code after its independent Worker starts')
     parser.add_argument('--prepare-only', action='store_true',
                         help='Initialize an independent runtime for Worker startup, without a server')
+    parser.add_argument('--without-source-web-search', action='store_true',
+                        help='Use runtime-local Search settings only')
     parser.add_argument('--direct-network', action='store_true',
                         help='Ignore inherited HTTP proxy variables in this process only')
     args = parser.parse_args()

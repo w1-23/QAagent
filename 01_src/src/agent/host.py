@@ -52,6 +52,11 @@ async def general_agent_node(state: dict) -> dict:
             preserve_pool = True
         return output
     finally:
+        from src.browse.service import release as release_browser
+        try:
+            await release_browser(identity.owner_user_id, identity.session_id, identity.run_id)
+        except (OSError, TimeoutError):
+            logger.warning("Browser cleanup did not confirm exit for job %s", identity.run_id)
         reset_question_context(question_token)
         _epoch.reset(epoch_token)
         reset_execution_ledger(ledger_token)

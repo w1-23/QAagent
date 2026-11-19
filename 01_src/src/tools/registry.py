@@ -104,14 +104,18 @@ def get_tool_spec(name: str) -> Optional[ToolSpec]:
 def is_readonly_call(name: str, args: dict) -> bool:
     """Classify effects from registered policy and code-owned operation branches.
 
-    This narrows outcome uncertainty only; authorization, scheduling and recovery
-    still use the tool's declared policy. Unknown operations remain writes.
+    This classifies durable effects for reconciliation. Authorization, scheduling
+    and recovery still use the tool's declared policy. Unknown operations remain writes.
     """
     spec = get_tool_spec(name)
     if spec is None:
         return False
     if spec.is_readonly:
         return True
+    if name == "browse_web" and isinstance(args, dict):
+        # Only download can publish a file. Navigation changes ephemeral browser state.
+        return args.get("action") in ("open", "observe", "scroll", "click", "close",
+                                      "new_tab", "list_tabs", "switch_tab", "close_tab")
     if name == "research_workspace" and isinstance(args, dict):
         from src.research.workspace_tools import READONLY_OPERATIONS
         operation = args.get("operation", "list")

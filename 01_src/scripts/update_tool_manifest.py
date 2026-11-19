@@ -19,8 +19,7 @@ def main() -> None:
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
 
-    from langchain_core.utils.function_calling import convert_to_openai_tool
-    from src.agent.preset_catalog import _PRESETS, _TARGETS
+    from src.agent.preset_catalog import _PRESETS, _TARGETS, canonical_tool_schema
 
     root = Path(__file__).resolve().parents[1]
     source = ast.parse((root / "src/tools/legacy_registry.py").read_text(encoding="utf-8"))
@@ -45,7 +44,8 @@ def main() -> None:
     schemas = []
     for preset in _PRESETS:
         tool = getattr(import_module(_TARGETS[preset.name]), preset.name)
-        schema = convert_to_openai_tool(tool)
+        # The loader compares this exact normalized form; keep both sides equal.
+        schema = canonical_tool_schema(tool)
         if schema["function"]["name"] != preset.name:
             raise ValueError("preset_tool_name_drift:" + preset.name)
         schemas.append(schema)
