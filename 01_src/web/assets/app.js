@@ -2999,6 +2999,9 @@ function publicTaskNote(value) {
 
 function createResearchProcessPanel(goal) {
   var epoch = authEpoch, sid = sessionId, knownJobId = '';
+  var settled = false, browsePhase = '';
+  var browseStages = {waiting: '等待浏览器', navigating: '正在访问网页', interacting: '正在读取或操作网页',
+    downloading: '正在下载资料', verifying: '正在核验附件', organizing: '正在组织回答'};
   var panel = document.createElement('div'); panel.className = 'research-process';
   var body = document.createElement('div'); body.className = 'research-process-body'; panel.appendChild(body);
   var label = document.createElement('span'); label.className = 'research-task-status';
@@ -3035,9 +3038,17 @@ function createResearchProcessPanel(goal) {
       if (!knownJobId || String(data.plan_id) === knownJobId) view.plan(data);
     }
     else if (type === 'agent_recovery' && data.status === 'admitted') {
+      settled = false; browsePhase = '';
       view.terminal(false); label.textContent = '正在恢复任务'; panel.classList.remove('has-failure');
     }
+    else if (type === 'browse_phase' && !settled && ownsDetails() &&
+        Object.prototype.hasOwnProperty.call(browseStages, data.phase)) {
+      browsePhase = data.phase; label.textContent = browseStages[browsePhase];
+    }
     else if (type === 'tool_resolution') view.resolution(data);
+    else if ((type === 'answer_start' || type === 'thinking') && browsePhase === 'organizing' && !settled) {
+      browsePhase = ''; label.textContent = '';
+    }
     else if (type === 'request_user_input' || type === 'question') label.textContent = '等待你的选择';
     else if (['assistant_progress', 'commentary', 'working_note'].indexOf(type) >= 0) {
       note(data.text || data.working_note || data.content,
@@ -3046,6 +3057,9 @@ function createResearchProcessPanel(goal) {
     else if (['tool_call_start', 'tool_executing', 'tool_result', 'operation'].indexOf(type) >= 0 &&
         (data.tool_call_id || data.operation_id || data.logical_key || Array.isArray(data.aliases) && data.aliases.length) &&
         data.internal !== true && ['private', 'internal'].indexOf(data.visibility) < 0) {
+      if (type === 'tool_result' && data.tool_name === 'browse_web' && browsePhase && !settled) {
+        browsePhase = ''; label.textContent = '';
+      }
       view.action(Object.assign({}, data.outcome || {}, data, {status: data.status || (type === 'tool_result' ? (data.is_error ? 'failed' : 'complete') : 'running')}));
     }
     // status/plan/thinking/section/context events are never promoted to prose.
@@ -3053,6 +3067,7 @@ function createResearchProcessPanel(goal) {
   function terminal(status) {
     var names = {completed: '', partial: '部分完成', cancelled: '已停止', failed: '未完成'};
     if (!Object.prototype.hasOwnProperty.call(names, status)) return false;
+    settled = true; browsePhase = '';
     label.textContent = names[status]; view.terminal();
     panel.classList.toggle('has-failure', status === 'failed');
     return true;
@@ -3854,6 +3869,9 @@ async function sendMsg(isFollowUp) {
       case 'thinking': mascotSay('planning'); break;
       case 'tool_call_start':
       case 'tool_executing': mascotSay('retrieving'); break;
+      case 'browse_phase':
+        if (!hasTerminalEvent && data.phase === 'organizing') mascotSay('generating');
+        break;
       case 'tool_progress':
       case 'tool_result':
       case 'agent_switch':

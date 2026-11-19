@@ -134,7 +134,7 @@ async def _run(state, identity, ledger):
             from src.config import PROJECT_ROOT as runtime_root
             host.allowed_names.update(CODE_TOOL_NAMES)
             if not worker_available(runtime_root / "state" / "code_executions.sqlite3"):
-                host.allowed_names.discard("code_execute")
+                host.allowed_names.difference_update({"code_execute", "code_environment_install"})
         tracing.set_request_authorizations(executor_authorizations(str(state.get("query") or "")))
         return set(host.allowed_names)
     refresh_allowed()
@@ -179,6 +179,18 @@ async def _run(state, identity, ledger):
             prompt += "\n已登记的本地资料类别（选择工具时使用真实family id）：\n" + load_corpus_registry().describe_families()
         except Exception:
             prompt += "\n本地资料类别目录暂不可用；不得猜测family id。"
+    # Keep the brief public introduction after the internal tool directories.
+    intro_capabilities = [description for names, description in (
+        ({"browse_web"}, "浏览公开网页"),
+        ({"local_hybrid_search", "deepseek_search", "deepseek_fetch", "deepseek_fetch_paper"}, "查找资料"),
+        ({"inspect_uploaded_table"}, "分析附件"),
+        ({"code_execute"}, "运行离线代码"),
+    ) if names & host.allowed_names]
+    intro_example = "我是 CitrusScholar，一名通用智能助手。我可以回答日常和专业问题"
+    if intro_capabilities:
+        intro_example += "，也可以" + "、".join(intro_capabilities)
+    prompt += ("\n如果用户只问身份或能力，用一两句自然的话回答，不加标题、列表、工具名称、"
+               "资料库类别或追问。可以参考这样的长度和用词：" + intro_example + "。")
     messages, trace_start = assemble_supervisor_messages(prompt, state, human)
     messages = ops._sanitize_history_tool_protocol(messages)
     model = get_llm(model=get_deepseek_model(), api_key=settings.RESOLVED_MAIN_API_KEY,
@@ -357,6 +369,9 @@ async def _run(state, identity, ledger):
         except (ValueError, TypeError):
             task_events.append_event(identity.run_id, "agent_control", {"reason_code": "completion_schema_invalid"})
             return FinalCheck(False, ("旧任务的终答声明格式无效；请按原契约修正，不重新执行已完成操作。",))
+        if any(row.get('name') == 'browse_web' for row in host.records):
+            from src.core.progress_bus import emit_progress
+            emit_progress('browse_phase', {'phase': 'organizing'})
         public_answer = statement.answer
         if "[[FIGURE:" in public_answer:
             public_answer = figures.expand(public_answer)
@@ -618,7 +633,10 @@ def _settled_trace(messages, host, result):
                     tool_call_id=cid, name=call["name"], status="error",
                     artifact={"_tool_outcome": {"status": status, "reason_code": result.reason}},
                     additional_kwargs=host.identity.message_metadata("tool"))
+                from uuid import uuid4
                 from src.graph.agent_operations import _emit_completed_tool_step
+                if not call.get("_host_logical_key"):
+                    call["_host_logical_key"] = "host:" + uuid4().hex
                 _emit_completed_tool_step(call, observed, host.records)
             trace.append(observed)
     return trace

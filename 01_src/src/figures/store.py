@@ -262,6 +262,22 @@ def list_projects(owner_user_id: int, *, limit: int = 100,
 def update_project(figure_id: str, owner_user_id: int, *,
                    expected_revision: int | None = None, **fields: Any) -> bool:
     """Update a project while the account admits writes."""
+    return update_project_committed(
+        figure_id, owner_user_id, expected_revision=expected_revision,
+        **fields) is not None
+
+
+def update_project_committed(figure_id: str, owner_user_id: int, *,
+                             expected_revision: int | None = None,
+                             **fields: Any) -> dict[str, Any] | None:
+    """Update a project and return the row that was committed.
+
+    ``None`` means the compare-and-swap matched no row: the revision was
+    stale, the project was deleted, or another writer changed it first.
+    The returned row is read inside the same write transaction as the
+    UPDATE, so its ``document_json`` is the persisted identity document
+    for exactly the committed render revision, never a later writer's.
+    """
     from src.core.account_leases import account_lease
     with account_lease(int(owner_user_id)):
         return _update_project(figure_id, owner_user_id,
@@ -269,7 +285,8 @@ def update_project(figure_id: str, owner_user_id: int, *,
 
 
 def _update_project(figure_id: str, owner_user_id: int, *,
-                    expected_revision: int | None = None, **fields: Any) -> bool:
+                    expected_revision: int | None = None,
+                    **fields: Any) -> dict[str, Any] | None:
     """Update the mutable fields of a project.
 
     Only the fields that describe the figure's *current state* may be
@@ -282,10 +299,10 @@ def _update_project(figure_id: str, owner_user_id: int, *,
                "data_refs_json", "render_version")
     updates = {key: value for key, value in fields.items() if key in allowed}
     if not updates:
-        return False
+        return None
     before = get_project(figure_id, owner_user_id)
     if before is None:
-        return False
+        return None
     # The identity document is derived server-side and committed with the same
     # row CAS as its manifest/source/exports. Never accept a caller's document.
     render_fields = ("source_kind", "source_json", "manifest_json", "overrides_json",
@@ -333,6 +350,7 @@ def _update_project(figure_id: str, owner_user_id: int, *,
     obsolete = []
     if dependencies_changed:
         assignments.append("pins_version=2")
+    persisted = None
     try:
         with _connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
@@ -342,7 +360,7 @@ def _update_project(figure_id: str, owner_user_id: int, *,
             current_before = _row_to_project(previous)
             if current_before != before or (expected_revision is not None
                     and int(before.get("render_version") or 0) != int(expected_revision)):
-                return False
+                return None
             old_revision = int(before.get("render_version") or 0)
             new_revision = int(updates.get("render_version", old_revision))
             if new_revision < old_revision:
@@ -356,6 +374,11 @@ def _update_project(figure_id: str, owner_user_id: int, *,
             cursor = conn.execute(
                 f"UPDATE figure_projects SET {', '.join(assignments)}" + condition, values)
             committed = cursor.rowcount > 0
+            if committed:
+                row = conn.execute(
+                    "SELECT * FROM figure_projects WHERE figure_id=? AND owner_user_id=?",
+                    (str(figure_id), int(owner_user_id))).fetchone()
+                persisted = _row_to_project(row)
             if committed and dependencies_changed:
                 obsolete = _retire_pins(conn, str(figure_id), int(owner_user_id))
                 _record_pin(conn, resource_id, str(figure_id), int(owner_user_id), source, session_id)
@@ -372,7 +395,7 @@ def _update_project(figure_id: str, owner_user_id: int, *,
             # The save is durable. Retain obsolete rows for the cleanup retry;
             # reporting a failed save could make callers remove current exports.
             logging.getLogger(__name__).warning("figure obsolete pin cleanup deferred", exc_info=True)
-    return committed
+    return persisted
 
 
 def _delete_revisions(conn, figure_id: str, owner: int) -> None:
@@ -524,4 +547,5 @@ def count_projects(owner_user_id: int) -> int:
 __all__ = [
     "count_projects", "create_project", "delete_project", "get_project",
     "list_projects", "purge_account", "set_state_dir", "update_project",
+    "update_project_committed",
 ]

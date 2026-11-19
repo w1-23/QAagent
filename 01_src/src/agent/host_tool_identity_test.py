@@ -1,100 +1,233 @@
-"""A retried call must keep one operation identity in the product loop.
-
-The graph path computed a logical key before dispatch, but the HostTools
-adapter registered every provider call without one, and the completion emitter
-preferred that empty registration. A failed call and its corrected retry were
-therefore unrelated records: the completion account kept the failure as an
-``execution_blocker`` even after the retry succeeded and the deliverable was
-published. These tests pin the identity the completion gate reconciles on.
-"""
+"""Exercise the production HostTools, registry and durable retry ledger."""
 from __future__ import annotations
 
-from langchain_core.messages import ToolMessage
+import asyncio
+import hashlib
+import importlib
+import json
+from types import SimpleNamespace
 
-from src.core.execution_ledger import (ExecutionLedger, bind_execution_ledger,
-                                       reset_execution_ledger)
-from src.core.task_result import effective_tool_records
-from src.core.turn_outcome import (CompletionEnvelope, CompletionGoal, FinalReview,
-                                   completion_errors)
-from src.graph.agent_operations import _emit_completed_tool_step, _logical_key
+import pytest
 
-OPEN = {"action": "open", "url": "https://example.test/index.html"}
+from src.agent.host_tools import HostTools
+from src.agent.identity import ExecutionIdentity
+from src.browse.relay import BrowseError
+from src.code_execution.egress_policy import normalize_https_url
+from src.core import jobs, progress_bus, task_events, tool_results, tracing, turn_source_ledger
+from src.core.cancel import CancelToken, bound_token
+from src.core.execution_ledger import ExecutionLedger, bind_execution_ledger, reset_execution_ledger
+from src.core.task_result import effective_tool_records, resolved_tool_attempts
+from src.core.turn_outcome import CompletionEnvelope, CompletionGoal, FinalReview, completion_errors
+from src.session import manager
+from src.tools import registry
 
-
-def _message(call_id: str, status: str, reason: str, content: str) -> ToolMessage:
-    return ToolMessage(content=content, tool_call_id=call_id, name="browse_web",
-                       artifact={"_tool_outcome": {"status": status,
-                                                   "reason_code": reason}})
-
-
-def _adapter(call: dict, records: list[dict], ledger: ExecutionLedger) -> str:
-    """The identity work HostTools.invoke performs before dispatch."""
-    logical_key = _logical_key(call["name"], call)
-    attempt = 1 + sum(1 for row in records
-                      if str(row.get("logical_key") or "") == logical_key)
-    call["_attempt"] = attempt
-    ledger.start(call["id"], call["name"], call["args"], source="provider",
-                 logical_key=logical_key, attempt=attempt)
-    return logical_key
+browse = importlib.import_module('src.tools.browse_web')
+URL = 'https://example.test/catalog'
+TAB = 't-123456789abc'
 
 
-def test_logical_key_identifies_browse_arguments():
-    first = _logical_key("browse_web", {"args": dict(OPEN)})
-    same = _logical_key("browse_web", {"args": dict(OPEN)})
-    other = _logical_key("browse_web", {"args": {"action": "open",
-                                                 "url": "https://example.test/other.html"}})
-    assert first and first == same and first != other
-    assert first != "browse_web"
+class TestRenderer:
+    __test__ = False
+    unit = 'fixture-renderer'
+    engine = '159.0'
+
+    def __init__(self):
+        self.actions = 0
+        self.fail = True
+        self.relay = SimpleNamespace(authorize=lambda url: normalize_https_url(url.split('#', 1)[0]))
+
+    async def exchange(self, command, *, expected_actions=None):
+        if expected_actions is not None and expected_actions != self.actions:
+            raise BrowseError('browse_retry_rejected')
+        self.actions += 1
+        await asyncio.sleep(0)
+        if self.fail:
+            target = {'retry_target': ''} if command['action'] == 'new_tab' else {'tab_id': TAB}
+            return {'error': 'browse_page_action_failed', '_action_sequence': self.actions, **target}
+        return {'url': URL, 'text': 'fixture', 'tab_id': TAB, '_action_sequence': self.actions}
 
 
-def test_registration_without_identity_does_not_erase_the_key():
-    ledger = ExecutionLedger()
-    token = bind_execution_ledger(ledger)
+@pytest.fixture
+def runtime(monkeypatch, tmp_path):
+    monkeypatch.setattr(jobs, '_DB_PATH', tmp_path / 'jobs.db')
+    monkeypatch.setattr(manager, 'DB_PATH', tmp_path / 'history.db')
+    monkeypatch.setattr(tool_results, '_schema_ready', False)
+    monkeypatch.setattr(turn_source_ledger, '_schema_ready', False)
+    monkeypatch.setattr(registry, '_TOOL_SPECS', {})
+    registry.register_tool(browse.browse_web, write_scope='session_artifact')
+    renderer = TestRenderer()
+
+    async def renderer_for(identity, *, create):
+        return renderer
+
+    async def allow_fixture(name, args):
+        return None
+
+    monkeypatch.setattr(browse, 'enabled', lambda: True)
+    monkeypatch.setattr(browse, 'renderer_for', renderer_for)
+    monkeypatch.setattr(registry, '_check_tool_sandbox', allow_fixture)
+
+    def host(owner=111, session='retry-session'):
+        claim = jobs.claim_job(session, 'server-turn', owner_user_id=owner,
+                               client_request_id='client-turn', payload={})
+        identity = ExecutionIdentity(owner, session, 'server-turn', claim.job_id)
+        tracing.set_user_id(owner)
+        tracing.set_session_id(session)
+        tracing.set_job_id(claim.job_id)
+        tracing.set_web_search_enabled(True)
+        progress_bus.set_turn_scope(session, 'client-turn')
+        return HostTools(identity, {})
+
+    ledger_token = bind_execution_ledger(ExecutionLedger())
     try:
-        call = {"id": "call_a", "name": "browse_web", "args": dict(OPEN)}
-        ledger.start(call["id"], call["name"], call["args"], source="provider")
-        sink: list[dict] = []
-        _emit_completed_tool_step(
-            call, _message(call["id"], "complete", "browse_observed", "{}"), sink)
-        assert sink and sink[-1]["logical_key"] == _logical_key("browse_web", call)
+        yield host, renderer
     finally:
-        reset_execution_ledger(token)
+        reset_execution_ledger(ledger_token)
+        tracing.set_user_id(None)
+        tracing.set_session_id('')
+        tracing.set_job_id('')
+        tracing.set_web_search_enabled(False)
+        progress_bus.set_turn_scope('')
 
 
-def test_successful_retry_supersedes_its_failed_attempt():
-    ledger = ExecutionLedger()
-    token = bind_execution_ledger(ledger)
-    try:
-        sink: list[dict] = []
-        first = {"id": "call_a", "name": "browse_web", "args": dict(OPEN)}
-        _adapter(first, sink, ledger)
-        _emit_completed_tool_step(first, _message(
-            first["id"], "failed", "browse_page_action_failed",
-            '{"error": "browse_page_action_failed"}'), sink)
-        second = {"id": "call_b", "name": "browse_web", "args": dict(OPEN)}
-        _adapter(second, sink, ledger)
-        _emit_completed_tool_step(second, _message(
-            second["id"], "complete", "browse_observed", "{}"), sink)
-    finally:
-        reset_execution_ledger(token)
-    assert [row["attempt"] for row in sink] == [1, 2]
-    assert sink[0]["status"] == "failed" and sink[1]["status"] == "complete"
-    effective = effective_tool_records(sink)
-    assert len(effective) == 1 and effective[0]["status"] == "complete"
-    statement = CompletionEnvelope(
-        schema_version=1, answer="已下载。", status="completed",
-        goals=[CompletionGoal(goal="下载 CSV", kind="answer",
-                              evidence_call_ids=[second["id"]], artifact_links=[])],
+async def run(host, call_id, **args):
+    call = {'id': call_id, 'name': 'browse_web', 'args': {'action': 'open', 'url': URL, **args}}
+    result = await host.invoke(browse.browse_web, call, host.identity)
+    return await host.publish(call, result, host.identity)
+
+
+def blockers(records):
+    statement = CompletionEnvelope(schema_version=1, answer='Opened the catalog.', status='completed',
+        goals=[CompletionGoal(goal='Open catalog', kind='answer', evidence_call_ids=['second'], artifact_links=[])],
         remaining=[], incidental_partials=[],
-        review=FinalReview(**{key: "宿主仅校验执行回执。"
-                              for key in ("facts", "sources", "numbers",
-                                          "conditions", "delivery")}))
-    errors = completion_errors(statement, sink)
-    assert not [error for error in errors if error.startswith("execution_blocker")], errors
+        review=FinalReview(**{key: 'Reviewed.' for key in ('facts', 'sources', 'numbers', 'conditions', 'delivery')}))
+    return [error for error in completion_errors(statement, records) if error.startswith('execution_blocker')]
 
 
-if __name__ == "__main__":
-    test_logical_key_identifies_browse_arguments()
-    test_registration_without_identity_does_not_erase_the_key()
-    test_successful_retry_supersedes_its_failed_attempt()
-    print("host tool identity ok")
+def test_same_arguments_keep_both_operations(runtime):
+    make_host, renderer = runtime
+    host = make_host()
+
+    async def exercise():
+        await run(host, 'first')
+        renderer.fail = False
+        await run(host, 'second')
+
+    asyncio.run(exercise())
+    assert len({row['logical_key'] for row in host.records}) == 2
+    assert [row['attempt'] for row in host.records] == [1, 1]
+    assert len(effective_tool_records(host.records)) == 2
+    assert blockers(host.records) and not resolved_tool_attempts(host.records)
+
+
+@pytest.mark.parametrize('action', ['open', 'new_tab'])
+def test_explicit_retry_survives_restore_and_keeps_original_bytes(runtime, action):
+    make_host, renderer = runtime
+    host = make_host()
+
+    async def exercise():
+        first = await run(host, 'first', action=action)
+        retry = json.loads(first.content)['host_browse_retry']
+        assert 'host_browse_retry' not in json.loads(tool_results.fetch('first')['result_text'])
+        renderer.fail = False
+        second = await run(host, 'second', action=action, url=URL + '#section', **retry)
+        assert second.additional_kwargs['operation_id'] != retry['retry_of']
+        return first, second
+
+    first, second = asyncio.run(exercise())
+    assert [row['status'] for row in host.records] == ['failed', 'complete']
+    assert [row['attempt'] for row in host.records] == [1, 2]
+    assert not blockers(host.records)
+    restored = HostTools(host.identity, {})
+    restored.restore_observation(first)
+    restored.restore_observation(second)
+    assert not blockers(restored.records)
+    assert resolved_tool_attempts(restored.records) == [
+        {'tool_call_id': 'first', 'resolved_by_tool_call_id': 'second', 'resolution': 'repaired'}]
+
+
+def test_retry_claim_is_exclusive(runtime):
+    make_host, renderer = runtime
+    host = make_host()
+
+    async def exercise():
+        first = await run(host, 'first')
+        retry = json.loads(first.content)['host_browse_retry']
+        renderer.fail = False
+        return await asyncio.gather(run(host, 'second', **retry), run(host, 'third', **retry))
+
+    responses = asyncio.run(exercise())
+    assert [item.artifact['_tool_outcome']['status'] for item in responses].count('complete') == 1
+    assert renderer.actions == 2
+    assert len(resolved_tool_attempts(host.records)) == 1
+
+
+def test_false_cross_scope_and_stale_retries_do_not_navigate(runtime):
+    make_host, renderer = runtime
+    host = make_host()
+
+    async def exercise():
+        first = await run(host, 'first')
+        retry = json.loads(first.content)['host_browse_retry']
+        wrong = await run(host, 'wrong', url=URL + '/other', **retry)
+        assert wrong.artifact['_tool_outcome']['reason_code'] == 'browse_retry_rejected'
+        other = make_host(222, 'other-session')
+        cross = await run(other, 'cross', **retry)
+        assert cross.artifact['_tool_outcome']['reason_code'] == 'browse_retry_rejected'
+        make_host()
+        renderer.actions += 1
+        stale = await run(host, 'stale', **retry)
+        assert stale.artifact['_tool_outcome']['reason_code'] == 'browse_retry_rejected'
+
+    asyncio.run(exercise())
+    assert renderer.actions == 2
+    assert not resolved_tool_attempts(host.records)
+
+
+@pytest.mark.parametrize('ineligible', ['failed', 'cancelled', 'unauthorized'])
+def test_unsuccessful_retry_does_not_hide_parent(runtime, ineligible):
+    make_host, renderer = runtime
+    host = make_host()
+
+    async def exercise():
+        first = await run(host, 'first')
+        retry = json.loads(first.content)['host_browse_retry']
+        if ineligible == 'unauthorized':
+            tracing.set_web_search_enabled(False)
+        token = CancelToken()
+        if ineligible == 'cancelled':
+            token.cancel('user')
+        with bound_token(token):
+            await run(host, 'second', **retry)
+
+    asyncio.run(exercise())
+    assert renderer.actions == (2 if ineligible == 'failed' else 1)
+    assert blockers(host.records) and not resolved_tool_attempts(host.records)
+
+
+def test_browse_cards_use_only_verified_navigation_evidence(runtime, monkeypatch):
+    from src.core.turn_sources import sources_for_request
+
+    make_host, renderer = runtime
+    host = make_host()
+    raw_url = URL + '?private-marker=1'
+    text = 'Observed page text'
+    network_digest = hashlib.sha256(b'<main>Observed page text</main>').hexdigest()
+
+    async def observed(command, *, expected_actions=None):
+        result = {'url': raw_url, 'title': 'Fixture catalog', 'text': text,
+                  'tab_id': TAB, '_action_sequence': 1}
+        if command['action'] == 'open':
+            result['_navigation_response'] = {'url': raw_url, 'http_status': 200,
+                'received_at': '2026-11-19T00:00:00+00:00', 'response_sha256': network_digest}
+        return result
+
+    monkeypatch.setattr(renderer, 'exchange', observed)
+    asyncio.run(run(host, 'unverified', action='observe'))
+    assert not sources_for_request(host.identity.session_id, 'client-turn')
+    asyncio.run(run(host, 'verified', url=raw_url))
+    rows = sources_for_request(host.identity.session_id, 'client-turn')
+    assert len(rows) == 1 and rows[0]['url'] == URL
+    evidence = json.loads(tool_results.fetch('verified')['result_text'])['source_evidence']
+    assert evidence['rendered_text_sha256'] == hashlib.sha256(text.encode()).hexdigest()
+    assert evidence['response_sha256'] == network_digest and evidence['http_status'] == 200

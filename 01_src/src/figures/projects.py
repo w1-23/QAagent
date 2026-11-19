@@ -31,7 +31,9 @@ different claim, and there is no code path that can do that.
 """
 from __future__ import annotations
 
+from collections import Counter
 import json
+import re
 import time
 import uuid
 from pathlib import Path
@@ -41,7 +43,8 @@ from src.figures.overrides import (
     OverrideError, merge_overrides, validate_overrides,
 )
 from src.figures.store import (
-    create_project, delete_project, get_project, list_projects, update_project,
+    create_project, delete_project, get_project, list_projects,
+    update_project, update_project_committed,
 )
 
 # The formats a figure project carries.
@@ -835,19 +838,67 @@ def _load_revision(figure_id: str, owner: int, expected_revision: int | None) ->
     return project
 
 
+def _resolve_edit_targets(project: dict[str, Any], raw_overrides: Any,
+                          expected_revision: int | None) -> tuple[Any, dict[str, tuple[str, str]]]:
+    """Translate document identities for this exact persisted render."""
+    if not isinstance(raw_overrides, list):
+        return raw_overrides, {}
+    from src.figures.document import DocumentTargetError, resolve_document_object
+
+    entries, semantic_targets = [], {}
+    for item in raw_overrides:
+        if not isinstance(item, dict) or "object_id" not in item:
+            entries.append(item)
+            continue
+        if type(expected_revision) is not int:
+            raise ProjectError("revision_required", "对象编辑需要当前图件版本。", status=409)
+        target = item["object_id"]
+        if "gid" in item or not isinstance(target, str) or not re.fullmatch(r"obj_[0-9a-f]{32}", target):
+            raise ProjectError("invalid_object_target", "请选择一个有效的图件对象。")
+        document = project.get("document_json") or {}
+        try:
+            binding = resolve_document_object(document, target, expected_revision=expected_revision)
+        except DocumentTargetError as exc:
+            raise ProjectError("object_target_unavailable", "图件对象已不可用，请重新加载后再编辑。", status=409) from exc
+        if binding["identity_scope"] != "semantic":
+            raise ProjectError("object_target_unavailable", "此图件对象没有稳定的编辑标识。", status=409)
+        gid = binding["gid"]
+        semantic_targets[gid] = (binding["semantic_key"], binding["role"])
+        entries.append({**{key: value for key, value in item.items() if key != "object_id"}, "gid": gid})
+    return entries, semantic_targets
+
+
+def _confirm_edit_targets(manifest: dict[str, Any], targets: dict[str, tuple[str, str]]) -> None:
+    if not targets:
+        return
+    objects = [item for item in manifest.get("objects", []) if isinstance(item, dict)]
+    gids = Counter(item["gid"] for item in objects if isinstance(item.get("gid"), str))
+    semantic_keys = Counter(item["semantic_key"] for item in objects if isinstance(item.get("semantic_key"), str))
+    identities = {item["gid"]: (item.get("semantic_key"), item.get("role")) for item in objects
+                  if isinstance(item.get("gid"), str) and item.get("identity_scope") == "semantic"}
+    if manifest.get("semantic_identity_version") != 1 or any(
+        identities.get(gid) != target or gids.get(gid) != 1 or semantic_keys.get(target[0]) != 1
+        for gid, target in targets.items()
+    ):
+        raise ProjectError("object_target_changed", "重绘时图件对象已变化，无法安全应用这批编辑。", status=409)
+
+
 def preview_overrides(figure_id: str, owner: int, raw_overrides: Any,
                       *, expected_revision: int | None = None, draft_revision: int = 0) -> dict[str, Any]:
     """Render a disposable draft; authorization and integrity precede every hit."""
     from src.figures.preview_pipeline import render_preview
     project = _load_revision(figure_id, owner, expected_revision)
+    entries, targets = _resolve_edit_targets(project, raw_overrides, expected_revision)
+
     def validate():
         _assert_current(project, owner)
         _verify_sources(project, owner)
         if _is_script(project):
             script_replay_inputs(project.get("source_json") or {}, owner)
     def render():
-        merged, _, manifest, blobs = _render_edits(project, owner, raw_overrides,
+        merged, _, manifest, blobs = _render_edits(project, owner, entries,
                                                    formats=("svg",), render_mode="preview")
+        _confirm_edit_targets(manifest, targets)
         return {"figure_id": figure_id, "manifest": manifest,
                 "svg": blobs["svg"].decode("utf-8"),
                 "render_version": int(project.get("render_version") or 0), "overrides": merged}
@@ -865,35 +916,45 @@ def save_overrides(figure_id: str, owner: int, raw_overrides: Any,
     did not see.
     """
     project = _load_revision(figure_id, owner, expected_revision)
+    entries, targets = _resolve_edit_targets(project, raw_overrides, expected_revision)
     from src.figures.preview_pipeline import invalidate
     invalidate(owner, figure_id)
     revision = int(project.get("render_version") or 0)
     formats = tuple(fmt for fmt in FIGURE_FORMATS if fmt in (project.get("exports_json") or {}))
     merged, changed, new_manifest, blobs = _render_edits(
-        project, owner, raw_overrides, formats=formats or DEFAULT_FORMATS)
+        project, owner, entries, formats=formats or DEFAULT_FORMATS)
+    _confirm_edit_targets(new_manifest, targets)
 
     stem = project.get("title") or "figure"
     published = publish_rendered(owner, session_id or project.get("session_id", ""),
                                  stem, blobs)
 
-    committed = update_project(
+    committed_project = update_project_committed(
         figure_id, owner, expected_revision=revision,
         overrides_json=merged,
         manifest_json=new_manifest,
         exports_json=published,
         render_version=revision + 1,
         status="ready", last_error="")
-    if not committed:
+    if committed_project is None:
         # Published files are valid immutable artifacts with normal lifecycle
         # records, but must never replace a newer project's current render set.
         raise ProjectError("revision_conflict", "保存期间图件已更新或删除，当前版本未被覆盖。", status=409)
+    committed_revision = int(committed_project.get("render_version") or 0)
+    document = committed_project.get("document_json") or None
+    # Return only the document written by this commit. Never fall back to a
+    # concurrent revision's document when this one is missing or mismatched.
+    if (not isinstance(document, dict)
+            or document.get("revision") != committed_revision):
+        document = None
     return {
         "figure_id": figure_id,
         "overrides": merged,
         "changed": changed,
         "manifest": new_manifest,
         "exports": published,
-        "render_version": int(project.get("render_version") or 0) + 1,
+        "render_version": committed_revision,
+        "document": document,
     }
 
 

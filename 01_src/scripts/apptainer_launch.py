@@ -69,12 +69,29 @@ def command(config, role):
         binds += [(absolute(config['corpus_root']), 'ro'),
                   (absolute(config['model_cache_root']), 'rw')]
     if role == 'web' and config.get('browse_config'):
-        browse_path = absolute(config['browse_config'])
-        browse = json.loads(Path(browse_path).read_text(encoding='utf-8'))
-        browser_image = absolute(browse['image'])
-        browser_packages = absolute(browse['packages'])
-        binds += [(browse_path, 'ro'), (browser_image, 'ro'), (browser_packages, 'ro')]
-        result += ['--env', 'CITRUS_BROWSE_CONFIG=' + browse_path]
+        # Script is launched with -I; import only from this trusted source snapshot.
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+        from src.browse.integrity import IntegrityError, load_bundle, trusted_source_file, verify_bundle
+        from src.code_execution.egress_policy import normalize_host
+
+        try:
+            bundle = load_bundle(absolute(config['browse_config']))
+            browse_assets = (bundle.config_path, bundle.image, bundle.packages, bundle.packages_manifest)
+            writable = [Path(path).resolve() for path, mode in binds if mode == 'rw']
+            if any(asset.is_relative_to(path) or path.is_relative_to(asset)
+                   for asset in browse_assets for path in writable):
+                raise IntegrityError('Browse assets must be outside writable deployment binds')
+            for host in bundle.hosts:
+                normalize_host(host)
+            for name in ('integrity.py', 'sandbox.py'):
+                trusted_source_file(f'{source}/01_src/src/browse/{name}')
+            verify_bundle(bundle)
+        except (OSError, ValueError) as exc:
+            raise ValueError(f'Browse bundle integrity: {exc}') from exc
+        binds += [(str(path), 'ro') for path in (*browse_assets, bundle.host_python)]
+        result += ['--env', 'CITRUS_BROWSE_CONFIG=' + str(bundle.config_path),
+                   '--env', 'CITRUS_BROWSE_CONFIG_SHA256=' + bundle.config_sha256,
+                   '--env', 'CITRUS_BROWSE_APPTAINER=1']
     for path, mode in dict(binds).items():
         result += ['--bind', f'{path}:{path}:{mode}']
     result += [app, '/usr/local/bin/python']

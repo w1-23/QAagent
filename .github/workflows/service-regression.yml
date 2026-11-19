@@ -1,0 +1,42 @@
+name: Service regression
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  service-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: ${{ github.workspace }}/01_src
+      MPLBACKEND: Agg
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: python -m pip install -r requirements-base.txt pytest .
+      - run: python 01_src/scripts/update_tool_manifest.py --check
+      - run: >-
+          python -m pytest -q
+          01_src/src/agent/host_tool_identity_test.py
+          01_src/src/agent/preset_schema_manifest_test.py
+          01_src/src/agent/skill_delivery_test.py
+          01_src/src/agent/code_tools_input_test.py
+          01_src/src/agent/code_environment_tools_test.py
+          01_src/src/agent/execution_segments_terminal_test.py
+          01_src/src/browse
+          01_src/src/api/graph_exception_terminal_test.py
+          01_src/src/api/task_observation_regression_test.py
+          01_src/src/api/figure_router_detail_capacity_test.py
+          01_src/src/code_execution/apptainer_stop_test.py
+          01_src/src/code_execution/environment_service_test.py
+          01_src/src/figures/projects_document_test.py
+          01_src/src/figures/declarative_distribution_freeze_test.py
+          01_src/src/figures/declarative_document_identity_test.py
+      - run: node --test 01_src/web/tests/*.test.cjs

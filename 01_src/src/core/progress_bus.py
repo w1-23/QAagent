@@ -8,11 +8,12 @@ from __future__ import annotations
 
 import asyncio
 import contextvars
+import hashlib
 import json
 import logging
+import math
 import re
 import time
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -168,7 +169,7 @@ def emit_progress(event_type: str, data: dict) -> None:
     """Push a progress event to the current request's SSE queue (non-blocking)."""
     q = get_progress_queue()
     try:
-        q.put_nowait(_encode_event(event_type, data))
+        q.put_nowait(_encode_event(event_type, public_progress_payload(event_type, data)))
     except asyncio.QueueFull:
         pass
 
@@ -344,54 +345,286 @@ def _safe_tool_summary(tool_name: str, args: dict | None = None,
     return tool_display_name(tool_name)
 
 
-_HINT_MAX = 56
-
-
 def tool_action_hint(tool_name: str, args: dict | None) -> str:
-    """One bounded line describing WHAT the tool was asked to do.
+    """Compatibility signature: arguments are never a public action label."""
+    return tool_display_name(tool_name)
 
-    The timeline must answer "调用了哪个工具、做了什么", not only "已经完成"。
-    只取用户可见的查询词/类别/文件名等字段，去掉 URL 与服务器路径。
-    """
-    data = args if isinstance(args, dict) else {}
-    url = str(data.get("url") or "").strip()
-    if url:
-        # 只显示站点名：既回答“读的是哪个来源”，又不把带 token 的完整链接落库
-        host = url.split("://", 1)[-1].split("/", 1)[0]
-        return ("读取 " + host)[:80]
-    keys = ("query", "q", "question", "keyword", "keywords", "corpus_types",
-            "filename", "file", "name", "title", "doi", "topic", "kind",
-            "gap", "candidate_id")
-    parts: list[str] = []
-    for key in keys:
-        value = data.get(key)
-        if isinstance(value, (list, tuple)):
-            value = "、".join(str(v) for v in value if str(v).strip())
-        if value is None:
+
+_PUBLIC_WORK_NOTE = "正在调用工具"
+_TOOL_STATUSES = {"complete", "partial", "no_results", "failed", "not_run", "skipped",
+                  "cancelled", "unknown", "running", "resuming"}
+_REASON_CLASSES = {"input_missing", "source_unavailable", "transient", "coverage_incomplete",
+                   "scope_limited", "internal_error", "unknown"}
+_PUBLIC_ARTIFACT_URL = re.compile(r"/api/v2/session/[A-Za-z0-9_-]+/artifacts/[a-f0-9]{32}")
+_PUBLIC_REVIEW_URL = re.compile(r"/integrity-review\?review=[a-f0-9]{32}")
+_PUBLIC_FACT_NUMBERS = frozenset({
+    "n", "sample_size", "statistic", "p_value", "pvalue", "effect_size", "file_index", "rows",
+    "columns", "total", "checked", "verified", "selected", "remaining", "missing", "duplicates",
+    "completed", "processed", "pending", "inspected_files", "unreviewed_files", "accepted_artifacts",
+    "findings_count",
+})
+_STATUS_SUMMARIES = {"waiting_code": "代码正在执行，完成后继续本轮任务。",
+                     "code_cancel_pending": "正在停止代码执行，等待执行器确认。"}
+_ERROR_MESSAGES = {
+    "model_credential_unconfigured": "主模型尚未配置，请联系管理员配置模型后重试。附件仍可在资料库中查看。",
+    "request_failed": "处理请求时发生内部错误，请稍后重试。",
+    "attachment_rejected": "附件未通过检查，请检查文件后重试。",
+    "attachment_busy": "附件处理队列繁忙，请稍后重试。",
+    "attachment_timeout": "附件解析超过处理时限，请缩小文件或拆分后重试。",
+    "attachment_failed": "附件处理失败，请检查文件格式后重试。",
+    "queue_full": "服务器请求队列已满，请稍后重试。",
+    "queue_timeout": "等待处理超时，请稍后重试。",
+    "request_preparation_failed": "请求准备失败，请稍后重试。",
+}
+
+
+def _token(value, pattern=r"[A-Za-z0-9_-]{1,128}") -> str:
+    return value if isinstance(value, str) and re.fullmatch(pattern, value) else ""
+
+
+# Keep recognized protocol codes, not arbitrary single-token tool output.
+_PROGRESS_REASONS = frozenset("""
+    admission_failed answered artifact_partially_verified artifact_validation_failed artifact_validation_unavailable
+    awaiting_input awaiting_user_input cancelled code_resume_admission_failed complete completed completion_proof_invalid
+    completion_schema_invalid context_budget_exhausted dataset_unavailable deadline detached_timeout disabled empty_answer
+    error evidence_read execution_blocker execution_pending execution_record_unavailable failed fields_unavailable
+    finalization_budget history_load_failed incomplete internal invalid_evidence_read invalid_tool_arguments
+    invalid_tool_protocol missing_result_status model_auth model_budget_exhausted model_network model_quota model_rate_limit
+    model_step_limit model_timeout model_unavailable no_new_evidence not_run output_missing output_truncated partial
+    preparation_required range_exhausted recovery_admission_failed request_deadline required_skill_not_loaded reviewed_completion
+    reviewed_incomplete script_execution_cancelled script_execution_rejected script_reference_unavailable script_request_in_progress
+    script_request_replayed service_restart some_material_unreviewed some_records_unverified stop_requested task_plan_updated
+    tool_protocol_rejected tool_turn_limit user user_input_required verification_limit workspace_version_conflict
+    write_requires_reconciliation browse_action_limit browse_bad_observation browse_bundle_integrity browse_click_timeout
+    browse_download_type_unsupported browse_download_unavailable browse_expected_download_link browse_host_not_allowed
+    browse_last_tab browse_network_error browse_network_timeout browse_not_authorized browse_observed browse_page_action_failed
+    browse_page_unavailable browse_publication_digest_mismatch browse_queue_full browse_queue_timeout browse_renderer_disconnected
+    browse_renderer_protocol browse_renderer_unready browse_retry_rejected browse_session_expired browse_stale_element
+    browse_tab_id_required browse_tab_limit browse_tab_not_found browse_timed_out browse_unavailable browse_url_denied
+""".split())
+
+
+def public_tool_reason(value) -> str:
+    from src.tools.outcome import _REASON_CLASS
+    return value if isinstance(value, str) and (value in _PROGRESS_REASONS or value in _REASON_CLASS) else ""
+
+
+def public_tool_status(value, default="failed") -> str:
+    return value if isinstance(value, str) and value in _TOOL_STATUSES else default
+
+
+def _public_tool_name(data: dict) -> dict:
+    name = _token(data.get("tool_name"))
+    labels = _tool_labels()
+    if name in labels:
+        return {"tool_name": name, "display_name": labels[name]}
+    # Older start/heartbeat frames carry only the catalog label.
+    label = data.get("display_name")
+    return {"display_name": label if label in labels.values() else tool_display_name("")}
+
+
+def _public_logical_key(value) -> str:
+    if not isinstance(value, str) or not value:
+        return ""
+    if re.fullmatch(r"progress:[a-f0-9]{64}", value):
+        return value
+    # Some legacy producers used a truncated title or query as a grouping key.
+    return "progress:" + hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def public_result_refs(refs) -> list:
+    """Keep existing typed references and host link shapes, never labels or paths."""
+    result = []
+    for ref in refs if isinstance(refs, (list, tuple)) else ():
+        if isinstance(ref, str) and _PUBLIC_ARTIFACT_URL.fullmatch(ref):
+            result.append(ref)
+        if not isinstance(ref, dict) or (ref.get("internal") or ref.get("is_intermediate")
+                or ref.get("formal_attachment") is False
+                or str(ref.get("visibility", "")).lower() in {"internal", "private", "intermediate"}
+                or any(str(ref.get(key, "")).lower() in {"internal", "intermediate", "working"}
+                       for key in ("purpose", "role"))):
             continue
-        item = " ".join(str(value).split())
-        if item:
-            parts.append(item)
-        if len(parts) >= 2:
-            break
-    hint = "；".join(parts)
-    hint = re.sub(r"https?://\S+", "", hint)
-    hint = re.sub(r"(?:[A-Za-z]:\\|/home/|/tmp/|/mnt/)[^\s;，。]+", "", hint)
-    hint = " ".join(hint.split())
-    if len(hint) > _HINT_MAX:
-        cut = hint[:_HINT_MAX]
-        # 截断落在词边界上，避免出现 "...control me" 这种半截词
-        hint = (cut.rsplit(" ", 1)[0] if " " in cut else cut) + "…"
-    return hint
+        kind, url = ref.get("kind"), ref.get("url") or ref.get("artifact_url")
+        url = url if isinstance(url, str) else ""
+        identity = {"reference_audit": "audit_id", "integrity_review": "review_id",
+                    "dataset_snapshot": "id", "analysis_result": "id"}.get(str(kind))
+        if kind == "artifact" and _PUBLIC_ARTIFACT_URL.fullmatch(url):
+            item = {"kind": "artifact", "url": url}
+            artifact_id = url.rsplit("/", 1)[-1]
+            if ref.get("artifact_id") == artifact_id:
+                item["artifact_id"] = artifact_id
+            if ref.get("artifact_url") == url:
+                item["artifact_url"] = url
+            if file_id := _token(ref.get("file_id"), r"[a-f0-9]{32}"):
+                item["file_id"] = file_id
+                if ref.get("download_url") == f"/api/v2/files/{file_id}/download":
+                    item["download_url"] = ref["download_url"]
+        elif identity and (ref_id := _token(ref.get(identity), r"[a-f0-9]{32}")):
+            item = {"kind": kind, identity: ref_id}
+            if kind == "integrity_review" and _PUBLIC_REVIEW_URL.fullmatch(url) and url.endswith(ref_id):
+                item["url"] = url
+            if type(ref.get("version")) is int:
+                item["version"] = ref["version"]
+        else:
+            continue
+        if sha := _token(ref.get("sha256"), r"[a-f0-9]{64}"):
+            item["sha256"] = sha
+        result.append(item)
+    return result
+
+
+def public_tool_outcome(data: dict) -> dict:
+    """Progress contains status, known numeric facts and references, not prose."""
+    facts = data.get("facts")
+    numeric_facts = {k: v for k, v in facts.items()
+                     if k in _PUBLIC_FACT_NUMBERS and (type(v) is int or
+                         (type(v) is float and math.isfinite(v)))} if isinstance(facts, dict) else {}
+    status = public_tool_status(data.get("status"))
+    reason_class = data.get("reason_class")
+    result = {"status": status, "reason_code": public_tool_reason(data.get("reason_code")),
+              "reason_class": reason_class if isinstance(reason_class, str) and reason_class in _REASON_CLASSES else "",
+              "facts": numeric_facts}
+    for key in ("result_refs", "artifacts"):
+        if key in data:
+            result[key] = public_result_refs(data[key])
+    return result
+
+
+def _fields(data: dict, *, tokens=(), numbers=()) -> dict:
+    return {**{key: value for key in tokens if (value := _token(data.get(key)))},
+            **{key: data[key] for key in numbers if type(data.get(key)) is int}}
+
+
+def public_progress_payload(event: str, data: dict) -> dict:
+    """Project progress events only. Chat, citations and explicit reads are separate."""
+    cursor = _fields(data, numbers=("seq",))
+    if event in {"tool_call_start", "tool_executing", "tool_progress", "tool_result", "operation"}:
+        public = _fields(data, tokens=("tool_call_id", "operation_id", "retry_of"),
+                         numbers=("attempt", "started_at_ms", "elapsed_ms", "completed_at_ms"))
+        if "logical_key" in data:
+            public["logical_key"] = _public_logical_key(data["logical_key"])
+        if event != "operation" or "tool_name" in data or "display_name" in data:
+            public.update(_public_tool_name(data))
+        if event in {"tool_call_start", "tool_result"}:
+            public["action_hint"] = public["display_name"]
+        if event == "tool_result":
+            public.update(public_tool_outcome(data))
+        if event == "operation":
+            public["status"] = public_tool_status(data.get("status"))
+            if data.get("recovery") == "safe_step":
+                public["recovery"] = "safe_step"
+            if isinstance(data.get("outcome"), dict):
+                public["outcome"] = public_tool_outcome(data["outcome"])
+    elif event == "assistant_progress":
+        public = _fields(data, tokens=("job_id", "note_id", "step_id"), numbers=("model_step",))
+        # Note IDs include ':' in both graph and agent producers.
+        if note_id := _token(data.get("note_id"), r"[A-Za-z0-9_:-]{1,160}"):
+            public["note_id"] = note_id
+        call_ids = data.get("tool_call_ids")
+        public.update(visibility="public", origin="model", phase="working",
+                      text=_PUBLIC_WORK_NOTE, chars=len(_PUBLIC_WORK_NOTE),
+                      tool_call_ids=[cid for item in call_ids if (cid := _token(item))]
+                      if isinstance(call_ids, (list, tuple)) else [])
+    elif event == "task_update":
+        public = _fields(data, numbers=("version",))
+        if data.get("status") in ("pending", "applied", "not_applied"):
+            public["status"] = data["status"]
+        if data.get("reason") == "service_restart":
+            public["reason"] = "service_restart"
+    elif event == "agent_recovery":
+        public = _fields(data, tokens=("job_id", "request_id", "status"), numbers=("previous_terminal_seq",))
+        updates = data.get("reactivated_updates")
+        if isinstance(updates, list):
+            public["reactivated_updates"] = [{"version": item["version"]} for item in updates
+                                             if isinstance(item, dict) and type(item.get("version")) is int]
+    elif event in {"permission_request", "permission_decision"}:
+        public = _fields(data, tokens=("approval_id", "job_id")) | _public_tool_name(data)
+        if data.get("status") in ("pending", "granted", "rejected", "expired", "cancelled"):
+            public["status"] = data["status"]
+    elif event == "status":
+        stage = data.get("stage")
+        if stage not in ("waiting_code", "code_cancel_pending", "queued", "awaiting_input", "task_plan",
+                         "preparing_attachments", "starting", "working"):
+            stage = "working"
+        public = {"stage": stage}
+        if data.get("status") == "awaiting_input":
+            public["status"] = "awaiting_input"
+        if stage in _STATUS_SUMMARIES:
+            public["summary"] = _STATUS_SUMMARIES[stage]
+        if stage == "waiting_code" and data.get("reason_code") == "code_resume_admission_failed":
+            public.update(reason_code="code_resume_admission_failed", summary="执行恢复暂未受理，稍后重试。")
+        if stage == "queued":
+            public.update(_fields(data, numbers=("position", "maximum")))
+            position = public.get("position")
+            public["summary"] = f"正在排队，当前第 {position} 位。" if position is not None else "正在排队。"
+        if stage == "task_plan":
+            public.update(_fields(data, tokens=("plan_id",)))
+            steps = data.get("steps")
+            public["steps"] = [{"id": _public_logical_key(step.get("id")),
+                                "title": f"任务步骤 {index}", "status": step["status"]}
+                               for index, step in enumerate(steps, 1)
+                               if isinstance(step, dict) and step.get("status") in
+                               ("pending", "in_progress", "completed", "blocked", "cancelled")
+                               ] if isinstance(steps, list) else []
+    elif event in {"task_state", "reasoning", "thinking", "draft", "plan"}:
+        # Private host/model snapshots and legacy narration retain cursors only.
+        public = _fields(data, numbers=("schema_version",)) if event == "task_state" else {}
+    elif event == "tool_resolution":
+        public = {"resolutions": public_tool_resolutions(data.get("resolutions"))}
+    elif event == "agent_control":
+        public = {"reason_code": public_tool_reason(data.get("reason_code"))}
+    elif event == "context_projection":
+        public = _fields(data, tokens=("event",), numbers=("archive_only_count", "before_tokens",
+            "after_tokens", "trigger_tokens", "target_tokens", "protected_messages", "retained_messages"))
+    elif event == "done":
+        # This is also an authorized answer frame. Project the progress
+        # envelope without touching its answer, citations or question.
+        public = dict(data)
+        if isinstance(data.get("turn_envelope"), dict):
+            from src.core.task_events import _public_terminal
+            public["turn_envelope"] = _public_terminal(data["turn_envelope"])
+        if data.get("stop_notice"):
+            from src.core.turn_notices import stopped_notice
+            public["stop_notice"] = stopped_notice()
+    elif event == "error":
+        code = _token(data.get("code"))
+        if code not in _ERROR_MESSAGES:
+            # Legacy errors did not always have a code. Only exact known
+            # messages may be recovered; no exception or path is echoed.
+            code = next((key for key, message in _ERROR_MESSAGES.items()
+                         if data.get("message") == message), "request_failed")
+        public = {"code": code, "message": _ERROR_MESSAGES[code]}
+        if data.get("turn_status") == "failed":
+            public["turn_status"] = "failed"
+        if isinstance(data.get("turn_envelope"), dict):
+            from src.core.task_events import _public_terminal
+            public["turn_envelope"] = _public_terminal(data["turn_envelope"])
+    elif event == "reference_audit_progress":
+        public = _fields(data, tokens=("audit_id", "status"), numbers=("record_index",))
+        if data.get("durable") is True:
+            public["durable"] = True
+    elif event == "browse_phase":
+        phase = data.get("phase")
+        public = {"phase": phase} if phase in (
+            "waiting", "navigating", "interacting", "downloading", "verifying", "organizing",
+        ) else {}
+    else:
+        return data
+    return public | cursor
+
+
+def public_tool_resolutions(rows) -> list[dict]:
+    return [item for row in rows if isinstance(row, dict)
+            and row.get("resolution") in ("repaired", "source_replaced")
+            and len(item := _fields(row, tokens=("tool_call_id", "resolved_by_tool_call_id", "resolution"))) == 3
+            ] if isinstance(rows, (list, tuple)) else []
 
 
 def emit_tool_call_start(tool_name: str, args: dict, tool_call_id: str = "",
                          logical_key: str = "", attempt: int = 1) -> None:
     """Emit only the friendly action label needed for the execution timeline."""
-    display_name = tool_display_name(tool_name)
     emit_encoded("tool_call_start", {
-        "display_name": display_name,
-        "action_hint": tool_action_hint(tool_name, args),
+        "tool_name": tool_name,
         "tool_call_id": str(tool_call_id or ""),
         # logical_key groups every attempt of the same logical step, so a
         # retried call updates one row instead of stacking new ones.
@@ -407,9 +640,8 @@ def emit_tool_executing(message: str, tool_name: str = "", tool_call_id: str = "
                         elapsed_ms: int = 0, logical_key: str = "",
                         attempt: int = 1) -> None:
     """Emit a friendly heartbeat without forwarding internal progress text."""
-    display_name = tool_display_name(tool_name)
     emit_encoded("tool_executing", {
-        "display_name": display_name,
+        "tool_name": tool_name,
         "tool_call_id": str(tool_call_id or ""),
         "logical_key": str(logical_key or ""),
         "attempt": max(1, int(attempt or 1)),
@@ -425,31 +657,24 @@ def emit_tool_result(tool_name: str, output: str, tool_call_id: str = "",
     elapsed_ms = mark_tool_end(tool_call_id) if tool_call_id else 0
     outcome = outcome if isinstance(outcome, dict) else {}
     status = str(outcome.get("status") or ("failed" if is_error else "complete"))
-    # Cancellation and unconfirmed side effects are distinct terminal facts.
-    # Turning unknown into failed would suggest that replay is safe.
-    if status not in {"complete", "partial", "no_results", "failed", "not_run",
-                      "skipped", "cancelled", "unknown"}:
-        status = "failed"
-    reason_code = str(outcome.get("reason_code") or "")[:64]
-    safe_summary = str(summary or "")
-    # Summaries are produced by our deterministic adapters. Strip URL and path
-    # fragments defensively before they cross the client boundary.
-    safe_summary = re.sub(r"https?://\S+", "", safe_summary)
-    safe_summary = re.sub(r"(?:[A-Za-z]:\\|/home/|/tmp/)[^\s;，。]+", "", safe_summary)
-    safe_summary = " ".join(safe_summary.split())[:180]
+    # Cancellation and unknown remain distinct terminal facts; neither becomes failed.
+    status = public_tool_status(status) if status not in {"running", "resuming"} else "failed"
+    reason_code = public_tool_reason(outcome.get("reason_code"))
+    # This prose is retained only for authorized tool readback, never the queue
+    # or its terminal journal (which also feeds the public stop notice).
+    private_summary = " ".join(str(summary or "").split())[:180]
     result = {
         "display_name": tool_display_name(tool_name),
         "tool_name": str(tool_name or ""),
         "facts": outcome.get("facts") if isinstance(outcome.get("facts"), dict) else {},
-        "result_refs": outcome.get("result_refs") if isinstance(outcome.get("result_refs"), list) else [],
-        "action_hint": re.sub(r"\s+", " ", str(action_hint or ""))[:80],
+        "result_refs": public_result_refs(outcome.get("result_refs") or outcome.get("artifacts")),
+        "action_hint": tool_display_name(tool_name),
         "tool_call_id": str(tool_call_id or ""),
         "logical_key": str(logical_key or ""),
         "attempt": max(1, int(attempt or 1)),
         "status": status,
         "reason_code": reason_code,
         "reason_class": str(outcome.get("reason_class") or "")[:32],
-        "summary": safe_summary,
         "elapsed_ms": elapsed_ms,
         "completed_at_ms": int(time.time() * 1000),
     }
@@ -457,11 +682,9 @@ def emit_tool_result(tool_name: str, output: str, tool_call_id: str = "",
     journal = _current_tool_journal.get()
     if isinstance(journal, list):
         journal.append({"name": str(tool_name or ""), "status": status,
-                        "reason": reason_code, "summary": safe_summary,
-                        "elapsed_ms": int(elapsed_ms or 0),
+                        "reason": reason_code, "elapsed_ms": int(elapsed_ms or 0),
                         "tool_call_id": str(tool_call_id or "")})
-    # Internal caller uses this same sanitized record for durable history.
-    return result
+    return result | {"summary": private_summary}
 
 
 def emit_text(content: str) -> None:

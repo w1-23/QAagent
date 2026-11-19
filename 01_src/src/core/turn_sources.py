@@ -196,6 +196,8 @@ def sources_for_request(session_id: str, request_id: str,
     out: list[dict[str, Any]] = []
     seen: set[str] = set()
     for row in rows:
+        if row.get('tool_name') == 'browse_web':
+            continue  # Browse sources require a trusted navigation receipt.
         for item in parse_sources(row.get("result_text") or "", limit=MAX_SOURCES):
             marker = item.get("record_key") or item.get("url") or ""
             if not marker or marker in seen:

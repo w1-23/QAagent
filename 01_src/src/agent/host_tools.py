@@ -6,6 +6,10 @@ verification and full-result storage. They do not own a model loop.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import hashlib
+import json
+import re
+import uuid
 
 from langchain_core.messages import ToolMessage
 
@@ -96,6 +100,80 @@ class HostTools:
                 or job["status"] not in {"running", "detached"}):
             raise TaskConflict("agent_execution_identity_conflict")
 
+    @staticmethod
+    def _retry_rejected(call):
+        reason = 'browse_retry_rejected'
+        return ToolExecution(ToolMessage(content=json.dumps({'error': reason}), status='error',
+            name=call['name'], tool_call_id=call['id'],
+            artifact={'_tool_outcome': {'status': 'not_run', 'reason_code': reason}}))
+
+    def _browse_receipt(self, message):
+        from src.core.task_events import TaskConflict, operation_result
+        operation_id = message.additional_kwargs.get('operation_id')
+        if not operation_id or message.additional_kwargs.get('operation_uncertain'):
+            return None
+        try:
+            receipt = operation_result(self.identity.run_id, operation_id, include_retry=True)
+        except TaskConflict:
+            return None
+        reference = message.additional_kwargs.get('result_reference') or {}
+        digest = hashlib.sha256(receipt['result']['content'].encode('utf-8')).hexdigest()
+        return receipt if reference.get('full_sha256') == digest else None
+
+    def _retry_target(self, message, record):
+        from src.tools.browse_web import NAVIGATION_FAILURES
+        if (message.name != 'browse_web' or record.get('status') != 'failed'
+                or record.get('reason') not in NAVIGATION_FAILURES):
+            return None
+        self.validate_observation(message)
+        receipt = self._browse_receipt(message)
+        if (not receipt or receipt['outcome'].get('status') != 'failed'
+                or receipt['outcome'].get('reason_code') != record['reason']):
+            return None
+        target = receipt['result']['artifact'].get('_browse_retry_target')
+        return {**target, 'operation_id': receipt['operation_id']} if target else None
+
+    def _find_retry_parent(self, operation_id):
+        for record in self.records:
+            message = self.messages.get(record.get('tool_call_id'))
+            if message and message.additional_kwargs.get('operation_id') == operation_id:
+                return message, record
+        return None, None
+
+    def _claim_target(self, call, retry_of):
+        if not isinstance(retry_of, str) or not re.fullmatch(r'[a-f0-9]{32}', retry_of):
+            return None
+        parent, row = self._find_retry_parent(retry_of)
+        if parent is None:
+            return None
+        try:
+            target = self._retry_target(parent, row)
+        except RuntimeError:
+            return None
+        args = call['args']
+        if (not target or args.get('action') != target['action']
+                or (args.get('tab_id') and args['tab_id'] != target['tab_id'])):
+            return None
+        from src.browse.relay import BrowseError, Relay
+        from urllib.parse import urlsplit
+        try:
+            host = urlsplit(target['url']).hostname
+            destination = Relay(frozenset({host})).authorize(args.get('url'))
+        except BrowseError:
+            return None
+        return target if destination.url == target['url'] else None
+
+    def _link_successful_retry(self, message, record):
+        record.pop('retry_resolves_call_id', None)
+        if message.name != 'browse_web' or record.get('status') != 'complete':
+            return
+        receipt = self._browse_receipt(message)
+        if not receipt or not receipt['retry_of'] or receipt['outcome'].get('status') != 'complete':
+            return
+        parent, original = self._find_retry_parent(receipt['retry_of'])
+        if parent and self._retry_target(parent, original):
+            record['retry_resolves_call_id'] = parent.tool_call_id
+
     async def invoke(self, tool, call, identity):
         if identity != self.identity:
             raise ValueError("operation_identity_mismatch")
@@ -104,15 +182,17 @@ class HostTools:
         from src.core.execution_ledger import current_execution_ledger
         from src.core.progress_bus import emit_tool_call_start, emit_tool_executing
         from src.tools.interaction import bind_question_context, reset_question_context
-        # Every provider call in the product loop runs through this adapter, so
-        # it must carry the same operation identity as the graph path. Without
-        # it a corrected retry cannot supersede its own failed attempt and the
-        # completion account keeps the stale failure as an execution blocker.
-        from src.graph.agent_operations import _logical_key
-        logical_key = _logical_key(call["name"], call)
-        attempt = 1 + sum(1 for row in self.records
-                          if str(row.get("logical_key") or "") == logical_key)
-        call["_attempt"] = attempt
+        from src.core.task_events import TaskConflict
+        logical_key = call['_host_logical_key'] = 'host:' + uuid.uuid4().hex
+        retry_of = call['args'].get('retry_of') if call['name'] == 'browse_web' else None
+        retry_target = self._claim_target(call, retry_of) if retry_of else None
+        if retry_of and retry_target is None:
+            return self._retry_rejected(call)
+        attempt = 1
+        if retry_target:
+            _, parent = self._find_retry_parent(retry_of)
+            attempt += parent['attempt']
+        call['_attempt'] = attempt
         ledger = current_execution_ledger()
         if ledger:
             ledger.start(call["id"], call["name"], call["args"], source="provider",
@@ -136,12 +216,20 @@ class HostTools:
             self.dispatched[call["id"]] = call["name"]
         try:
             from contextlib import nullcontext
-            from .code_tools import CODE_TOOL_NAMES, code_execution_context
+            from .code_tools import CODE_TOOL_NAMES, EXECUTION_WAIT_TOOL_NAMES, code_execution_context
             binding = (code_execution_context(identity, call['id'])
                        if call['name'] in CODE_TOOL_NAMES else nullcontext())
-            with binding:
+            retry_binding = nullcontext()
+            if retry_target:
+                from src.tools.browse_web import bind_navigation_retry
+                retry_binding = bind_navigation_retry(retry_target)
+            with binding, retry_binding:
                 message = await _run_single_tool(tool, call, require_durable=True,
-                                                 on_dispatch=dispatched)
+                                                 on_dispatch=dispatched, retry_of=retry_of or None)
+        except TaskConflict as exc:
+            if str(exc) != 'browse_retry_rejected':
+                raise
+            return self._retry_rejected(call)
         finally:
             tracing.set_web_search_enabled(previous_network)
             reset_question_context(token)
@@ -152,7 +240,7 @@ class HostTools:
         if call["name"] == "request_user_input" and isinstance(question, dict):
             self.pending_question = question
         execution_waits = ()
-        if (call['name'] in {'code_execute', 'code_wait'}
+        if (call['name'] in EXECUTION_WAIT_TOOL_NAMES
                 and artifact.get('_code_execution_id')
                 and (artifact.get('_tool_outcome') or {}).get('status') == 'complete'):
             import asyncio
@@ -177,6 +265,8 @@ class HostTools:
         from src.core.tool_result_view import first_delivery
         message = execution.message
         self.messages[call["id"]] = message
+        if '_host_logical_key' not in call:
+            call['_host_logical_key'] = 'host:' + uuid.uuid4().hex
         _emit_completed_tool_step(call, message, self.records)
         storage = message.additional_kwargs.get("result_storage") or {}
         if not storage.get("complete"):
@@ -191,7 +281,16 @@ class HostTools:
         self.web_results.extend(artifact.get("web_results") or [])
         delivered = first_delivery(message, call=call,
                                    reader_available="read_tool_result" in self.allowed_names)
-        delivered.additional_kwargs["host_publication"] = dict(self.records[-1])
+        record = self.records[-1]
+        delivered.additional_kwargs['host_publication'] = record
+        if delivered.name == 'browse_web':
+            self.validate_observation(delivered)
+            self._link_successful_retry(delivered, record)
+            if target := self._retry_target(delivered, record):
+                payload = json.loads(delivered.content)
+                payload['host_browse_retry'] = {'retry_of': target['operation_id'], 'tab_id': target['tab_id']}
+                delivered = delivered.model_copy(update={'content': json.dumps(payload, ensure_ascii=False)})
+        delivered.additional_kwargs['host_publication'] = dict(record)
         self.messages[call["id"]] = delivered
         self.publish_resolutions()
         return delivered
@@ -214,10 +313,11 @@ class HostTools:
 
     def restore_observation(self, message):
         """Hydrate a committed outbox result without re-publishing bounded text."""
-        record = self.validate_observation(message)
+        record = dict(self.validate_observation(message))
         from src.graph.agent_operations import _capture_interaction_refs
+        self._link_successful_retry(message, record)
         self.messages[message.tool_call_id] = message
-        self.records.append(dict(record))
+        self.records.append(record)
         _capture_interaction_refs(self.state, [message])
         artifact = message.artifact if isinstance(message.artifact, dict) else {}
         self.main_results.extend(artifact.get("main_results") or [])

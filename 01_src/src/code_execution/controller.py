@@ -13,7 +13,7 @@ from pathlib import Path
 import time
 
 from src.core.account_leases import acquire_account_lease, AccountUnavailable, current_store
-from src.workspaces import TaskWorkspaceService
+from src.workspaces import TaskWorkspaceService, WorkspaceConflict
 
 from .protocol import ExecutionRequest, TERMINAL, token, json_object
 from .repository import ExecutionConflict, ExecutionLeaseLost
@@ -219,9 +219,15 @@ class ExecutionController:
                         accepted_result = accepted
                         return {**observation, **accepted, "request_fingerprint": request.fingerprint,
                                 "network_policy": request.network_policy, "process_stopped": True}
-                    receipt = self.repository.complete_success(row["execution_id"], self.worker_id,
-                        row["fence"], accept_result=accept, process_stopped=True,
-                        on_terminal=self._terminal_callback(row, handle, lease))
+                    try:
+                        receipt = self.repository.complete_success(row["execution_id"], self.worker_id,
+                            row["fence"], accept_result=accept, process_stopped=True,
+                            on_terminal=self._terminal_callback(row, handle, lease))
+                    except WorkspaceConflict as exc:
+                        # The child exited, but no outputs passed the workspace CAS.
+                        observation["latest_workspace_revision"] = exc.latest_revision
+                        reason = "workspace_revision_conflict"
+                        break
                     completed = True
                     result = {"execution_id": row["execution_id"], "status": "succeeded", "receipt": receipt}
                     return result

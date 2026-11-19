@@ -125,6 +125,25 @@ def _operation_identity(row):
     return (name, key) if key and key != name else None
 
 
+def _browse_retry_resolutions(rows):
+    failures = set()
+    repaired = {}
+    for row in rows:
+        if (row.get('name') != 'browse_web'
+                or not str(row.get('logical_key') or '').startswith('host:')):
+            continue
+        call_id = row.get('tool_call_id')
+        if not call_id:
+            continue
+        if row.get('status') == 'failed':
+            failures.add(call_id)
+        if row.get('status') == 'complete':
+            parent = row.get('retry_resolves_call_id')
+            if parent in failures:
+                repaired[parent] = call_id
+    return repaired
+
+
 def resolved_tool_attempts(rows: Iterable[dict], turn_outcome=None) -> list[dict]:
     """Public reconciliation links; original attempts and errors remain intact.
 
@@ -137,7 +156,8 @@ def resolved_tool_attempts(rows: Iterable[dict], turn_outcome=None) -> list[dict
     positions = {row.get("tool_call_id"): i for i, row in enumerate(attempts)}
     current = {_operation_identity(row): row for row in effective
                if _operation_identity(row) is not None}
-    links = {}
+    links = {cid: {'tool_call_id': cid, 'resolved_by_tool_call_id': target, 'resolution': 'repaired'}
+             for cid, target in _browse_retry_resolutions(attempts).items()}
     for row in attempts:
         cid = row.get("tool_call_id")
         replacement = current.get(_operation_identity(row), {})
@@ -198,7 +218,10 @@ def effective_tool_records(rows: Iterable[dict]) -> list[dict]:
                      if identity(row) is not None and row.get("status") in executed_statuses}
     effective: list[dict] = []
     positions: dict[tuple[str, str], int] = {}
+    resolved = _browse_retry_resolutions(rows)
     for row in rows:
+        if row.get('tool_call_id') in resolved:
+            continue
         key = identity(row)
         reason = str(row.get("reason") or row.get("reason_code") or "")
         reused = (str(row.get("name") or row.get("tool_name") or "tool"),

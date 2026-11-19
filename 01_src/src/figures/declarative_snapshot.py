@@ -1,8 +1,17 @@
 """Versioned, JSON-only scientific results for declarative style replay.
 
 Resolved paired charts already contain their plotted values, error magnitudes
-and contributing row ordinals. Raw distribution observations are deliberately
-excluded until their bins/quantiles have a separate frozen geometry contract.
+and contributing row ordinals. Distribution charts carry a closed, versioned
+geometry instead: histogram bin counts/edges and boxplot statistics. Replay
+draws exactly that geometry and never re-bins or re-computes statistics.
+
+A distribution geometry that cannot be replayed exactly is explicitly
+downgraded at creation: source_json keeps the original spec, omits
+resolved_snapshot and records freeze_downgrade with the reason. A legacy
+figure therefore never claims a creation-time freeze it cannot reproduce,
+while a persisted snapshot that fails the decoder always fails instead of
+falling back to re-analysis.
+
 Digests detect inconsistent persisted state; they do not replace source access
 checks, file pins, or the project compare-and-swap.
 """
@@ -14,6 +23,8 @@ import json
 
 SCHEMA = 'citrus.declarative-resolved/1'
 PAIRED_CHARTS = frozenset({'bar', 'line', 'scatter', 'errorbar'})
+DISTRIBUTION_CHARTS = frozenset({'histogram', 'boxplot'})
+GEOMETRY_VERSION = 1
 MAX_BYTES = 16 * 1024 * 1024
 
 
@@ -29,17 +40,70 @@ def digest(value):
     return hashlib.sha256(blob).hexdigest()
 
 
-def _supported(resolved):
+def exact_distribution_replay(resolved):
+    """Whether one distribution leaf can be drawn exactly as frozen.
+
+    Empty geometry is the ordinary legacy path, not a freeze. Present geometry
+    is replayable only when the closed validator accepts this exact versioned
+    kind; anything else is downgraded instead of approximated. Validation never
+    recomputes bins or statistics.
+    """
+    if not resolved.scientific_geometry:
+        return False
+    from citrus_figures.distribution_geometry import validate_distribution
+    from citrus_figures.spec import SpecError
+    try:
+        validate_distribution(resolved)
+    except SpecError:
+        return False
+    geometry = resolved.scientific_geometry
+    return (isinstance(geometry, dict) and geometry.get('version') == GEOMETRY_VERSION
+            and geometry.get('kind') == resolved.chart)
+
+
+def unsupported_reason(resolved):
+    """First leaf that prevents an exact creation-time freeze, else None.
+
+    ``no_scientific_geometry`` is the compatible legacy path. Any other
+    distribution code means geometry was present but cannot be replayed
+    exactly; creation must stay on the legacy path and record the downgrade.
+    """
     leaves = resolved.panels or (resolved,)
-    return all(not leaf.panels and (leaf.chart in PAIRED_CHARTS or
-               (leaf.chart in {'histogram', 'boxplot'} and bool(leaf.scientific_geometry)))
-               for leaf in leaves)
+    for leaf in leaves:
+        if leaf.panels:
+            return {'code': 'nested_panels', 'panel_id': leaf.panel_id}
+        if leaf.chart in PAIRED_CHARTS:
+            if leaf.scientific_geometry:
+                return {'code': 'unexpected_scientific_geometry',
+                        'chart': leaf.chart, 'panel_id': leaf.panel_id}
+            continue
+        if leaf.chart not in DISTRIBUTION_CHARTS:
+            return {'code': 'unsupported_chart',
+                    'chart': leaf.chart, 'panel_id': leaf.panel_id}
+        if not leaf.scientific_geometry:
+            return {'code': 'no_scientific_geometry',
+                    'chart': leaf.chart, 'panel_id': leaf.panel_id}
+        if not exact_distribution_replay(leaf):
+            return {'code': 'scientific_geometry_not_exactly_replayable',
+                    'chart': leaf.chart, 'panel_id': leaf.panel_id}
+    return None
+
+
+def _supported(resolved):
+    return unsupported_reason(resolved) is None
 
 
 def prepare_source(spec, resolved, provenance):
     """Record the creation result, never silently freeze a legacy project."""
     source = {'kind': 'spec', 'spec': spec.as_dict()}
-    if not _supported(resolved):
+    reason = unsupported_reason(resolved)
+    if reason is not None:
+        # A present-but-unreplayable geometry is downgraded explicitly; it is
+        # never persisted as a frozen capability. Missing geometry is the
+        # ordinary legacy path and needs no downgrade marker.
+        if reason['code'] in {'scientific_geometry_not_exactly_replayable',
+                              'unexpected_scientific_geometry'}:
+            source['freeze_downgrade'] = reason
         return source
     payload = resolved.as_dict()
     snapshot = {'schema': SCHEMA, 'spec_sha256': digest(source['spec']),
@@ -60,6 +124,9 @@ def load_snapshot(source):
     """
     if 'resolved_snapshot' not in source:
         return None
+    if 'freeze_downgrade' in source:
+        # An explicit downgrade and a frozen snapshot contradict each other.
+        raise SnapshotError('invalid_resolved_snapshot')
     try:
         snapshot = source['resolved_snapshot']
         fields = {'schema', 'spec_sha256', 'resolved', 'resolved_sha256', 'provenance', 'sha256'}

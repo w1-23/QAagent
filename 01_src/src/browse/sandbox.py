@@ -26,12 +26,20 @@ def read():
     return json.loads(line)
 
 
-def relay(route):
+def relay(route, tabs):
     request = route.request
     if request.method not in {'GET', 'HEAD'}:
         route.abort()
         return
-    send('request', url=request.url, method=request.method)
+    navigation_tab = ''
+    try:
+        if request.is_navigation_request() and request.frame.parent_frame is None:
+            navigation_tab = next((key for key, tab in tabs.pages.items()
+                                   if tab.page == request.frame.page), '')
+    except Error:
+        # A navigation can arrive before Playwright exposes its frame.
+        pass
+    send('request', url=request.url, method=request.method, navigation_tab=navigation_tab)
     answer = read()
     if answer.get('ok') is not True:
         route.abort()
@@ -155,10 +163,10 @@ class Tabs:
                 result = self.pages[tab_id].action({**command, 'action': 'open'})
                 if 'error' in result:
                     self.remove(tab_id)
-                    return result
+                    return {**result, 'retry_target': ''}
             except Error:
                 self.remove(tab_id)
-                raise
+                return {'error': 'browse_page_action_failed', 'retry_target': ''}
             self.active = tab_id
             return {**result, 'tab_id': tab_id}
         tab = self.pages.get(tab_id)
@@ -179,7 +187,7 @@ class Tabs:
                 result = tab.action(command)
         except Error:
             tab.clear_references()
-            raise
+            result = {'error': 'browse_page_action_failed'}
         return {**result, 'tab_id': tab_id}
 
 
@@ -187,13 +195,13 @@ def main():
     if os.readlink('/proc/self/ns/net') == sys.argv[1] or {name for _, name in socket.if_nameindex()} - {'lo'}:
         raise RuntimeError('browse_network_namespace_required')
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=True, timeout=12000,
+        browser = playwright.chromium.launch(headless=True, chromium_sandbox=True, timeout=12000,
             args=['--disable-background-networking', '--disable-quic', '--disable-extensions'])
         context = browser.new_context(accept_downloads=False, service_workers='block',
                                       viewport={'width': 1200, 'height': 850})
-        context.route('**/*', relay)
-        context.route_web_socket('**/*', lambda connection: connection.close())
         controller = Tabs(context)
+        context.route('**/*', lambda route: relay(route, controller))
+        context.route_web_socket('**/*', lambda connection: connection.close())
         send('ready', engine=browser.version)
         try:
             while True:

@@ -1,16 +1,7 @@
 'use strict';
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
-const {readFileSync} = require('node:fs');
-const {join} = require('node:path');
-const vm = require('node:vm');
-const harness = {exports: {}};
-vm.runInNewContext(readFileSync(join(__dirname, 'chat-turn-ui.test.cjs'), 'utf8') +
-  '\nmodule.exports = {browser, flush, reply, framesPage};', {
-  module: harness, __dirname, console, AbortController, DOMException, TextDecoder,
-  TextEncoder, URLSearchParams, require(name) { return name === 'node:test' ? {test() {}} : require(name); }
-}, {filename: 'chat-turn-ui.test.cjs'});
-const {browser, flush, reply, framesPage} = harness.exports;
+const {browser, flush, reply, framesPage} = require('./chat-turn-fixture.cjs');
 function render(b, turns) { b.context.renderHistoryMessages([], b.context.normalizeHistoryTurns(turns)); }
 const active = (id = 'job', status = 'detached') => ({turn_request_id: id + '-request', job_id: id, job_status: status});
 const events = (b, job) => b.requests.findLast(r => r.url.includes('/jobs/' + job + '/events?'));

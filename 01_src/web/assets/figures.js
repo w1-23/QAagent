@@ -104,6 +104,8 @@
     el('objectSelect').disabled = true;
     el('previewImage').removeAttribute('src');
     el('prepareEditButton').hidden = true;
+    var scienceNotice = el('scienceNotice');
+    if (scienceNotice) { scienceNotice.hidden = true; scienceNotice.textContent = ''; }
     state.savedPreviewStatus = '';
     ['downloadSvg', 'downloadPng', 'downloadPdf', 'downloadTiff'].forEach(function(id) {
       el(id).removeAttribute('href'); el(id).setAttribute('aria-disabled', 'true');
@@ -326,6 +328,46 @@
     el('projectMeta').textContent = (detail.source_kind === 'script' ? '脚本图件' : '数据图件') + ' · ' +
       (detail.editable === false ? formats.join(' / ') || '无已保存格式' : manifestObjects().length + ' 个图内对象');
     el('prepareEditButton').hidden = !detail.edit_requires_preparation;
+    renderScienceNotice(detail);
+  }
+
+  function renderScienceNotice(detail) {
+    var notice = el('scienceNotice');
+    if (!notice) return;
+    var figureDocument = detail && detail.document;
+    var science = figureDocument && figureDocument.science || {};
+    var identity = figureDocument && figureDocument.identity || {};
+    var messages = [];
+    if (science.state === 'downgraded') {
+      var downgrade = science.downgrade || {};
+      var scope = [];
+      if (downgrade.chart) scope.push(String(downgrade.chart));
+      if (downgrade.panel_id) scope.push('面板 ' + String(downgrade.panel_id));
+      var downgradeLabels = {
+        scientific_geometry_not_exactly_replayable: '统计几何无法精确重放',
+        unexpected_scientific_geometry: '成对图不应携带统计几何'
+      };
+      var reason = downgradeLabels[downgrade.code] || String(downgrade.code || 'unknown');
+      messages.push('冻结降级：' + reason +
+        '（' + String(downgrade.code || 'unknown') +
+        (scope.length ? ' · ' + scope.join(' · ') : '') + '）' +
+        '；该图件按现行解析路径重绘，未声称创建时冻结。');
+    }
+    var distribution = Array.isArray(identity.distribution) ? identity.distribution : [];
+    var charts = distribution.map(function (item) { return item && item.chart; })
+      .filter(function (chart) { return typeof chart === 'string' && chart; });
+    if (charts.length) {
+      var chartLabels = { histogram: '直方图', boxplot: '箱线图' };
+      var chartText = charts.map(function (chart) { return chartLabels[chart] || String(chart); });
+      messages.push('分布标记（' + chartText.join('、') + '）没有来源声明的稳定标识，' +
+        '保持为当前渲染范围，不能跨重绘安全编辑。');
+    }
+    var marks = Array.isArray(identity.render_scoped_marks) ? identity.render_scoped_marks : [];
+    if (!charts.length && marks.length) {
+      messages.push('部分数据标记（' + marks.join('、') + '）仅限当前渲染身份，不能跨重绘安全编辑。');
+    }
+    notice.textContent = messages.join(' ');
+    notice.hidden = !messages.length;
   }
 
   function renderDownloads() {
@@ -534,7 +576,7 @@
     var byGid = new Map(existing.map(function (box) { return [box.dataset.gid, box]; }));
     existing.forEach(function (box) { box.hidden = true; });
     if (!size.width || !size.height) return;
-    var displayed = state.preview ? state.preview.manifest.objects : manifestObjects();
+    var displayed = state.scene && state.scene.manifest && state.scene.manifest.objects || manifestObjects();
     var ordered = displayed.slice().sort(function (a, b) {
       function area(item) { var r = item.bbox; return r ? Math.abs((r.x1 - r.x0) * (r.y1 - r.y0)) : 0; }
       function layer(item) { return ['figure', 'axes', 'series'].indexOf(item.role) >= 0 ? 0 : 1; }
@@ -567,8 +609,8 @@
       box.setAttribute('aria-label', objectLabel(object));
       box.setAttribute('aria-pressed', object.gid === state.selected ? 'true' : 'false');
       var savedOffset = savedValue(object.gid, 'offset_px', [0, 0]);
-      var previewEdits = state.preview && state.preview.edits[object.gid];
-      var renderedOffset = previewEdits && previewEdits.offset_px !== undefined ? previewEdits.offset_px : savedOffset;
+      var renderedEdits = state.scene && state.sceneEdits && state.sceneEdits[object.gid];
+      var renderedOffset = renderedEdits && renderedEdits.offset_px !== undefined ? renderedEdits.offset_px : savedOffset;
       var offset = canMove(object) ? currentValue(object.gid, 'offset_px', [0, 0]) : renderedOffset;
       box.style.left = ((object.bbox.x0 + offset[0] - renderedOffset[0]) / size.width * 100) + '%';
       box.style.top = ((object.bbox.y0 + offset[1] - renderedOffset[1]) / size.height * 100) + '%';
@@ -1327,7 +1369,7 @@
     jsonRequest(API + '/projects/' + encodeURIComponent(flight.figureId) + '/preview', {
       method: 'POST', credentials: 'same-origin', signal: flight.controller.signal,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ overrides: editBatch(flight.edits), expected_revision: flight.version, draft_revision: flight.revision })
+      body: JSON.stringify({ overrides: authoritativeBatch(editBatch(flight.edits), flight.version), expected_revision: flight.version, draft_revision: flight.revision })
     }, current).then(function (result) {
       if (!current()) return;
       if (result.figure_id !== flight.figureId || result.render_version !== flight.version || result.draft_revision !== flight.revision ||
@@ -1345,6 +1387,21 @@
       if (state.previewFlight !== flight) return;
       state.previewFlight = null; renderEditState();
       if (state.previewWanted) state.previewTimer = setTimeout(runPreview, 180);
+    });
+  }
+
+  function authoritativeBatch(batch, version) {
+    var document = state.current && state.current.document;
+    if (!document || document.schema !== 'citrus.figure-document/1' ||
+        document.document_id !== state.current.figure_id || document.revision !== version ||
+        !Array.isArray(document.objects)) return batch;
+    var targets = new Map();
+    document.objects.forEach(function (binding) {
+      if (binding.resolvable && binding.identity_scope === 'semantic') targets.set(binding.gid, binding.object_id);
+    });
+    return batch.map(function (edit) {
+      var target = targets.get(edit.gid);
+      return target ? { object_id: target, prop: edit.prop, value: edit.value } : edit;
     });
   }
 
@@ -1394,7 +1451,7 @@
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ overrides: batch, expected_revision: expectedRevision })
+      body: JSON.stringify({ overrides: authoritativeBatch(batch, expectedRevision), expected_revision: expectedRevision })
     }, function () { return ownsProject(figureId, epoch); }).then(function (result) {
       if (!ownsProject(figureId, epoch) || state.saving !== save) return;
       if (result.figure_id !== figureId || result.render_version !== expectedRevision + 1 ||

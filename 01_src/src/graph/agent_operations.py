@@ -1180,7 +1180,7 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
                 step["status"] = "failed"
                 step["reason_code"] = "artifact_validation_unavailable"
                 step["retryable"] = True
-        logical_key = _logical_key(name, call, step)
+        logical_key = call.get("_host_logical_key") or _logical_key(name, call, step)
         attempt = max(1, int(call.get("_attempt") or 1))
         ledger = current_execution_ledger()
         registered = ledger.record(str(call.get("id") or "")) if ledger else None
@@ -1251,8 +1251,11 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
                 message.additional_kwargs["result_reference"] = reference
             if isinstance(artifact, dict) and step.get("status") in {
                     "complete", "partial", "no_results"}:
-                _source_ledger.record_tool_sources(
-                    _sid, _rid, artifact=artifact, result_text=content)
+                if name != 'browse_web':
+                    _source_ledger.record_tool_sources(_sid, _rid, artifact=artifact, result_text=content)
+                elif (reference and reference['storage'].get('complete')
+                      and step['status'] == 'complete' and artifact.get('_browse_evidence')):
+                    _source_ledger.record_tool_sources(_sid, _rid, artifact=artifact)
         except Exception:
             logger.debug("persist full tool result failed", exc_info=True)
         # ToolMessage.artifact is deliberately excluded from model-visible

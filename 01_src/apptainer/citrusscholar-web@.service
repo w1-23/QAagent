@@ -1,0 +1,20 @@
+[Unit]
+Description=CitrusScholar %i Web
+Wants=citrusscholar-worker@%i.service
+After=citrusscholar-worker@%i.service
+StartLimitIntervalSec=180s
+StartLimitBurst=6
+
+[Service]
+Type=exec
+EnvironmentFile=%h/.config/citrusscholar/%i/service.env
+ExecStart=/usr/bin/python3.12 -I ${CITRUS_LAUNCHER} --config ${CITRUS_DEPLOYMENT} --role web
+Restart=on-failure
+RestartSec=15s
+KillMode=mixed
+TimeoutStopSec=45s
+LimitCORE=0
+UMask=0077
+
+[Install]
+WantedBy=default.target

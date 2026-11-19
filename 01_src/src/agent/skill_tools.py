@@ -87,8 +87,9 @@ def load_skill(skill_id: str, version: str, sha256: str):
 
 def _failure(exc):
     outcome = {"status": "not_run", "reason_code": "skill_resource_unavailable"}
-    return _encode({"error": str(exc), "error_type": type(exc).__name__,
-                    "_tool_outcome": outcome}), {"_tool_outcome": outcome}
+    import logging
+    logging.getLogger(__name__).debug("Skill resource unavailable", exc_info=exc)
+    return _encode({"error": outcome["reason_code"], "_tool_outcome": outcome}), {"_tool_outcome": outcome}
 
 
 def _register(reader):

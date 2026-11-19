@@ -143,9 +143,10 @@ body.figure-app {
 button.editor-guide { padding: 0; border: 0; background: transparent; font: inherit; font-size: 11px; text-decoration: underline; cursor: pointer; }
 
 /* A real transformed viewport. Guides are local overlays, never SVG edits. */
-.stage { grid-column: 2; min-width: 0; min-height: 0; position: relative; display: grid; grid-template-rows: 35px minmax(0, 1fr) 48px auto; }
+.stage { grid-column: 2; min-width: 0; min-height: 0; position: relative; display: grid; grid-template-rows: 35px auto minmax(0, 1fr) 48px auto; }
 .stage-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 16px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 10px; background: var(--surface); }
 .stage-bar > span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.stage-notice { margin: 0; padding: 4px 16px; border-bottom: 1px solid var(--line); background: var(--surface); }
 #canvasSizeBadge { flex-shrink: 0; font-variant-numeric: tabular-nums; }
 .viewport { position: relative; overflow: hidden; min-width: 0; min-height: 0; touch-action: none; }
 .viewport.is-pan-mode { cursor: grab; }

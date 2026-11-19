@@ -72,20 +72,34 @@ python -I 01_src/scripts/apptainer_launch.py --config /absolute/runtime/deployme
 
 先让隔离版本验证通过，再在无活动任务的切换窗口停止已确认身份的旧服务。正式运行可将 runtime_root 指向保留的原 runtime，existing_runtime=true；配置来源可与其相同。这是原地复用状态，不是账号/会话复制或手工数据库迁移。首次运行新源码的正常 schema 初始化仍需兼容性检查与状态备份，不能以隔离空库测试代替。
 
-远程已核对存在两套需要保留的 data、模型缓存和状态根；清理前必须再次确认路径与 symlink。不能删除服务账号的整个主目录，也不能直接删除包含 agent/data、state/data 或账号状态的旧根。用户授权删除的是被替换的旧程序版本；新 SIF、新源码、现用运行区不能继续引用即将删除的旧源码、虚拟环境、SIF 或符号链接。
+远程已核对存在两套需要保留的 data、模型缓存和状态根；清理前必须再次确认路径与 symlink。不能删除整个 服务账号的主目录，也不能直接删除包含 agent/data、state/data 或账号状态的旧根。用户授权删除的是被替换的旧程序版本；新 SIF、新源码、现用运行区不能继续引用即将删除的旧源码、虚拟环境、SIF 或符号链接。
 
 旧源码/虚拟环境/镜像只在新版本通过、旧服务确实停止、路径依赖排除之后逐项删除。无关实验和其他项目不属于此次替换。当前仅隔离验收入口运行；正式切换和旧程序删除尚未完成，没有提交或推送。
 
 ## 交互式 Browse（可选）
 
-使用 unprivileged Linux 用户构建固定 Chromium 镜像，将本节命令中的输出路径替换为部署路径。宿主需要 Apptainer、用户级 systemd、cgroup v2 以及支持 `--network none` 的用户命名空间环境。
+使用非 root 服务账号在受信源码根构建，以下命令适用于 Linux x86_64 / CPython 3.12。宿主需要 Apptainer、用户级 systemd、cgroup v2 和支持 `--network none` 的用户命名空间。`BUNDLE` 必须是全新的版本目录，位于服务账号或 root 拥有的受信父路径下，不能位于可写 runtime、staging 或缓存中，也不能经 `/tmp` 或 `current` 等符号链接。上级目录和文件均不得允许组或其他用户写入。
 
 ```bash
-apptainer build playwright.sif docker://mcr.microsoft.com/playwright/python@sha256:38dd67fc654b56b3cba611e4c8eb71cd33750e1cd29eea2a5dc00b484817a75f
-/usr/bin/python3.12 -m pip install --only-binary=:all: --no-deps --target browser-python -r browse-requirements.txt
-sha256sum playwright.sif
+set -eu
+umask 022
+BUNDLE=/absolute/trusted/releases/browse-20261119
+mkdir -m 0750 -- "$BUNDLE"
+apptainer build "$BUNDLE/playwright.sif" docker://mcr.microsoft.com/playwright/python@sha256:38dd67fc654b56b3cba611e4c8eb71cd33750e1cd29eea2a5dc00b484817a75f
+/usr/bin/python3.12 -m pip --isolated install --index-url https://pypi.org/simple \
+  --require-hashes --only-binary=:all: --no-deps --no-compile \
+  --target "$BUNDLE/browser-python" -r 01_src/apptainer/browse-requirements.txt
+chmod -R a-w -- "$BUNDLE/playwright.sif" "$BUNDLE/browser-python"
+/usr/bin/python3.12 -I -S 01_src/src/browse/integrity.py pin \
+  --image "$BUNDLE/playwright.sif" --packages "$BUNDLE/browser-python" \
+  --host-python /usr/bin/python3.12 --manifest "$BUNDLE/browser-python.manifest.json" \
+  --config "$BUNDLE/browse.json" --host vincentarelbundock.github.io --host docs.python.org
+chmod a-w -- "$BUNDLE/browser-python.manifest.json" "$BUNDLE/browse.json" "$BUNDLE"
+/usr/bin/python3.12 -I -S 01_src/src/browse/integrity.py verify --config "$BUNDLE/browse.json"
 ```
 
-将 `browse.example.json` 复制到服务配置目录，填写三个绝对路径、镜像的实际 SHA-256 和精确公网主机名。部署 JSON 的可选 `browse_config` 指向该配置。Web 只读挂载配置、镜像及 Python 依赖。省略 `browse_config` 时不暴露 Browse。可设置 `reuse_web_search_settings` 为 `false`，使候选不从源运行环境继承 Search/Fetch 设置。Browse 不依赖其密钥。
+可将已核对来源及 SHA-256 的本地 SIF 复制到新版本目录，替代上述镜像构建步骤；不要使用硬链接。Python 依赖从固定哈希的 wheel 安装到干净目录，不应通过为未知来源的已有文件重新生成清单来消除报错。`pin` 只生成新文件，不覆盖现有清单或配置；它记录全部展开成员（包括空目录、隐藏文件和原生二进制）的路径、类型、权限与文件 SHA-256，也固定 Chromium SIF 和真实、root 所有的宿主解释器本体。`--host` 可重复，填写精确公网主机名。先冻结权限再生成清单；升级 wheel、SIF、宿主 Python 或主机列表时，建立新版本目录，核对后切换配置并重启，不要原地修改或解除已部署目录的只读权限。模式约束防止其他本地用户修改路径，不防止已受信的 root 或本服务账号蓄意修改部署。
 
-每个任务启用一个新 Apptainer 浏览器单元和独立上下文，最多三张标签页。单 Web 进程同时运行两个单元，每账号至多一个。不同账号最多四个请求可按先来顺序等待，每个最多二十秒。所有标签页共同计量该任务的请求、传输、动作和寿命。浏览器无直接网络接口，页面资源及下载通过应用侧 HTTPS 中继。当前 Chromium 启动方式依赖 Apptainer 的外部隔离，浏览器自身沙箱未启用。部署以单 Web 进程运行时，上述槽位才是实例级上限。
+部署 JSON 的可选 `browse_config` 指向上述 `browse.json`。Web 启动器先验证宿主文件并绑定配置哈希，再只读挂载配置、清单、镜像、Python 依赖和宿主解释器。每个新渲染单元在真正的宿主文件系统上、Apptainer 执行前重新验证；路径、权限或哈希不符即拒绝，具体原因记入部署启动输出或 Web 日志。省略 `browse_config` 时不暴露 Browse。可设置 `reuse_web_search_settings` 为 `false`，使候选不从源运行环境继承 Search/Fetch 设置。Browse 不依赖其密钥。
+
+每个任务启用一个新 Apptainer 浏览器单元和独立上下文，最多三张标签页。单 Web 进程同时运行两个单元，每账号至多一个。不同账号最多四个请求可按先来顺序等待，每个最多二十秒。所有标签页共同计量该任务的请求、传输、动作和寿命。浏览器无直接网络接口，页面资源及下载通过应用侧 HTTPS 中继。在 Apptainer 外层隔离之外，运行器还明确要求 Chromium 自带沙箱。无法启动时拒绝 Browse，不回退到关闭内层沙箱的模式。部署以单 Web 进程运行时，上述槽位才是实例级上限。

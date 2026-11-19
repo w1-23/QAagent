@@ -130,6 +130,23 @@ def _write_scope(owner: int):
             "code": "account_closed", "message": "账户已停用或正在删除，不能修改图件。"})
 
 
+@contextmanager
+def _read_scope(owner: int):
+    """Admission for a plain detail read: fenced against account deletion, no write slot.
+
+    A detail read renders nothing, so it must not consume the single-worker
+    render budget or answer 429 while unrelated renders are active. The account
+    lease is still held so an account deletion waits for the read, exactly as it
+    does for writes.
+    """
+    try:
+        with account_lease(owner) as lease:
+            yield lease
+    except AccountUnavailable:
+        raise HTTPException(status_code=409, detail={
+            "code": "account_closed", "message": "账户已停用或正在删除，不能访问图件。"})
+
+
 async def _resolve_session(request: Request, lease) -> str:
     """The session new publications go into."""
     from src.session.manager import session_manager
@@ -195,7 +212,11 @@ async def get_project(figure_id: str, request: Request, prepare_edit: bool = Fal
     from src.figures import projects
 
     owner = _owner(request)
-    with _write_scope(owner) as lease:
+    # A plain detail read renders nothing; it must not take a figure write
+    # slot or be refused with 429 while unrelated renders are active. Legacy
+    # manifest preparation does render, so only that path reserves capacity.
+    scope = _write_scope if prepare_edit else _read_scope
+    with scope(owner) as lease:
         try:
             detail = await run_account_thread(
                 lease, projects.detail_for_owner, figure_id, owner, upgrade_manifest=prepare_edit)

@@ -18,12 +18,12 @@ import re
 from typing import Annotated, Literal
 
 from langchain_core.tools import tool
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from src.code_execution.protocol import ExecutionLimits, logical_path
 from .identity import ExecutionIdentity
 
-__all__ = ["CODE_TOOL_NAMES", "register_code_tools", "code_execution_context"]
+__all__ = ["CODE_TOOL_NAMES", "EXECUTION_WAIT_TOOL_NAMES", "register_code_tools", "code_execution_context"]
 
 _context: ContextVar = ContextVar("code_execution_context", default=None)
 Id = Annotated[str, Field(pattern=r"^[a-f0-9]{32}$")]
@@ -77,6 +77,23 @@ class WriteArgs(_Args):
         return value
 
 
+class BindInputArgs(_Args):
+    task_id: Task
+    workspace_id: Id
+    expected_revision: int = Field(ge=1, le=2**31 - 1)
+    path: Path
+    file_id: Id
+    sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+    @field_validator("path")
+    @classmethod
+    def input_path(cls, value):
+        logical_path(value)
+        if not value.startswith("/input/"):
+            raise ValueError("execution_input_path_required")
+        return value
+
+
 class ExecuteArgs(_Args):
     task_id: Task
     workspace_id: Id
@@ -85,6 +102,8 @@ class ExecuteArgs(_Args):
     inputs: list[Path] = Field(default_factory=list, max_length=128)
     outputs: list[Path] = Field(default_factory=list, max_length=32)
     argv: list[Argument] = Field(default_factory=list, max_length=32)
+    environment_id: Task | None = None
+    environment_revision: int | None = Field(default=None, ge=1, le=2**31 - 1)
 
     @field_validator("script_path")
     @classmethod
@@ -110,6 +129,16 @@ class ExecuteArgs(_Args):
             raise ValueError("invalid_execution_arguments")
         return values
 
+    @model_validator(mode="after")
+    def environment_selection(self):
+        # Explicit product policy: select either the fixed base environment or
+        # one exact published revision, never a mutable label.
+        if (self.environment_id is None) != (self.environment_revision is None):
+            raise ValueError("execution_environment_selection_requires_id_and_revision")
+        if self.environment_id == "base" and self.environment_revision != 1:
+            raise ValueError("execution_base_environment_revision_must_be_1")
+        return self
+
 
 class ExecutionArgs(_Args):
     execution_id: Id
@@ -134,6 +163,40 @@ class OutputArgs(ExecutionArgs):
 class ReadOutputArgs(OutputArgs):
     start_byte: int = Field(default=0, ge=0, le=256 * 1024**2)
     max_bytes: int = Field(default=8192, ge=1, le=65536)
+
+
+class EnvironmentInstallArgs(_Args):
+    task_id: Task
+    workspace_id: Id
+    expected_revision: int = Field(ge=1, le=2**31 - 1)
+    lock_path: Path
+
+    @field_validator("lock_path")
+    @classmethod
+    def lock_input(cls, value):
+        logical_path(value)
+        if not value.startswith("/input/"):
+            raise ValueError("environment_lock_input_required")
+        return value
+
+
+class EnvironmentPublishArgs(_Args):
+    execution_id: Id
+    environment_id: Task
+    expected_revision: int = Field(ge=0, le=2**31 - 2)
+
+    @field_validator("environment_id")
+    @classmethod
+    def immutable_label(cls, value):
+        if value == "base":
+            raise ValueError("environment_base_is_immutable")
+        return value
+
+
+class EnvironmentReadArgs(_Args):
+    workspace_id: Id
+    environment_id: Task
+    revision: int = Field(ge=1, le=2**31 - 1)
 
 
 def _enabled():
@@ -281,7 +344,11 @@ def _dispatch(operation, **args):
                 if current["task_id"] != args["task_id"]:
                     raise PermissionError("execution_task_scope_mismatch")
                 if current["revision"] != args["expected_revision"]:
-                    raise WorkspaceConflict(current["revision"])
+                    # This refusal precedes file registration. A later CAS
+                    # conflict follows the generic reconciliation path.
+                    return _result({"error": "workspace_revision_conflict",
+                                    "latest_revision": current["revision"]},
+                                   reason="workspace_revision_conflict", status="not_run")
                 from src.session import files
                 file = files.register_file(owner_user_id=identity.owner_user_id,
                     session_id=identity.session_id, filename=args["path"].rsplit("/", 1)[-1],
@@ -293,21 +360,149 @@ def _dispatch(operation, **args):
                 return _result({"task_id": args["task_id"], "workspace_id": args["workspace_id"],
                     "revision": result["revision"], **{k: ref[k] for k in ("path", "file_id", "version", "sha256", "size_bytes")}},
                     reason="code_workspace_written")
+            if operation == "bind_input":
+                logical_path(args["path"])
+                if not args["path"].startswith("/input/"):
+                    raise ValueError("execution_input_path_required")
+                current = workspace.open(args["workspace_id"])
+                if current["task_id"] != args["task_id"]:
+                    raise PermissionError("execution_task_scope_mismatch")
+                if current["revision"] != args["expected_revision"]:
+                    raise WorkspaceConflict(current["revision"])
+                from src.session import files
+                source = files.get_file(identity.session_id, args["file_id"],
+                                        owner_user_id=identity.owner_user_id)
+                if (source is None or source.get("visibility") != "public"
+                        or source.get("origin") not in files.ORIGINS
+                        or source.get("sha256") != args["sha256"]):
+                    raise PermissionError("code_input_source_denied")
+                result = workspace.bind(args["workspace_id"], path=args["path"],
+                    file_id=args["file_id"], expected_revision=args["expected_revision"],
+                    expected_sha256=args["sha256"], source={"tool": "code_bind_input"})
+                ref = result["ref"]
+                return _result({"task_id": args["task_id"], "workspace_id": args["workspace_id"],
+                    "revision": result["revision"], **{k: ref[k] for k in ("path", "file_id", "version", "sha256", "size_bytes")}},
+                    reason="code_input_bound")
             if operation == "execute":
                 from src.code_execution.presence import worker_available
                 if not worker_available(service.repository.path):
                     return _result({"error": "code_worker_unavailable"},
                                    reason="code_worker_unavailable", status="not_run")
+                environment_id = args.get("environment_id") or "base"
+                environment_revision = args.get("environment_revision") or 1
+                try:
+                    from src.code_execution.environment_service import OfflineEnvironmentService
+                    environments = OfflineEnvironmentService(identity, executions=service)
+                    if environment_id == "base":
+                        if environment_revision != 1:
+                            raise ValueError("execution_base_environment_revision_must_be_1")
+                    else:
+                        manifest = environments.store.get(args["workspace_id"],
+                            environment_id=environment_id, revision=environment_revision)
+                        if (manifest.get("schema") != "citrus.task-environment/1"
+                                or manifest.get("workspace_id") != args["workspace_id"]
+                                or manifest.get("task_id") != args["task_id"]
+                                or manifest.get("environment_id") != environment_id
+                                or manifest.get("revision") != environment_revision):
+                            raise ValueError("environment_selection_scope_mismatch")
+                except LookupError:
+                    return _result({"error": "environment_revision_not_found"},
+                                   reason="environment_revision_not_found", status="not_run")
+                except ValueError as exc:
+                    if str(exc) in {"execution_base_environment_revision_must_be_1",
+                                    "environment_selection_scope_mismatch"}:
+                        return _result({"error": str(exc)}, reason=str(exc), status="not_run")
+                    raise
                 key = "code_" + _key(identity.run_id, call_id)
                 row = service.submit(task_id=args["task_id"], workspace_id=args["workspace_id"],
                     expected_revision=args["expected_revision"], script_path=args["script_path"],
                     inputs=tuple(args["inputs"]), outputs=tuple(args["outputs"]), arguments=tuple(args["argv"]),
                     operation_id=key, idempotency_key=key, network_policy="offline",
-                    environment_id="base", environment_revision=1, limits=ExecutionLimits(),
-                    absolute_deadline=_deadline(identity))
+                    environment_id=environment_id, environment_revision=environment_revision,
+                    limits=ExecutionLimits(), absolute_deadline=_deadline(identity))
                 status = _public(service.status(row["execution_id"]))
                 return _result({**status, "_code_execution_id": row["execution_id"],
-                    "completion_scope": "submission_only"}, reason="execution_submitted")
+                    "completion_scope": "submission_only",
+                    "environment_id": environment_id,
+                    "environment_revision": environment_revision}, reason="execution_submitted")
+            if operation == "environment_install":
+                from src.code_execution.environment_service import OfflineEnvironmentService
+                from src.code_execution.presence import worker_available
+                if not worker_available(service.repository.path):
+                    return _result({"error": "code_worker_unavailable"},
+                                   reason="code_worker_unavailable", status="not_run")
+                current = workspace.open(args["workspace_id"])
+                if current["task_id"] != args["task_id"]:
+                    raise PermissionError("execution_task_scope_mismatch")
+                if current["revision"] != args["expected_revision"]:
+                    # Reconcile the prepare/submit crash window: the installer
+                    # binding advances the workspace revision exactly once.
+                    return _result({"error": "workspace_revision_conflict",
+                                    "latest_revision": current["revision"]},
+                                   reason="workspace_revision_conflict", status="not_run")
+                snapshot = workspace.snapshot(args["workspace_id"],
+                    task_id=args["task_id"], expected_revision=args["expected_revision"])
+                lock = next((item for item in snapshot["files"]
+                             if item["path"] == args["lock_path"]), None)
+                if lock is None:
+                    return _result({"error": "environment_lock_not_bound"},
+                                   reason="environment_lock_not_bound", status="not_run")
+                # Reconcile the same lock within a run. A later run has its
+                # own deadline and may intentionally request a new attempt.
+                key = "codeenv_" + _key(identity.run_id, args["workspace_id"], args["task_id"],
+                                        args["lock_path"], lock["sha256"])
+                environments = OfflineEnvironmentService(identity, executions=service)
+                status = environments.submit_install(task_id=args["task_id"],
+                    workspace_id=args["workspace_id"], expected_revision=args["expected_revision"],
+                    lock_path=args["lock_path"], operation_id=key, idempotency_key=key,
+                    absolute_deadline=_deadline(identity))
+                payload = {**status, "_code_execution_id": status["execution_id"],
+                           "completion_scope": "submission_only",
+                           "installer": "fixed-offline-base"}
+                try:
+                    payload["workspace_revision"] = workspace.open(args["workspace_id"])["revision"]
+                except Exception:
+                    pass  # Submission is already durable; never fail after dispatch.
+                return _result(payload, reason="environment_install_submitted")
+            if operation == "environment_publish":
+                from src.code_execution.environment_service import OfflineEnvironmentService
+                from src.code_execution.environments import EnvironmentConflict
+                environments = OfflineEnvironmentService(identity, executions=service)
+                try:
+                    manifest = environments.publish(execution_id=args["execution_id"],
+                        environment_id=args["environment_id"],
+                        expected_revision=args["expected_revision"])
+                except EnvironmentConflict:
+                    return _result({"error": "environment_publication_conflict"},
+                                   reason="environment_publication_conflict", status="not_run")
+                except LookupError:
+                    return _result({"error": "environment_execution_not_found"},
+                                   reason="environment_execution_not_found", status="not_run")
+                except ValueError as exc:
+                    text = str(exc)
+                    if text in {"environment_successful_installer_required",
+                                "environment_base_is_immutable"}:
+                        return _result({"error": text}, reason=text, status="not_run")
+                    raise
+                return _result({"environment": manifest,
+                                "completion_scope": "published_environment_revision"},
+                               reason="environment_published")
+            if operation == "environment_read":
+                from src.code_execution.environment_service import OfflineEnvironmentService
+                environments = OfflineEnvironmentService(identity, executions=service)
+                try:
+                    manifest, data = environments.read(args["workspace_id"],
+                        environment_id=args["environment_id"], revision=args["revision"])
+                except LookupError:
+                    return _result({"error": "environment_revision_not_found"},
+                                   reason="environment_revision_not_found", status="not_run")
+                except ValueError as exc:
+                    text = str(exc)
+                    if text.startswith("environment_overlay_") or text == "environment_archive_size_mismatch":
+                        return _result({"error": text}, reason=text, status="not_run")
+                    raise
+                return _result({"environment": manifest, "archive_verified": True,
+                                "archive_bytes": len(data)}, reason="environment_read")
             execution_id = args.pop("execution_id")
             if operation in {"read", "deliver"}:
                 with _accepted_file(service, identity, execution_id, args["path"]) as (request, ref, data):
@@ -372,14 +567,24 @@ def code_write(task_id: str, workspace_id: str, expected_revision: int, path: st
                      expected_revision=expected_revision, path=path, content=content)
 
 
+@tool(args_schema=BindInputArgs, response_format="content_and_artifact")
+def code_bind_input(task_id: str, workspace_id: str, expected_revision: int, path: str,
+                    file_id: str, sha256: str):
+    """Bind one previously authorized session file as an immutable /input snapshot of an authorized task using workspace revision CAS. Supply the exact file_id and SHA256 of a public uploaded or generated file visible to this owner and session. Host-internal receipts and files from another session are refused. This copies no bytes, reads no content, publishes nothing and grants no new access; /input stays read-only. Return the new revision and immutable ref."""
+    return _dispatch("bind_input", task_id=task_id, workspace_id=workspace_id,
+                     expected_revision=expected_revision, path=path,
+                     file_id=file_id, sha256=sha256)
+
+
 @tool(args_schema=ExecuteArgs, response_format="content_and_artifact")
 def code_execute(task_id: str, workspace_id: str, expected_revision: int, script_path: str,
-                 inputs: list[str] | None = None, outputs: list[str] | None = None, argv: list[str] | None = None):
-    """Submit a bound .py snapshot in fixed offline base environment revision 1, with existing Python standard library and worker-installed base packages only; no package installation. Select bound logical input paths and declared logical outputs; argv are Python script arguments, never a shell command. Default limits: 120 s, 1024 MiB, 1 CPU, 128 PIDs, 64 MiB scratch/output, 1 MiB logs, 32 outputs, constrained by the original task deadline. Worker controls image/backend/device. Complete means submission recorded, not code or analysis success. Use code_status/log/wait for real execution evidence."""
+                 inputs: list[str] | None = None, outputs: list[str] | None = None, argv: list[str] | None = None,
+                 environment_id: str | None = None, environment_revision: int | None = None):
+    """Submit a bound .py snapshot for offline execution. The default environment is fixed base revision 1 with the existing Python standard library and worker-installed base packages only. To use a published environment, pass the exact environment_id and environment_revision returned by code_environment_publish; only an immutable revision published for this task is selectable. Select bound logical input paths and declared logical outputs; argv are Python script arguments, never a shell command. Default limits: 120 s, 1024 MiB, 1 CPU, 128 PIDs, 64 MiB scratch/output, 1 MiB logs, 32 outputs, constrained by the original task deadline. Worker controls image/backend/device. Complete means submission recorded, not code or analysis success. Use code_status/log/wait for real execution evidence."""
     return _dispatch("execute", task_id=task_id, workspace_id=workspace_id,
                      expected_revision=expected_revision, script_path=script_path,
-                     inputs=inputs or [], outputs=outputs or [], argv=argv or [])
-
+                     inputs=inputs or [], outputs=outputs or [], argv=argv or [],
+                     environment_id=environment_id, environment_revision=environment_revision)
 
 @tool(args_schema=ExecutionArgs, response_format="content_and_artifact")
 def code_status(execution_id: str):
@@ -417,10 +622,35 @@ def code_deliver(execution_id: str, path: str):
     return _dispatch("deliver", execution_id=execution_id, path=path)
 
 
-_TOOLS = (code_workspace, code_write, code_execute, code_status, code_log, code_cancel, code_wait,
-          code_read, code_deliver)
+@tool(args_schema=EnvironmentInstallArgs, response_format="content_and_artifact")
+def code_environment_install(task_id: str, workspace_id: str, expected_revision: int, lock_path: str):
+    """Submit the fixed offline environment installer for one bound wheel lock. The lock and every wheel it names must already be bound under /input of this task; the host validates the immutable lock, binds the fixed installer and queues offline base revision 1 only. No index, URL, package name, network policy or installer is model-selectable. Return the real execution reference; the host registers the existing durable execution wait. Complete means queued, not installed or published. Call code_environment_publish only after a succeeded execution."""
+    return _dispatch("environment_install", task_id=task_id, workspace_id=workspace_id,
+                     expected_revision=expected_revision, lock_path=lock_path)
+
+
+@tool(args_schema=EnvironmentPublishArgs, response_format="content_and_artifact")
+def code_environment_publish(execution_id: str, environment_id: str, expected_revision: int):
+    """Publish one succeeded offline installer attempt as an exact immutable environment revision. Re-verifies the original successful receipt, accepted archive bytes, bound lock/wheels, installer and base image identity, then commits the manifest with revision CAS. expected_revision is the current latest revision; use 0 for a new environment. Return environment_id and revision for selection by code_execute. A queued or failed attempt is never published."""
+    return _dispatch("environment_publish", execution_id=execution_id,
+                     environment_id=environment_id, expected_revision=expected_revision)
+
+
+@tool(args_schema=EnvironmentReadArgs, response_format="content_and_artifact")
+def code_environment_read(workspace_id: str, environment_id: str, revision: int):
+    """Read one exact published environment revision for this owner and session, re-verifying its archive bytes against the immutable manifest and wheel lock. Return the manifest (including lock and archive reference) and verification status. Read-only; never installs, publishes or executes."""
+    return _dispatch("environment_read", workspace_id=workspace_id,
+                     environment_id=environment_id, revision=revision)
+
+
+_TOOLS = (code_workspace, code_write, code_bind_input, code_execute,
+          code_environment_install, code_environment_publish, code_environment_read,
+          code_status, code_log, code_cancel, code_wait, code_read, code_deliver)
 CODE_TOOL_NAMES = frozenset(item.name for item in _TOOLS)
-_MUTATES = frozenset({"code_workspace", "code_write", "code_execute", "code_cancel", "code_deliver"})
+_MUTATES = frozenset({"code_workspace", "code_write", "code_bind_input", "code_execute",
+                      "code_environment_install", "code_environment_publish",
+                      "code_cancel", "code_deliver"})
+EXECUTION_WAIT_TOOL_NAMES = frozenset({"code_execute", "code_wait", "code_environment_install"})
 
 
 def _load(item, mutates):

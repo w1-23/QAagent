@@ -65,9 +65,9 @@ class ExecutionSegments:
                 if row['status'] != 'complete' or not isinstance(batch,dict) or batch.get('unknown_operations'):
                     raise task_events.TaskConflict('execution_segment_requires_reconciliation')
 
-    def _row(self, conn):
+    def _row(self, conn, *, active=True):
         conn.execute(_SCHEMA)
-        self._job(conn)
+        self._job(conn, active=active)
         row = conn.execute('SELECT * FROM agent_execution_segments WHERE job_id=?',(self.identity.run_id,)).fetchone()
         if row is None:
             raise task_events.TaskConflict('execution_segment_missing')
@@ -87,9 +87,9 @@ class ExecutionSegments:
             raise task_events.TaskConflict('execution_segment_claim_lost')
 
     @contextmanager
-    def _admit(self):
+    def _admit(self, *, active=True):
         with task_events.transaction() as conn:
-            epoch = self._row(conn)['account_epoch']
+            epoch = self._row(conn, active=active)['account_epoch']
         lease = acquire_account_lease(self.identity.owner_user_id,expected_epoch=epoch)
         try:
             yield
@@ -274,3 +274,92 @@ class ExecutionSegments:
                 raise task_events.TaskConflict('execution_segment_phase_conflict')
             conn.execute("UPDATE agent_execution_segments SET phase='finalizing' WHERE job_id=?",(self.identity.run_id,))
             self._step(conn,'finalizing','finalizing')
+
+    def finish_terminal(self, claim, *, done_payload, status, current_step,
+                        progress_summary="", error="", stop_reason="", stop_note=""):
+        """Close the segment in the same commit as the terminal job view.
+
+        The durable ``done`` fact, the job's terminal status and the segment's
+        ``terminal`` phase are one atomic unit under the live claim fence. A
+        crash before commit leaves all three untouched, so the same claim can
+        retry; a stale generation/token cannot close a newer segment.
+        """
+        if status not in {"completed", "failed", "cancelled", "awaiting_input"}:
+            raise ValueError("execution_segment_terminal_status_invalid")
+        if not isinstance(done_payload, dict) or not isinstance(done_payload.get("turn_envelope"), dict):
+            raise ValueError("execution_segment_terminal_envelope_required")
+        with self._admit(active=False), task_events.transaction() as conn:
+            job = self._job(conn, active=False)
+            row = conn.execute("SELECT * FROM agent_execution_segments WHERE job_id=?",
+                               (self.identity.run_id,)).fetchone()
+            if row is None:
+                raise task_events.TaskConflict("execution_segment_missing")
+            terminal = task_events.current_terminal_event(conn, self.identity.run_id)
+            if row["phase"] == "terminal":
+                # The terminal commit already closed this exact segment.
+                if (type(claim) is not ExecutionSegmentClaim or claim.identity != self.identity
+                        or claim.generation != row["generation"]):
+                    raise task_events.TaskConflict("execution_segment_claim_lost")
+                if terminal is None or job["status"] != status:
+                    raise task_events.TaskConflict("execution_segment_terminal_conflict")
+                return
+            self._owned(row, claim)
+            if status == "cancelled":
+                phases = {"finalizing", "active", "resuming", "parking"}
+            elif status == "failed" and row["phase"] != "finalizing":
+                # A graph exception can end the turn before finalization. Close
+                # that segment only after proving no execution outcome is still
+                # running or unknown; otherwise reconciliation keeps the claim.
+                # A finalized turn keeps the existing behavior: its envelope is
+                # the authoritative report of any unknown operations.
+                self._settled(conn, self.identity.run_id)
+                phases = {"active", "resuming", "parking"}
+            else:
+                phases = {"finalizing"}
+            if row["phase"] not in phases:
+                raise task_events.TaskConflict("execution_segment_phase_conflict")
+            if job["status"] not in {"running", "detached", "cancel_requested"}:
+                raise task_events.TaskConflict("execution_segment_not_active")
+            if terminal is not None:
+                # Another path already owns the durable terminal fact. Never
+                # rewrite it and never close the segment from a later claim.
+                raise task_events.TaskConflict("execution_segment_terminal_conflict")
+            # Record the phase fact before the terminal frame (later events are
+            # suppressed once a done fact exists), then commit both together.
+            task_events._append(conn, self.identity.run_id, "execution_segment",
+                                {"job_id": self.identity.run_id, "phase": "terminal"})
+            task_events._append(conn, self.identity.run_id, "done", done_payload)
+            now = datetime.now().isoformat()
+            guard = "job_id=? AND status IN ('running','detached','cancel_requested')"
+            if status == "cancelled":
+                # Same transition as jobs.mark_stopped: current_step, progress
+                # summary and error are intentionally left untouched.
+                changed = conn.execute(
+                    "UPDATE task_jobs SET status='cancelled',stop_reason=?,stop_note=?,"
+                    "finished_at=?,updated_at=? WHERE " + guard,
+                    (stop_reason or "user", stop_note, now, now, self.identity.run_id)).rowcount
+            elif status == "completed":
+                # Same transition as jobs.mark_completed_if_open: error and a
+                # prior stop_note survive unless this completion carries one.
+                note = stop_note or ("停止请求晚于完成" if job["status"] == "cancel_requested" else "")
+                if note:
+                    changed = conn.execute(
+                        "UPDATE task_jobs SET status='completed',current_step=?,"
+                        "progress_summary=?,stop_note=?,finished_at=?,updated_at=? WHERE " + guard,
+                        (current_step, progress_summary, note, now, now,
+                         self.identity.run_id)).rowcount
+                else:
+                    changed = conn.execute(
+                        "UPDATE task_jobs SET status='completed',current_step=?,"
+                        "progress_summary=?,finished_at=?,updated_at=? WHERE " + guard,
+                        (current_step, progress_summary, now, now, self.identity.run_id)).rowcount
+            else:
+                changed = conn.execute(
+                    "UPDATE task_jobs SET status=?,current_step=?,progress_summary=?,error=?,"
+                    "finished_at=?,updated_at=? WHERE " + guard,
+                    (status, current_step, progress_summary, error, now, now,
+                     self.identity.run_id)).rowcount
+            if changed != 1:
+                raise task_events.TaskConflict("execution_segment_terminal_conflict")
+            conn.execute("UPDATE agent_execution_segments SET phase='terminal',token=? WHERE job_id=?",
+                         (uuid.uuid4().hex, self.identity.run_id))

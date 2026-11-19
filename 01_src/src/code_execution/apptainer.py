@@ -482,16 +482,14 @@ class OfflineApptainerBackend:
         unit = self._unit(handle)
         if not unit or unit.get("InvocationID") != status.identity["invocation"]:
             return ApptainerStatus("unknown")
-        result = self._run(["/usr/bin/systemctl", "--user", "kill", "--kill-whom=all", "--signal=KILL", handle.name])
-        if result.uncertain or result.truncated or result.returncode != 0:
-            return self.inspect(handle, read_summary=False)
+        self._run(["/usr/bin/systemctl", "--user", "kill", "--kill-whom=all", "--signal=KILL", handle.name])
+        # systemd can report a delivery error after signalling some processes.
+        # In every case use bounded observation of the original invocation and
+        # cgroup to determine whether the whole execution has actually stopped.
         deadline = time.monotonic() + self.config.control_timeout_sec
         while time.monotonic() < deadline:
             observed = self.inspect(handle, read_summary=False)
-            # SIGKILL reaping can briefly leave systemd state unconfirmed.
-            # Continue bounded observation; stopped still requires the exact
-            # invocation and an empty original cgroup, never just CLI success.
-            if observed.stopped:
+            if observed.stopped and observed.identity == status.identity:
                 return observed
             time.sleep(0.05)
         return ApptainerStatus("unknown", identity=status.identity)

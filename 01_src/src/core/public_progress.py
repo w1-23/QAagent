@@ -3,9 +3,8 @@
 The model already streams assistant text next to its tool calls.  That text
 has two very different meanings depending on how the *round* ends:
 
-* round ends with tool calls -> the text is a **public working note**: the
-  model telling the user what it is doing next.  It belongs to the execution
-  timeline only.
+* round ends with tool calls -> the text is private working narration. The
+  execution timeline may show a fixed working label, not the model's text.
 * round ends without tool calls -> the text **is** the final answer and keeps
   using the existing ``text`` path.
 
@@ -15,8 +14,8 @@ module therefore classifies at round level and never touches the answer path.
 
 Hard rules:
 * private ``reasoning_content`` is never a source here;
-* output is sanitized (no DSML/tool protocol, no citation markers, bounded
-  length) and rejected when it looks like credential material;
+* only a code-owned label is published; malformed or credential-like working
+  text does not create a progress note;
 * every failure here is swallowed: public progress must never block the agent.
 """
 
@@ -27,7 +26,7 @@ import os
 import re
 import uuid
 
-from src.core.progress_bus import emit_progress, get_turn_scope
+from src.core.progress_bus import _PUBLIC_WORK_NOTE, emit_progress, get_turn_scope
 
 #: Longest single public note kept. The timeline row is one line; longer text
 #: is truncated instead of silently blowing up the trace.
@@ -110,15 +109,15 @@ def public_content_text(content) -> str:
 def public_progress_text(chunks, has_tool_calls: bool) -> str:
     """Classify one model round: working note vs final answer.
 
-    Returns the sanitized note for a tool-calling round and ``\"\"`` for the
-    final round, so the answer path is never fed progress text.
+    Only retain the presence of working text, not its content. The final
+    round produces no progress note and still uses the answer path.
     """
     if not has_tool_calls:
         return ""
     if not chunks:
         return ""
     try:
-        return sanitize(public_content_text(chunks))
+        return _PUBLIC_WORK_NOTE if sanitize(public_content_text(chunks)) else ""
     except Exception:  # noqa: BLE001 - progress must never break execution
         return ""
 
@@ -133,13 +132,14 @@ def emit_public_progress(text: str, *, step_id: str = "",
     persistence; this emitter must not append the same event separately.
     """
     try:
-        note = sanitize(text)
-        if not note or not enabled():
+        if not enabled() or not sanitize(text):
             return False
+        note = _PUBLIC_WORK_NOTE
         from src.core.tracing import get_job_id
         job_id = str(job_id or get_job_id() or "")
         scope = (*get_turn_scope(), job_id)
-        if _last_emitted.get() == (scope, note):
+        event_key = (scope, note_id or (model_step, step_id))
+        if _last_emitted.get() == event_key:
             return False
         emit_progress("assistant_progress", {
             "visibility": "public", "origin": "model",
@@ -152,7 +152,7 @@ def emit_public_progress(text: str, *, step_id: str = "",
             "tool_call_ids": list(tool_call_ids),
             "job_id": job_id,
         })
-        _last_emitted.set((scope, note))
+        _last_emitted.set(event_key)
     except Exception:  # noqa: BLE001 - never block the agent
         return False
     _persist_last_note(note, job_id=job_id)

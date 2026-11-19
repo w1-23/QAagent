@@ -515,8 +515,15 @@ def _build_resolved_figure(resolved: ResolvedFigure, *, rendered=None, ax=None,
             raise SpecError("empty_data", "直方图没有可用的数值。")
         if resolved.scientific_geometry:
             geometry = resolved.scientific_geometry
-            patches = ax.bar(geometry['edges'][:-1], geometry['counts'],
-                             width=np.diff(geometry['edges']), align='edge',
+            # Match Axes.hist's own placement instead of approximating it:
+            # hist draws centers = edges[:-1] + 0.5*width with align="center".
+            # Edge-aligned bars differ by one float ulp, changing patches and
+            # autoscaled tick readability.
+            edges = np.asarray(geometry['edges'], dtype=float)
+            widths = np.diff(edges)
+            centers = edges[:-1] + 0.5 * widths
+            patches = ax.bar(centers, np.asarray(geometry['counts'], dtype=float),
+                             width=widths, align='center',
                              color=colours[0], edgecolor='white', linewidth=0.5).patches
         else:
             _, _, patches = ax.hist(y_values, bins=20, color=colours[0], edgecolor="white",

@@ -463,7 +463,7 @@ def _recovery_inputs(tool_name, args, owner):
 
 
 async def _run_single_tool(tool: BaseTool, tool_call: dict, *, require_durable: bool = False,
-                           on_dispatch=None) -> ToolMessage:
+                           on_dispatch=None, retry_of=None) -> ToolMessage:
     from src.core.tracing import get_job_id, get_user_id
     from src.core import jobs, task_events
     job_id, owner = get_job_id(), get_user_id()
@@ -481,7 +481,7 @@ async def _run_single_tool(tool: BaseTool, tool_call: dict, *, require_durable: 
     mode, refs = _recovery_inputs(name, args, owner)
     operation_id, lease = task_events.start_operation(
         job_id, owner, name, args, recovery_mode=mode, input_refs=refs,
-        tool_call_id=tool_call["id"], attempt=int(tool_call.get("_attempt") or 1))
+        tool_call_id=tool_call["id"], attempt=int(tool_call.get("_attempt") or 1), retry_of=retry_of)
     try:
         from contextlib import nullcontext
         reconciliation_scope = nullcontext()

@@ -476,7 +476,7 @@ def _stop_marker_messages(query: str, stop_text: str, done_steps: list) -> list:
     "哪一步完成了、哪一步被取消"。这里用日志（请求级 journal）里**真实的**
     终态造 ToolMessage，附 `_citrus_execution`，与正常轮的渲染完全同构。
 
-    只写状态、脱敏摘要与耗时；不写任何工具输出原文，也不伪造未执行步骤。
+    只写状态与耗时；不写工具摘要或输出原文，也不伪造未执行步骤。
     """
     from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
@@ -495,7 +495,6 @@ def _stop_marker_messages(query: str, stop_text: str, done_steps: list) -> list:
             elapsed = max(0, int(row.get("elapsed_ms") or 0))
         except (TypeError, ValueError):
             elapsed = 0
-        summary = str(row.get("summary") or "").strip()[:180]
         call_id = "stop-%d-%s" % (index, name)
         calls.append({"id": call_id, "name": name, "args": {}})
         step_messages.append(ToolMessage(
@@ -505,7 +504,6 @@ def _stop_marker_messages(query: str, stop_text: str, done_steps: list) -> list:
             artifact={"_citrus_execution": {
                 "status": status,
                 "reason_code": "stop_requested",
-                "summary": summary,
                 "elapsed_ms": elapsed,
                 "completed_at_ms": elapsed,
             }},
@@ -1520,7 +1518,7 @@ def _terminal_missing_groups(*traces: dict):
 
 def _existing_chat_response(job: dict) -> JSONResponse:
     """A replay points to durable facts; it never invents a streamed answer."""
-    from src.core import jobs as jobs_mod
+    from src.core.task_events import public_job_terminal
     job_id, sid = str(job["job_id"]), str(job.get("session_id") or "")
     return JSONResponse({
         "code": "existing_job", "replayed": True,
@@ -1529,7 +1527,7 @@ def _existing_chat_response(job: dict) -> JSONResponse:
         "client_request_id": str(job.get("client_request_id") or ""),
         "status": str(job.get("status") or ""),
         "current_step": str(job.get("current_step") or ""),
-        "terminal_snapshot": jobs_mod.decode_terminal_snapshot(job),
+        "terminal_snapshot": public_job_terminal(job),
         "status_url": f"/jobs/{job_id}",
         "events_url": f"/jobs/{job_id}/events",
         "message": "该请求已受理，未重复执行。请查看原任务状态或会话记录。",
@@ -1662,6 +1660,45 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
             except task_events.TaskConflict:
                 pass  # Cancellation/reconciliation must retain its own fence.
         raise
+
+
+async def _commit_failed_terminal(commit_terminal, *, session_id, job_id,
+                                  safe_error, tool_status, elapsed_ms,
+                                  current_step="incomplete", error=""):
+    """Commit one honest failure view through a caller-supplied terminal fence.
+
+    ``commit_terminal`` is the API's segment-aware committer. The caller keeps
+    it explicit so the same path is exercised by regressions against a real
+    ``ExecutionSegments`` claim. Returns ``None`` when the terminal fact is
+    durable, else the exception that deferred it (stale claim, an owner that
+    already committed the single ``done``, or an execution outcome requiring
+    reconciliation). It never writes a second terminal or fabricated history.
+    """
+    from src.core.turn_envelope import build_turn_envelope
+    try:
+        envelope = build_turn_envelope(
+            answer="", tool_status=tool_status,
+            requested_status="failed", display_status="failed",
+            job_status="failed", stop_reason="error",
+            history_saved=False, notices=[safe_error]).as_dict()
+    except Exception as exc:
+        return exc
+    done_payload = {
+        "session_id": session_id,
+        "job_id": job_id,
+        "answer": "",
+        "turn_status": envelope.get("display_status", "failed"),
+        "turn_envelope": envelope,
+        "artifact_ids": list(envelope.get("artifact_ids") or []),
+        "history_saved": False,
+        "total_elapsed_ms": elapsed_ms,
+    }
+    try:
+        await commit_terminal(done_payload, status="failed",
+                              current_step=current_step, error=error)
+        return None
+    except Exception as exc:
+        return exc
 
 
 async def _prepare_claimed_chat(req: ChatRequest, request: Request, request_lease,
@@ -1972,6 +2009,46 @@ async def _prepare_claimed_chat(req: ChatRequest, request: Request, request_leas
             """Persist detached output as well as live output for cursor replay."""
             await event_queue.put(evt)
 
+        async def commit_terminal(done_payload, *, status, current_step,
+                                  progress_summary="", error="", stop_reason="user",
+                                  stop_note="", completed_note=""):
+            """Persist one terminal view and close its segment atomically.
+
+            A fenced run writes the durable ``done`` fact, the job status and
+            the segment's ``terminal`` phase in one claim-guarded transaction.
+            The live notification then dedups to that same terminal sequence.
+            Legacy explicit recovery without a segment keeps the old ordering.
+            """
+            if segments is not None and segment_claim is not None:
+                segments.finish_terminal(
+                    segment_claim, done_payload=done_payload, status=status,
+                    current_step=current_step, progress_summary=progress_summary,
+                    error=error, stop_reason=stop_reason, stop_note=stop_note)
+                await emit_to_client(_encode_event("done", done_payload))
+                return
+            await emit_to_client(_encode_event("done", done_payload))
+            if status == "awaiting_input":
+                jobs_mod.update_job(job_id, status="awaiting_input",
+                    current_step="awaiting_input", progress_summary="", error="")
+            elif status == "cancelled":
+                jobs_mod.mark_stopped(job_id, stop_reason, note=stop_note)
+            elif status == "completed":
+                jobs_mod.mark_completed_if_open(job_id, note=completed_note,
+                    current_step="completed", progress_summary="")
+            else:
+                jobs_mod.update_job(job_id, status="failed",
+                    current_step=current_step, progress_summary=progress_summary, error=error)
+            jobs_mod.save_terminal_snapshot(
+                job_id, done_payload.get("turn_envelope") or {})
+
+        async def commit_failed_terminal(safe_error, *, current_step="incomplete",
+                                         error=""):
+            return await _commit_failed_terminal(
+                commit_terminal, session_id=sid, job_id=job_id,
+                safe_error=safe_error, tool_status=get_request_journal(),
+                elapsed_ms=int((time.perf_counter() - t0) * 1000),
+                current_step=current_step, error=error)
+
         async def flush_bridge() -> None:
             # v9.2 P4 根治: 确定性排空替代时序补丁（原 done 前 sleep(0.5) 与
             # finally 10×0.1s 轮询排空）。事件驱动桥下，工具线程返回前已入队的
@@ -2149,34 +2226,21 @@ async def _prepare_claimed_chat(req: ChatRequest, request: Request, request_leas
                                     done_payload["audit"] = agent_output["audit_report"]
                                 if agent_output.get("adjudication"):
                                     done_payload["adjudication"] = agent_output["adjudication"]
-                                await emit_to_client(_encode_event("done", done_payload))
-                                # v8.3.7 M2: 任务完成落状态（S1: 带终态守卫，已 cancelled 不被改写）
-                                if request_status == "awaiting_input":
-                                    jobs_mod.update_job(job_id, status="awaiting_input",
-                                        current_step="awaiting_input", progress_summary=ans[:200], error="")
-                                elif request_status == "cancelled":
-                                    # S1: 用户停止 → 记 cancelled(user)，不写 failed。
-                                    jobs_mod.mark_stopped(job_id, "user", note=ans[:120])
-                                elif request_status == "completed":
-                                    prev_status = str((jobs_mod.get_job(job_id) or {}).get("status") or "")
-                                    jobs_mod.mark_completed_if_open(
-                                        job_id,
-                                        note=("停止请求晚于完成" if prev_status == "cancel_requested" else ""),
-                                        current_step="completed",
-                                        progress_summary=ans[:200],
-                                    )
-                                else:
-                                    jobs_mod.update_job(
-                                        job_id,
-                                        status="failed",
-                                        current_step="incomplete",
-                                        progress_summary=ans[:200],
-                                        error="required_work_incomplete",
-                                    )
-                                # Minimal terminal view for a client that
-                                # reconnects after the SSE connection dropped.
-                                jobs_mod.save_terminal_snapshot(
-                                    job_id, done_payload.get("turn_envelope") or {})
+                                prev_status = str((jobs_mod.get_job(job_id) or {}).get("status") or "")
+                                await commit_terminal(
+                                    done_payload,
+                                    status=("failed" if request_status == "incomplete"
+                                            else request_status),
+                                    current_step=("awaiting_input"
+                                                  if request_status == "awaiting_input"
+                                                  else "completed" if request_status == "completed"
+                                                  else "incomplete"),
+                                    error=("required_work_incomplete"
+                                           if request_status == "incomplete" else ""),
+                                    stop_note=(ans[:120] if request_status == "cancelled" else ""),
+                                    completed_note=("停止请求晚于完成"
+                                                    if request_status == "completed"
+                                                    and prev_status == "cancel_requested" else ""))
                                 # v8.4.1: 业务日志
                                 # v9.1.3: tools 口径与 supervisor_done 一致——tools_called
                                 # 为列表（AgentState 已声明，不再被 langgraph 丢弃），取长度
@@ -2243,15 +2307,12 @@ async def _prepare_claimed_chat(req: ChatRequest, request: Request, request_leas
                                     done_payload["tools_called"] = agent_output["tools_called"]
                                 if agent_output.get("export_gate"):
                                     done_payload["export_gate"] = agent_output["export_gate"]
-                                await emit_to_client(_encode_event("done", done_payload))
-                                if turn_status == "cancelled":
-                                    jobs_mod.mark_stopped(job_id, "user", note="本轮已停止")
-                                else:
-                                    jobs_mod.update_job(
-                                        job_id, status="failed", current_step="incomplete",
-                                        progress_summary="", error="empty_answer")
-                                jobs_mod.save_terminal_snapshot(
-                                    job_id, done_payload.get("turn_envelope") or {})
+                                await commit_terminal(
+                                    done_payload,
+                                    status=("cancelled" if turn_status == "cancelled" else "failed"),
+                                    current_step="incomplete",
+                                    error=("" if turn_status == "cancelled" else "empty_answer"),
+                                    stop_note=("本轮已停止" if turn_status == "cancelled" else ""))
                                 try:
                                     from src.admin_audit import finish_request
                                     finish_request(request_id=rid, answer="",
@@ -2269,33 +2330,50 @@ async def _prepare_claimed_chat(req: ChatRequest, request: Request, request_leas
                 raise
             except Exception as e:
                 logger.error(f"[SSE v2] graph processing error: {e}")
-                jobs_mod.update_job(job_id, status="failed", error=str(e)[:500])
                 model_unconfigured = not bool(settings.RESOLVED_MAIN_API_KEY)
                 safe_error = ("主模型尚未配置，请联系管理员配置模型后重试。附件仍可在资料库中查看。"
                               if model_unconfigured else "处理请求时发生内部错误，请稍后重试")
-                error_envelope = None
-                try:
-                    from src.core.turn_envelope import build_turn_envelope
-                    error_envelope = build_turn_envelope(
-                        answer="",
-                        tool_status=get_request_journal(),
-                        requested_status="failed",
-                        display_status="failed",
-                        job_status="failed",
-                        stop_reason="error",
-                        history_saved=False,
-                        notices=[safe_error],
-                    )
-                    jobs_mod.save_terminal_snapshot(
-                        job_id, error_envelope.as_dict())
-                except Exception:
-                    pass
-                try:
-                    from src.admin_audit import finish_request
-                    finish_request(request_id=rid, status="failed",
-                                   elapsed_ms=int((time.perf_counter() - t0) * 1000))
-                except Exception:
-                    pass
+                job_now = jobs_mod.get_job(job_id) or {}
+                if cancel_token.cancelled() or job_now.get("status") == "cancel_requested":
+                    # A stop owns this turn's terminal fact. The cancellation
+                    # path closes it only after proving code executions stopped;
+                    # never replace a user stop with a forged failure.
+                    try:
+                        await finish_cancelled()
+                    except Exception as cancel_exc:
+                        logger.error("[SSE v2] cancellation terminal failed: %s: %s",
+                                     type(cancel_exc).__name__, str(cancel_exc)[:200])
+                else:
+                    # One honest terminal view: no answer, no history, one done.
+                    # This routes through commit_terminal -> finish_terminal so a
+                    # graph exception cannot leave an active/finalizing execution
+                    # segment behind.
+                    deferred = await commit_failed_terminal(
+                        safe_error, current_step="incomplete", error=str(e)[:500])
+                    if deferred is None:
+                        try:
+                            from src.admin_audit import finish_request
+                            finish_request(request_id=rid, status="failed",
+                                           elapsed_ms=int((time.perf_counter() - t0) * 1000))
+                        except Exception:
+                            pass
+                    else:
+                        # Fencing or an unknown execution outcome: another owner
+                        # keeps the durable claim, or reconciliation must decide.
+                        # Never emit a second terminal or fabricated history.
+                        logger.error("[SSE v2] failed terminal deferred: %s: %s",
+                                     type(deferred).__name__, str(deferred)[:200])
+                        if "requires_reconciliation" in str(deferred):
+                            jobs_mod.update_job(
+                                job_id, current_step="code_reconciliation_required",
+                                error="graph_exception_requires_reconciliation")
+                            try:
+                                await emit_to_client(_encode_event("status", {
+                                    "stage": "code_reconciliation_required",
+                                    "summary": "本轮执行结果尚未确认，需先对账后才能结束。",
+                                }))
+                            except Exception:
+                                pass
                 try:
                     from src.core.business_logger import blog
                     blog("request_error", err=str(e)[:200])
@@ -2305,19 +2383,6 @@ async def _prepare_claimed_chat(req: ChatRequest, request: Request, request_leas
                 try:
                     from src.core.diag import diag
                     diag("request_error", err=type(e).__name__, msg=str(e)[:200])
-                except Exception:
-                    pass
-                try:
-                    # v8.3.3: 错误脱敏——详细异常只进日志，SSE 只发用户可读信息
-                    error_payload = {
-                        "message": safe_error,
-                        "code": "model_credential_unconfigured" if model_unconfigured else "request_failed",
-                        "turn_status": "failed",
-                    }
-                    if error_envelope is not None:
-                        error_payload["turn_status"] = error_envelope.display_status
-                        error_payload["turn_envelope"] = error_envelope.as_dict()
-                    await emit_to_client(_encode_event("error", error_payload))
                 except Exception:
                     pass
             finally:
@@ -2355,7 +2420,6 @@ async def _prepare_claimed_chat(req: ChatRequest, request: Request, request_leas
             stop_reason = (cancel_token.reason if cancel_token.cancelled() else
                            "user" if prev_status == "cancel_requested" else "internal")
             cancel_token.cancel(stop_reason)
-            jobs_mod.mark_stopped(job_id, stop_reason)
             # S1: 取消同样是一轮的终态。这里补两件原来缺失的事：
             #   ① 发终态事件（turn_status=cancelled），前端不必靠本地 abort 猜；
             #   ② 在历史里留下"已停止"痕迹（问题 + 停止说明），刷新后不消失。
@@ -2385,9 +2449,6 @@ async def _prepare_claimed_chat(req: ChatRequest, request: Request, request_leas
                                      "partial": "部分完成", "failed": "失败",
                                      "no_results": "无结果"}.get(status, status)
                             bits.append("（%s）" % label if label else "")
-                            summary = str(row.get("summary") or "").strip()
-                            if summary:
-                                bits.append(summary[:80])
                             elapsed = int(row.get("elapsed_ms") or 0)
                             if elapsed >= 1000:
                                 bits.append("%.1fs" % (elapsed / 1000.0))
@@ -2421,20 +2482,18 @@ async def _prepare_claimed_chat(req: ChatRequest, request: Request, request_leas
                     history_saved=bool(stop_saved),
                     notices=["本轮已停止"],
                 )
-                jobs_mod.save_terminal_snapshot(job_id, envelope.as_dict())
-                if observer_connected:
-                    await event_queue.put(_encode_event("done", {
-                        "session_id": sid,
-                        "job_id": job_id,
-                        "answer": "",
-                        "stop_notice": stop_text,
-                        "turn_status": envelope.display_status,
-                        "turn_envelope": envelope.as_dict(),
-                        "artifact_ids": list(envelope.artifact_ids),
-                        "stop_reason": stop_reason,
-                        "history_saved": bool(stop_saved),
-                        "total_elapsed_ms": int((time.perf_counter() - t0) * 1000),
-                    }))
+                await commit_terminal({
+                    "session_id": sid,
+                    "job_id": job_id,
+                    "answer": "",
+                    "stop_notice": stop_text,
+                    "turn_status": envelope.display_status,
+                    "turn_envelope": envelope.as_dict(),
+                    "artifact_ids": list(envelope.artifact_ids),
+                    "stop_reason": stop_reason,
+                    "history_saved": bool(stop_saved),
+                    "total_elapsed_ms": int((time.perf_counter() - t0) * 1000),
+                }, status="cancelled", current_step="cancelled", stop_reason=stop_reason)
             except Exception as notice_exc:
                 logger.warning(f"[SSE v2] stop notice failed: {notice_exc}")
             try:
@@ -2452,7 +2511,7 @@ async def _prepare_claimed_chat(req: ChatRequest, request: Request, request_leas
             resume_released = True
             jobs_mod.update_job(job_id, current_step="waiting_code", error="code_resume_admission_failed")
             await event_queue.put(_encode_event("status", {"stage": "waiting_code",
-                "summary": "执行恢复暂未受理，稍后重试。"}))
+                "reason_code": "code_resume_admission_failed"}))
             return True
 
         async def process_with_capacity():
@@ -2475,8 +2534,7 @@ async def _prepare_claimed_chat(req: ChatRequest, request: Request, request_leas
                 jobs_mod.update_job(job_id, current_step="queued",
                                     progress_summary=f"排队第 {position} 位")
                 await event_queue.put(_encode_event("status", {
-                    "stage": "queued",
-                    "summary": f"服务器正在处理其他请求，当前排队第 {position} 位；最多同时处理 {maximum} 个请求。",
+                    "stage": "queued", "position": position, "maximum": maximum,
                 }))
 
             try:
@@ -2532,14 +2590,16 @@ async def _prepare_claimed_chat(req: ChatRequest, request: Request, request_leas
                 except HTTPException as exc:
                     if await release_unstarted_resume():
                         return
-                    jobs_mod.update_job(job_id, status="failed", error=str(exc.detail)[:500])
+                    await commit_failed_terminal(
+                        str(exc.detail)[:500], current_step="attachment_rejected",
+                        error="attachment_rejected")
                     try:
                         from src.admin_audit import finish_request
                         finish_request(request_id=rid, status="attachment_rejected",
                                        elapsed_ms=int((time.perf_counter() - t0) * 1000))
                     except Exception:
                         pass
-                    await event_queue.put(_encode_event("error", {"message": str(exc.detail)}))
+                    await event_queue.put(_encode_event("error", {"code": "attachment_rejected"}))
                     return
                 except Exception as exc:
                     if await release_unstarted_resume():
@@ -2555,14 +2615,15 @@ async def _prepare_claimed_chat(req: ChatRequest, request: Request, request_leas
                         logger.exception("chat attachment preparation failed")
                         message = "附件处理失败，请检查文件格式后重试。"
                         status = "attachment_failed"
-                    jobs_mod.update_job(job_id, status="failed", error=message)
+                    await commit_failed_terminal(
+                        message, current_step=status, error=status)
                     try:
                         from src.admin_audit import finish_request
                         finish_request(request_id=rid, status=status,
                                        elapsed_ms=int((time.perf_counter() - t0) * 1000))
                     except Exception:
                         pass
-                    await event_queue.put(_encode_event("error", {"message": message}))
+                    await event_queue.put(_encode_event("error", {"code": status}))
                     return
                 check_cancelled()
                 initial_state["attachment_context"] = attachment_context
@@ -2589,32 +2650,38 @@ async def _prepare_claimed_chat(req: ChatRequest, request: Request, request_leas
             except OverflowError as exc:
                 if await release_unstarted_resume():
                     return
-                jobs_mod.update_job(job_id, status="failed", error=str(exc))
+                await commit_failed_terminal(
+                    "请求队列已满，请稍后重试。", current_step="queue_full",
+                    error="queue_full")
                 try:
                     from src.admin_audit import finish_request
                     finish_request(request_id=rid, status="queue_full",
                                    elapsed_ms=int((time.perf_counter() - t0) * 1000))
                 except Exception:
                     pass
-                await event_queue.put(_encode_event("error", {"message": str(exc)}))
+                await event_queue.put(_encode_event("error", {"code": "queue_full"}))
             except TimeoutError as exc:
                 if await release_unstarted_resume():
                     return
-                jobs_mod.update_job(job_id, status="failed", error=str(exc))
+                await commit_failed_terminal(
+                    "请求排队超时，请稍后重试。", current_step="queue_timeout",
+                    error="queue_timeout")
                 try:
                     from src.admin_audit import finish_request
                     finish_request(request_id=rid, status="queue_timeout",
                                    elapsed_ms=int((time.perf_counter() - t0) * 1000))
                 except Exception:
                     pass
-                await event_queue.put(_encode_event("error", {"message": str(exc)}))
+                await event_queue.put(_encode_event("error", {"code": "queue_timeout"}))
             except asyncio.CancelledError:
                 await finish_cancelled()
             except Exception as exc:
                 if await release_unstarted_resume():
                     return
                 logger.exception("chat request failed before/during graph execution")
-                jobs_mod.update_job(job_id, status="failed", error=type(exc).__name__)
+                await commit_failed_terminal(
+                    "处理请求时发生内部错误，请稍后重试", current_step="incomplete",
+                    error=type(exc).__name__)
                 try:
                     from src.admin_audit import finish_request
                     finish_request(request_id=rid, status="failed",
@@ -2622,7 +2689,7 @@ async def _prepare_claimed_chat(req: ChatRequest, request: Request, request_leas
                 except Exception:
                     pass
                 await event_queue.put(_encode_event("error", {
-                    "message": "请求准备失败，请稍后重试。",
+                    "code": "request_preparation_failed",
                 }))
             finally:
                 # One owner cleans up queueing, parsing and graph execution.
@@ -3114,13 +3181,9 @@ async def resume_chat_operation(job_id: str, req: ResumeOperationRequest, reques
 async def list_session_jobs(session_id: str, request: Request):
     """v8.3.7 M2: 会话最近任务列表。S1 补会话归属校验。"""
     require_owned_session(session_id, current_user(request))
-    from src.core import jobs as jobs_mod
-    jobs = []
-    for job in jobs_mod.list_for_session(session_id):
-        item = dict(job)
-        item["terminal_snapshot"] = jobs_mod.decode_terminal_snapshot(job)
-        jobs.append(item)
-    return {"jobs": jobs}
+    from src.core.jobs import list_for_session
+    from src.core.task_events import public_job_record
+    return {"jobs": [public_job_record(job) for job in list_for_session(session_id)]}
 
 
 # ── v8.4.11 用户中断：停止当前任务（书中 §4.7.6 取消式处理）──
@@ -4427,6 +4490,10 @@ def _history_items_from_messages(msgs: list, row_ids: list, request_ids: list,
     """
     out: list[dict] = []
     from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
+    from src.core.progress_bus import public_tool_reason, public_tool_status, tool_display_name
+    from src.core.public_progress import public_content_text, public_progress_text
+    from src.core.turn_notices import stopped_notice
+
     human_index = 0
     # P0-1: assistant/tool messages must carry the request id of the turn they
     # belong to, otherwise the browser cannot tell which assistant bubble
@@ -4446,6 +4513,9 @@ def _history_items_from_messages(msgs: list, row_ids: list, request_ids: list,
             content = str(getattr(m, "content", "") or "").strip()
             request_id = request_ids[human_index] if human_index < len(request_ids) else ""
             human_index += 1
+            meta = m.additional_kwargs
+            if meta.get("context_trusted") is True and meta.get("context_origin") == "internal_control":
+                continue
             # P0-A: only a real question opens a new logical turn. The loop's own
             # "human" nudges keep the current turn key and produce no user bubble
             # (the live stream never showed them either).
@@ -4460,24 +4530,21 @@ def _history_items_from_messages(msgs: list, row_ids: list, request_ids: list,
                         "turn_request_id": request_id,
                         "attachments": files_by_request.get(request_id, [])})
         elif isinstance(m, AIMessage):
-            from src.core.public_progress import public_content_text
             content = public_content_text(m.content).strip()
-            # Restore a safe, human-readable trace of each tool operation.
-            # Provider reasoning_content is deliberately never returned.
             tool_calls = getattr(m, "tool_calls", None) or []
             if tool_calls:
-                from src.core.progress_bus import _safe_tool_summary, tool_display_name
                 out.append({"role": "tool_calls", "message_id": message_id,
                             "request_id": turn_request_id,
                             "turn_request_id": turn_request_id, "calls": [{
                     "id": str(tc.get("id") or ""),
-                    "name": tool_display_name(str(tc.get("name") or "")),
-                    "summary": _safe_tool_summary(
-                        str(tc.get("name") or "tool"), tc.get("args") or {}),
+                    "name": tool_display_name(tc.get("name")),
+                    "summary": tool_display_name(tc.get("name")),
                 } for tc in tool_calls]})
-            if content and tool_calls:
-                from src.core.public_progress import public_progress_text
                 content = public_progress_text(m.content, has_tool_calls=True)
+            elif content.startswith(stopped_notice() + "\n\n停止前已执行的步骤："):
+                # Legacy cancellation history embedded the private tool summary
+                # in the stop notice; the actual steps already have trace rows.
+                content = stopped_notice()
             if content:
                 # A stored assistant message that also carries tool calls is the
                 # model's public work note for this turn, not the answer: the
@@ -4489,8 +4556,8 @@ def _history_items_from_messages(msgs: list, row_ids: list, request_ids: list,
                         "turn_request_id": turn_request_id,
                         "progress": bool(tool_calls)}
                 if tool_calls:
-                    # Classified from actual assistant text blocks, never from
-                    # provider reasoning fields or a host-generated stage.
+                    # The fixed label marks the presence of a model work note;
+                    # neither the original assistant text nor reasoning is exposed.
                     item.update(visibility="public", origin="model")
                 metadata = getattr(m, "response_metadata", None) or {}
                 try:
@@ -4504,55 +4571,44 @@ def _history_items_from_messages(msgs: list, row_ids: list, request_ids: list,
             # Keep only a high-level completion state in user-visible history.
             tcontent = str(getattr(m, "content", "") or "")
             tool_name = getattr(m, "name", "") or "tool"
-            from src.core.progress_bus import tool_display_name
             from src.tools.outcome import safe_tool_step
             safe_step = safe_tool_step(str(tool_name), tcontent)
+            status = public_tool_status(safe_step["status"])
+            reason_code = public_tool_reason(safe_step["reason_code"])
             tool_artifact = getattr(m, "artifact", None)
             execution_trace = (tool_artifact.get("_citrus_execution")
                                if isinstance(tool_artifact, dict) else None)
             completed_at_ms = 0
             elapsed_ms = 0
-            action_hint = ""
             if isinstance(execution_trace, dict):
-                saved_status = str(execution_trace.get("status") or "")
-                if saved_status in {"complete", "partial", "no_results", "failed", "not_run",
-                                    "skipped", "cancelled"}:
-                    safe_step["status"] = saved_status
-                saved_reason = str(execution_trace.get("reason_code") or "")
-                # 持久化终态是唯一权威：状态被接受后，原因也必须跟随它，
-                # 否则会用 content/无 artifact 重新推导，出现「complete +
-                # missing_result_status」这种自相矛盾的历史行。
-                safe_step["reason_code"] = (saved_reason
-                                            if re.fullmatch(r"[a-z_]{1,64}", saved_reason) else "")
-                # Persisted summaries are created by safe_tool_step and do not
-                # contain raw tool output, query text, or provider parameters.
-                saved_summary = str(execution_trace.get("summary") or "")
-                if saved_summary and len(saved_summary) <= 180:
-                    safe_step["summary"] = saved_summary
-                # 展示「做了什么」而非只展示「已完成」：只回放已脱敏的一行操作描述。
-                action_hint = re.sub(r"https?://\S+", "",
-                                     str(execution_trace.get("action_hint") or ""))[:80]
+                saved_status = public_tool_status(execution_trace.get("status"), default="")
+                if saved_status and saved_status not in {"running", "resuming"}:
+                    status = saved_status
+                    reason_code = public_tool_reason(execution_trace.get("reason_code"))
+                # Legacy summary and action_hint may contain arguments or output.
+                # Only status/correlation/timing from this record is public.
                 try:
                     completed_at_ms = max(0, int(execution_trace.get("completed_at_ms") or 0))
                     elapsed_ms = max(0, int(execution_trace.get("elapsed_ms") or 0))
                 except (TypeError, ValueError):
                     completed_at_ms = elapsed_ms = 0
             # Legacy turns stored a redacted local-retrieval result without the
-            # original artifact. Recover only its factual candidate count.
-            if (str(tool_name) in {"local_bm25_search", "local_dense_search", "local_hybrid_search"}
+            # original artifact. Recover only the completed status.
+            if (not isinstance(execution_trace, dict)
+                    and tool_name in {"local_bm25_search", "local_dense_search", "local_hybrid_search"}
                     and tcontent.startswith("本地检索已执行并读取")):
-                safe_step["status"] = "complete"
+                status, reason_code = "complete", ""
             out.append({
                 "role": "tool",
                 "message_id": message_id,
                 "turn_request_id": turn_request_id,
                 "name": tool_display_name(tool_name),
                 "tool_call_id": getattr(m, "tool_call_id", "") or "",
-                "content": safe_step["status"],
-                "status": safe_step["status"],
-                "reason_code": safe_step["reason_code"],
-                "summary": safe_step["summary"],
-                "action_hint": action_hint,
+                "content": status,
+                "status": status,
+                "reason_code": reason_code,
+                "summary": "",
+                "action_hint": tool_display_name(tool_name),
                 "completed_at_ms": completed_at_ms,
                 "elapsed_ms": elapsed_ms,
                 "execution_order_available": bool(completed_at_ms),
@@ -4625,7 +4681,7 @@ def _history_with_jobs(turns: list[dict], session_id: str, owner: int, *,
                        include_pending: bool = True) -> list[dict]:
     """Join saved turns and rediscover unsaved tasks by durable identities only."""
     from src.core import jobs
-    from src.core.task_events import latest_context_snapshot
+    from src.core.task_events import latest_context_snapshot, public_job_terminal
     from src.core.user_questions import list_questions, get_continuation
     keys = [str(turn.get("turn_request_id") or "") for turn in turns]
     saved = {key for key in (saved_request_ids or []) if key}
@@ -4638,7 +4694,7 @@ def _history_with_jobs(turns: list[dict], session_id: str, owner: int, *,
         turn.update(job_id=job["job_id"], job_status=job["status"],
                     parent_job_id=job.get("parent_job_id") or "",
                     parent_question_id=job.get("question_id") or "",
-                    terminal_snapshot=jobs.decode_terminal_snapshot(job), replay_cursor=0,
+                    terminal_snapshot=public_job_terminal(job), replay_cursor=0,
                     context_snapshot=latest_context_snapshot(job["job_id"]),
                     question=questions[0] if questions else None)
         return questions
@@ -4671,7 +4727,7 @@ def _history_with_jobs(turns: list[dict], session_id: str, owner: int, *,
                 parent_job_id=job["job_id"], parent_question_id=question["id"],
                 user={"content": continuation["query"], "message_id": 0,
                       "request_id": key, "attachments": []},
-                terminal_snapshot=jobs.decode_terminal_snapshot(child), replay_cursor=0,
+                terminal_snapshot=public_job_terminal(child), replay_cursor=0,
                 context_snapshot=latest_context_snapshot(child_id), history_pending=True)
             result.append(pending)
             present.add(child_id)

@@ -1,8 +1,11 @@
 {
-  "image": "/srv/citrusscholar/images/playwright.sif",
+  "image": "/srv/citrusscholar/releases/browse-20261119/playwright.sif",
   "image_sha256": "REPLACE_WITH_BUILT_PLAYWRIGHT_SHA256",
-  "packages": "/srv/citrusscholar/browser-python",
+  "packages": "/srv/citrusscholar/releases/browse-20261119/browser-python",
+  "packages_manifest": "/srv/citrusscholar/releases/browse-20261119/browser-python.manifest.json",
+  "packages_manifest_sha256": "REPLACE_WITH_GENERATED_MANIFEST_SHA256",
   "host_python": "/usr/bin/python3.12",
+  "host_python_sha256": "REPLACE_WITH_HOST_PYTHON_SHA256",
   "hosts": [
     "vincentarelbundock.github.io",
     "docs.python.org"
