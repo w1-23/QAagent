@@ -1,0 +1,18 @@
+[Unit]
+Description=CitrusScholar %i offline Code Worker
+StartLimitIntervalSec=180s
+StartLimitBurst=6
+
+[Service]
+Type=exec
+EnvironmentFile=%h/.config/citrusscholar/%i/service.env
+ExecStart=/usr/bin/python3.12 -I ${CITRUS_LAUNCHER} --config ${CITRUS_DEPLOYMENT} --role worker
+Restart=on-failure
+RestartSec=8s
+KillMode=mixed
+TimeoutStopSec=45s
+LimitCORE=0
+UMask=0077
+
+[Install]
+WantedBy=default.target

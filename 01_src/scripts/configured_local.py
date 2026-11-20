@@ -192,7 +192,8 @@ def main():
         print('[CitrusScholar] Independent runtime prepared; no server started', flush=True)
         return
     import uvicorn
-    uvicorn.run('src.api.main:app', host=args.host, port=args.port, reload=False)
+    uvicorn.run('src.api.main:app', host=args.host, port=args.port, reload=False,
+                proxy_headers=False)
 
 
 if __name__ == '__main__':

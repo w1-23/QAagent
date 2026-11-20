@@ -206,9 +206,13 @@
       if (before) parent.insertBefore(child, before); else parent.appendChild(child);
     }
     function draw() {
-      var hostIndex = 0, activeRows = new Set(), activeGroups = new Set(), group = null, groupIndex = 0, groupCount = 0;
+      var hostIndex = 0, activeRows = new Set(), activeGroups = new Set(), group = null, groupIndex = 0, groupOperations = new Set(), groupFailed = 0, groupAttempts = 0;
       function finishGroup() {
-        if (group) group.summary.textContent = '使用了 ' + groupCount + ' 个工具';
+        if (!group) return;
+        var text = '使用了 ' + groupOperations.size + ' 个工具';
+        if (groupAttempts > groupOperations.size) text += ' · 共 ' + groupAttempts + ' 次尝试';
+        if (groupFailed) text += ' · ' + groupFailed + ' 次失败';
+        group.summary.textContent = text;
       }
       projection.entries.forEach(function (item) {
         var row = rows.get(item.id);
@@ -231,11 +235,14 @@
             var list = node('div', 'research-action-list'); disclosure.appendChild(heading); disclosure.appendChild(list);
             group = {element: disclosure, summary: heading, body: list}; groups.set(item.id, group);
           }
-          activeGroups.add(item.id); groupIndex = 0; groupCount = 0;
+          activeGroups.add(item.id); groupIndex = 0; groupOperations.clear(); groupFailed = 0; groupAttempts = 0;
           place(host, group.element, hostIndex++);
         }
-        groupCount++;
         var data = item.data, status = data.status || 'running';
+        var operationId = data.logical_key || data.operation_id || data.tool_call_id || item.id;
+        groupOperations.add(operationId);
+        groupAttempts++;
+        if (status === 'failed' || status === 'error') groupFailed++;
         var resolution = item.resolution && ['failed', 'partial', 'error', 'not_run'].indexOf(status) >= 0 ? item.resolution : null;
         row.dataset.resolution = resolution ? resolution.resolution : '';
         row.dataset.resolvedBy = resolution ? resolution.resolved_by_tool_call_id : '';
@@ -247,7 +254,7 @@
         if (settled && running) row.className = 'term-line is-unconfirmed';
         if (!settled && running) row.setAttribute('aria-current', 'step');
         row.dataset.toolCallId = data.tool_call_id || ''; row.dataset.stepId = data.step_id || '';
-        row.dataset.attempt = item.attempt; row.dataset.operationId = data.logical_key || data.operation_id || data.tool_call_id || '';
+        row.dataset.attempt = item.attempt; row.dataset.operationId = operationId;
         var title = options.clean(data.display_name || options.toolName(data.tool_name || data.name) || '科研任务');
         var text = title + ' · ' + (resolution ? resolution.resolution === 'repaired' ? '已修复' : '已由后续结果替代'
           : running ? settled ? '未记录结束状态' : '处理中' : options.statusText(status, data.reason_code));
@@ -282,7 +289,7 @@
         if (clean) { projection.note(clean, id, metadata); draw(); }
       },
       plan: function (data) { if (projection.plan(data)) draw(); },
-      terminal: function (value) { settled = value !== false; draw(); },
+      terminal: function (value) { settled = value !== false; host.classList.toggle('is-terminal', settled); draw(); },
       action: function (data) { projection.action(data); draw(); },
       resolution: function (data) { if (projection.resolution(data)) draw(); },
       progress: function (data) {

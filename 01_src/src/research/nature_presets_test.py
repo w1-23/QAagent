@@ -60,7 +60,61 @@ def _run(name, parameters, path):
     result = capture_outputs(preset["source"], output_contract=contract,
                              namespace={"data": Path(path), "parameters": parameters})
     return preset, contract, result
+COLLISION_COLUMNS = ["gene", "log2FC", "pvalue"]
+COLLISION_ROWS = [
+    ("G1", 2.5000, 0.0010000),
+    ("G2", 2.5004, 0.0010004),
+    ("G3", 2.5008, 0.0010008),
+    ("G4", -1.9000, 0.0200000),
+]
+COLLISION_PARAMETERS = {
+    "effect": "log2FC", "significance": "pvalue",
+    "effect_threshold": 1.0, "p_threshold": 0.05,
+    "effect_label": "log2 fold change (a.u.)", "significance_label": "p value",
+    "label_column": "gene", "label_top": 3,
+}
 
+
+def _display_box(text, renderer):
+    box = text.get_window_extent(renderer=renderer)
+    return (box.x0, box.y0, box.x1, box.y1)
+
+
+def _intersection(first, second):
+    x0, y0 = max(first[0], second[0]), max(first[1], second[1])
+    x1, y1 = min(first[2], second[2]), min(first[3], second[3])
+    return (x0, y0, x1, y1) if x1 > x0 and y1 > y0 else None
+
+
+def _area(box):
+    return max(0.0, box[2] - box[0]) * max(0.0, box[3] - box[1])
+
+
+def _overlap_ratio(first, second):
+    overlap = _intersection(first, second)
+    if overlap is None:
+        return 0.0
+    return _area(overlap) / min(_area(first), _area(second))
+
+
+def _segment_intersects(segment, box):
+    (x0, y0), (x1, y1) = segment
+    dx, dy = x1 - x0, y1 - y0
+    lower, upper = 0.0, 1.0
+    for direction, distance in ((-dx, x0 - box[0]), (dx, box[2] - x0),
+                                (-dy, y0 - box[1]), (dy, box[3] - y0)):
+        if direction == 0.0:
+            if distance < 0.0:
+                return False
+            continue
+        ratio = distance / direction
+        if direction < 0.0:
+            lower = max(lower, ratio)
+        else:
+            upper = min(upper, ratio)
+        if lower > upper:
+            return False
+    return True
 
 class NaturePresetCatalogTests(unittest.TestCase):
     def test_catalog_identity_contracts_and_legacy_preservation(self):
@@ -174,6 +228,100 @@ class NatureVolcanoPresetTests(unittest.TestCase):
             _, _, result = _run("nature_volcano",
                                 {**self.PARAMETERS, "effect": "absent"}, path)
         self.assertIn("Column absent", result.error)
+
+
+class NatureVolcanoLabelPlacementTests(unittest.TestCase):
+    def _capture(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = _write_csv(directory, "volcano_collision",
+                              COLLISION_COLUMNS, COLLISION_ROWS)
+            _, contract, result = _run("nature_volcano",
+                                       COLLISION_PARAMETERS, path)
+        self.assertFalse(result.error)
+        return contract, result
+
+    def test_point_anchors_collide_and_measured_placement_clears(self):
+        _, result = self._capture()
+        figure = result.figures["volcano"]
+        axes = figure.axes[0]
+        figure.canvas.draw()
+        renderer = figure.canvas.get_renderer()
+        table = result.tables["volcano_data"]
+        texts = list(axes.texts)
+        self.assertEqual(sorted(text.get_text() for text in texts),
+                         sorted(label for label in table["label"] if label))
+        self.assertEqual(len(texts), 3)
+        anchored = []
+        for text in texts:
+            box = _display_box(text, renderer)
+            row = table.loc[table["label"] == text.get_text()].iloc[0]
+            x, y = axes.transData.transform(
+                (float(row["effect"]), float(row["neg_log10_p"])))
+            anchored.append((x, y,
+                             x + box[2] - box[0],
+                             y + box[3] - box[1]))
+        self.assertGreater(
+            max(_overlap_ratio(anchored[first], anchored[second])
+                for first in range(len(anchored))
+                for second in range(first + 1, len(anchored))),
+            0.5)
+        boxes = [_display_box(text, renderer) for text in texts]
+        for first in range(len(boxes)):
+            for second in range(first + 1, len(boxes)):
+                self.assertEqual(_overlap_ratio(boxes[first], boxes[second]),
+                                 0.0)
+        threshold = float(table["effect_threshold"].iloc[0])
+        horizontal = float(table["neg_log10_threshold"].iloc[0])
+        xmin = float(table["effect"].min())
+        xmax = float(table["effect"].max())
+        ymax = float(table["neg_log10_p"].max())
+        segments = [
+            ((threshold, 0.0), (threshold, ymax)),
+            ((-threshold, 0.0), (-threshold, ymax)),
+            ((xmin, horizontal), (xmax, horizontal)),
+        ]
+        for line in list(axes.get_xgridlines()) + list(axes.get_ygridlines()):
+            if line.get_visible():
+                points = line.get_transform().transform(line.get_xydata())
+                if len(points) >= 2:
+                    segments.append((tuple(points[0]), tuple(points[-1])))
+        display = [(axes.transData.transform(first),
+                    axes.transData.transform(second))
+                   for first, second in segments]
+        for box in boxes:
+            expanded = (box[0] - 1.0, box[1] - 1.0,
+                        box[2] + 1.0, box[3] + 1.0)
+            self.assertFalse(
+                any(_segment_intersects(segment, expanded)
+                    for segment in display))
+            self.assertGreaterEqual(box[0], axes.bbox.x0)
+            self.assertGreaterEqual(box[1], axes.bbox.y0)
+            self.assertLessEqual(box[2], axes.bbox.x1)
+            self.assertLessEqual(box[3], axes.bbox.y1)
+        self.assertEqual(
+            result.frozen_render_receipts["volcano"]["geometry_status"],
+            "supported")
+        self.assertEqual(
+            result.frozen_render_receipts["volcano"]["geometry_unsupported"],
+            [])
+
+    def test_frozen_replay_reproduces_measured_geometry(self):
+        contract, result = self._capture()
+        replay = capture_outputs(
+            "raise AssertionError('main script must not run')\n",
+            output_contract=contract, output_key="volcano",
+            frozen_tables={"volcano_data": result.tables["volcano_data"]})
+        self.assertFalse(replay.error, replay.error)
+        initial = result.frozen_render_receipts["volcano"]
+        repeated = replay.frozen_render_receipts["volcano"]
+        self.assertEqual(initial["renderer_sha256"], repeated["renderer_sha256"])
+        self.assertEqual(initial["data_sha256"], repeated["data_sha256"])
+        self.assertEqual(initial["geometry_sha256"], repeated["geometry_sha256"])
+        positions = [tuple(text.get_position())
+                     for text in result.figures["volcano"].axes[0].texts]
+        replayed = [tuple(text.get_position())
+                    for text in replay.figures["volcano"].axes[0].texts]
+        self.assertEqual(positions, replayed)
 
 
 class NatureRocPresetTests(unittest.TestCase):
@@ -528,6 +676,37 @@ class NatureWorkerAcceptanceTests(unittest.TestCase):
                         / replay["slots"]["figure:marginal:%s" % fmt]).read_bytes()
                 self.assertTrue(blob)
 
+    def test_collision_fixture_passes_real_worker_rendered_qa(self):
+        with tempfile.TemporaryDirectory() as root:
+            csv = _write_csv(root, "volcano_collision",
+                             COLLISION_COLUMNS, COLLISION_ROWS)
+            _, _, captured = _run("nature_volcano",
+                                  COLLISION_PARAMETERS, csv)
+            self.assertFalse(captured.error)
+            run = self._worker(root, "nature_volcano", COLLISION_PARAMETERS,
+                               source_path=csv, job_id="volcano_collision")
+            manifest = self._manifest(run, "volcano")
+            pdf = (run["outbox"]
+                   / run["slots"]["figure:volcano:pdf"]).read_bytes()
+            receipt = validate_nature_receipt(manifest, pdf=pdf)
+            self.assertIn(receipt["status"],
+                          {"pass", "warn", "review_required"})
+            self.assertIn(receipt["checks"]["pdf_collisions"]["status"],
+                          {"pass", "warn"})
+            self.assertEqual(
+                manifest["frozen_render_receipt"]["geometry_status"],
+                "supported")
+            self.assertEqual(
+                manifest["frozen_render_receipt"]["geometry_unsupported"], [])
+            decoded = decode_frame(strict_json(
+                (run["outbox"]
+                 / run["slots"]["table:volcano_data"]).read_bytes()))
+            expected = captured.tables["volcano_data"]
+            for column in expected.columns:
+                self.assertEqual(decoded[column].tolist(),
+                                 expected[column].tolist())
+            self.assertEqual([label for label in decoded["label"] if label],
+                             ["G1", "G2", "G3"])
 
 if __name__ == "__main__":
     unittest.main()

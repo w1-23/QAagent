@@ -280,6 +280,12 @@ def test_bad_http_inputs_raise_http_exceptions_not_raw_valueerrors():
         _admit(_request(cid="bad id!"))
     assert bad_id.value.status_code == 400
 
+    for blank in ("   ", "\t", "\n\t  "):
+        with pytest.raises(HTTPException) as blank_query:
+            _admit(_request(query=blank))
+        assert blank_query.value.status_code == 400
+        assert blank_query.value.detail == "问题内容为空或过长。"
+
     with pytest.raises(HTTPException) as bad_suffix:
         _admit(_request(attachments=[_attachment(name="run.exe")]))
     assert bad_suffix.value.status_code == 400

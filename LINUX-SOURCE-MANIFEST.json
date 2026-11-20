@@ -1,33 +1,11 @@
 {
-  "baseline_commit": "efeb7edc74606d1b6f62ac52e0b6e6187ec0792f",
-  "baseline_tree": "25b954d1d4020432c55d12623050b8b7dcfcbb51",
-  "candidate_branch": "fix/8043-durable-turn-queue",
-  "deployment": "linux-apptainer-8043-release-candidate",
+  "baseline_commit": "27cbab9afe59b8512828282107ecb8c6826c0218",
+  "baseline_tree": "18d24f48224c5fca5326c7c48d56f0781b137ae5",
+  "candidate_branch": "fix/8043-lan-context",
+  "deployment": "linux-apptainer-lan-context-8043-candidate",
   "historic_manifest_metadata": {
-    "deployment": "linux-apptainer-v20261118",
-    "git_head": "494b7dd068e7aec3d3dfa9b309b180d0354801f7",
-    "manifest_at_baseline_sha256": "1149f0c3bda0654ccbc0b135e79eb40bbff6f9065d8f055bbf9b78cdd9dc65f4",
-    "member_count": 572,
-    "publication": {
-      "deployment_documentation_redactions": {
-        "01_src/apptainer/README.md": {
-          "original": {
-            "bytes": 11040,
-            "sha256": "6014ec1d7c8d888db5cbf75e127868ab5cfce8591fd79b0c208933f8ec24300e"
-          },
-          "reason": "Removed internal test job identifiers and a host-specific home directory from the deployment documentation."
-        }
-      },
-      "repository_metadata_from_parent": [
-        ".dockerignore",
-        ".gitattributes",
-        ".gitignore",
-        "LICENSE"
-      ]
-    },
-    "remote_validation": "byte hashes captured from running release source; no service restart",
-    "schema": "citrusscholar.linux-source/1",
-    "source": "Linux release v20261118, live Web 8031, read-only snapshot 2026-11-18"
+    "manifest_at_baseline_sha256": "1d2b1888bdd6b0a7dc52dbc8ab1e828b4fa6388443e8f8e038062f49e1f117f3",
+    "member_count": 614
   },
   "inventory_scope": "All Git index source tree blobs excluding this self-describing file; hashes are SHA-256 over exact Git blob bytes.",
   "members": {
@@ -39,9 +17,25 @@
       "bytes": 69,
       "sha256": "615b52aa5ba7cce67cec32fe493f29605cfed7b38a9ee41b41700492d6865b15"
     },
+    ".github/regression-dependencies.txt": {
+      "bytes": 904,
+      "sha256": "c79a85d9456da589a403568e2c0852bb0d4176c8f5a7b64471a43df9b458adcb"
+    },
+    ".github/workflows/regression.yml": {
+      "bytes": 2568,
+      "sha256": "a360e1c73e7e33b75b772b6db644c0903643c48475ebf7d78196fbe755ed8f92"
+    },
     ".gitignore": {
       "bytes": 3864,
       "sha256": "4a3d35bde8190a2f38f33358a940babcbf7afa765c4e6489f6bcdfc46b4cca04"
+    },
+    "01_src/apptainer/Caddyfile.lan.example": {
+      "bytes": 430,
+      "sha256": "bf368a7239a62db95e44a36df3dcf4461da64bdcbb529a64185e369d7469d702"
+    },
+    "01_src/apptainer/LAN.md": {
+      "bytes": 3201,
+      "sha256": "fc152d41ab2c0607c5f10c66de8b9c1ddc20778bb4cf4e1003688bfdef0f9f7d"
     },
     "01_src/apptainer/README.md": {
       "bytes": 11028,
@@ -60,8 +54,8 @@
       "sha256": "8a16c907f7bb193271f1440eaf4330f6b3865cb8bebcae88dfd5f9b9a71acefb"
     },
     "01_src/apptainer/deployment.example.json": {
-      "bytes": 922,
-      "sha256": "5d625a5a935dc4ad71cccab15167dce370255b493d288f59d0bb7fef1b44e3ce"
+      "bytes": 945,
+      "sha256": "021656f21766bfdf6670d70a1cde82527c4bc8f93ece368100dc2827bda55ba8"
     },
     "01_src/apptainer/namespace.def": {
       "bytes": 1189,
@@ -71,21 +65,21 @@
       "bytes": 2985,
       "sha256": "964e3e610483b0f932f91b288853fc4543db802d20fdb1ee1781e362bd674c0e"
     },
+    "01_src/apptainer/systemd/citrusscholar-web@.service": {
+      "bytes": 582,
+      "sha256": "0923c50ce61352486b6a3977a46f86c659c95b2064c700a7b76f2aa2b598109b"
+    },
+    "01_src/apptainer/systemd/citrusscholar-worker@.service": {
+      "bytes": 399,
+      "sha256": "751d372c38fac096a1f5980fc3fa49ea89ce6c17a6f120402350312d076dee29"
+    },
     "01_src/docker/requirements.sandbox.txt": {
       "bytes": 367,
       "sha256": "4d85eba49a2c91bb7cc099f8ba51a678efa0b528a5d14016c6bed85c514419de"
     },
     "01_src/scripts/apptainer_launch.py": {
-      "bytes": 8614,
-      "sha256": "6e4451421aa7de2ba2e75f3b8b07bb1244fde136260122371bfa20de215f1a49"
-    },
-    "01_src/scripts/citrusqa-tunnel.service": {
-      "bytes": 504,
-      "sha256": "cb85fe407d80c355b8fa470f06af886a713b6d1b6fb16f1c3b9641f28bcce7ef"
-    },
-    "01_src/scripts/citrusqa.service": {
-      "bytes": 572,
-      "sha256": "711fb1452749b4406192de5eefa0f356ffb422b8a8f5a007c3ab1749849c2ac5"
+      "bytes": 10883,
+      "sha256": "8dced0e4769c78fadb4e8a4f740271325471292538afda4203c91e565014ff19"
     },
     "01_src/scripts/code_reconcile.py": {
       "bytes": 8303,
@@ -96,8 +90,8 @@
       "sha256": "46359ce58a549465a4d70dad54c59162dbfbd39db845e35c8706ffbc4611e664"
     },
     "01_src/scripts/configured_local.py": {
-      "bytes": 11067,
-      "sha256": "6c02f80025063c508f139152788433c0d657cc3b187ed630c1b36c31a09ab95e"
+      "bytes": 11104,
+      "sha256": "ebedd2fedd0f9e3a5dc886c404ce72701b26aecd8f9e49168cc2f13ddb41ff78"
     },
     "01_src/scripts/create_admin.py": {
       "bytes": 1824,
@@ -168,12 +162,16 @@
       "sha256": "c7afff1cbe7b9791b6a4526eab61873205cdbe76669ec019368dbb68297e1619"
     },
     "01_src/src/agent/context_projection.py": {
-      "bytes": 33013,
-      "sha256": "53bc78c5580b038b6fb7842da376affc6db2a1be6bb0c3a0cf58884a92e71aa7"
+      "bytes": 34850,
+      "sha256": "5797b7845271592f53f07a69593d27bc9f6827b3b71f89f94a3dc7a5f238cefa"
     },
     "01_src/src/agent/context_projection_regression_test.py": {
       "bytes": 14941,
       "sha256": "aedd275bcf6e7bd135c2e67a23e404acd6c907052bf891cadadc7af4848b9ec1"
+    },
+    "01_src/src/agent/context_schema_budget_test.py": {
+      "bytes": 2422,
+      "sha256": "b4149287d9041f14e37bc02b527a9dd7bf2c4df0144b27a0f2a1796b8c3b3920"
     },
     "01_src/src/agent/context_tools.py": {
       "bytes": 3944,
@@ -212,8 +210,8 @@
       "sha256": "d1fabd17e1ff1f7cfaaa7bf55afcd9cb7ed475b41e47cac77948419bcfed3b9c"
     },
     "01_src/src/agent/host.py": {
-      "bytes": 46273,
-      "sha256": "3eef9aebe57e36b46d4911dc8d5dcf94133e3d96403597b8ba9dbb7bdd3208f2"
+      "bytes": 46569,
+      "sha256": "cca3715415d469073eab398825accb0f0153319892be1d87553aca9770c4dc27"
     },
     "01_src/src/agent/host_policy.py": {
       "bytes": 8915,
@@ -232,8 +230,8 @@
       "sha256": "d7feb64f3ce95061675b32ad8cff8d23611bd52cd587fd637356f37933312642"
     },
     "01_src/src/agent/model.py": {
-      "bytes": 3133,
-      "sha256": "62813cf937478a7b8b8bdca1195e1f920993e3298d8b7d03e7050c4bffc8fdc4"
+      "bytes": 3249,
+      "sha256": "540f6f08f280343b97569b966799e4d4c719d640c7eff9160e11e6236f03e9b7"
     },
     "01_src/src/agent/nature_skill_resources_test.py": {
       "bytes": 11497,
@@ -296,8 +294,8 @@
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     "01_src/src/api/chat_turn_queue_admission_test.py": {
-      "bytes": 11729,
-      "sha256": "b22281592335318165e5dff6da22ee3406f2636484ec5b5b4a0b4eadbd9bf051"
+      "bytes": 12000,
+      "sha256": "04822d2960c2fbcc63662e3293280d050e9dd4ac6058420643c71720faab48c0"
     },
     "01_src/src/api/chat_turn_queue_http_test.py": {
       "bytes": 14167,
@@ -312,12 +310,16 @@
       "sha256": "0c661f43119cce28ce57b69b987724b1582eab78aa59dea13db147f0c153ed31"
     },
     "01_src/src/api/invite_auth_http_test.py": {
-      "bytes": 32037,
-      "sha256": "8489af1743fe0e1abe821a749f49f744e2d5a5f027b3ab0f981a1dbbef653910"
+      "bytes": 35720,
+      "sha256": "16fa0147559de8fde70fe6e916ae56260cdf5c545be4c1b5a5bf75e11c6bfad4"
+    },
+    "01_src/src/api/lan_ingress.py": {
+      "bytes": 3866,
+      "sha256": "8915cb78166c79bb10a19dc2b4cef7f08f61c191640c103d97aa5aa7b7f06e5f"
     },
     "01_src/src/api/main.py": {
-      "bytes": 315524,
-      "sha256": "3fac3a366436d11d1f459e8e0eeed046530d99377505d174efc8ebc10ff68095"
+      "bytes": 316125,
+      "sha256": "e043d0bdd82d642c01dabcd641e9dce3d1f5aa3226dc8b7d571559f87c5ed214"
     },
     "01_src/src/api/navigation_task_rediscovery_test.py": {
       "bytes": 10384,
@@ -332,8 +334,8 @@
       "sha256": "5461104db22a2ec07a64464269c7e4c56ed93e9ec422ceee595185da77c21ca5"
     },
     "01_src/src/api/turn_envelope.py": {
-      "bytes": 37626,
-      "sha256": "6b0ef73f3c22c7789186e4994556c5d88164b629f29ebadc0740f2444ad29dcb"
+      "bytes": 37789,
+      "sha256": "a3b7db1546c5109c9eea385d3e07617ed2b34acb90f87bfb25d3980a87b0ff04"
     },
     "01_src/src/auth.py": {
       "bytes": 46756,
@@ -428,8 +430,8 @@
       "sha256": "42083f277462b5c9b38d7d7283f75f896eaf75eac725da026cf5ed158c82b4c9"
     },
     "01_src/src/code_execution/presence.py": {
-      "bytes": 1984,
-      "sha256": "5d61dcba90343f0cfb3d2212cc0cde25d8bb9f5c039b5d77bb65669ed4c2d939"
+      "bytes": 2056,
+      "sha256": "aba8f1e0dfd9ddac40595f0753c55542e07d7269d8e2d7781d3df61153285d56"
     },
     "01_src/src/code_execution/protocol.py": {
       "bytes": 8491,
@@ -512,16 +514,20 @@
       "sha256": "791b4be6805e673fabb5f8465c5ae29660101114f509da96bf583cf94f2c1d07"
     },
     "01_src/src/core/checkpoint_restore.py": {
-      "bytes": 2301,
-      "sha256": "ed4d2e10219213d3ef8566133d1f76c604ac7e9885f71e7a4b8250e82491a03e"
+      "bytes": 8053,
+      "sha256": "d5d6041270c3fc9deb765a944035c64b03af68707acbb3043d1d8e944e182c0f"
     },
     "01_src/src/core/context_budget.py": {
       "bytes": 16684,
       "sha256": "1c2f2dd6619e22c00bdf784c16ee6c7eff8697e1b6c5c5e9084b71ead2681afa"
     },
     "01_src/src/core/context_manager.py": {
-      "bytes": 31789,
-      "sha256": "01bcbfb1ae62d24e5339e1b9a56a98acce7fdc171bd9db532f9817c4ae56fb83"
+      "bytes": 30897,
+      "sha256": "28e9772ce85aecdad29041d6ce45cbd1b27a6dbf786bc6fb7862e8143c35eaff"
+    },
+    "01_src/src/core/context_send_view_test.py": {
+      "bytes": 4496,
+      "sha256": "84a32a7f93c79fbee832ff2076b4e49bfe8826c933474625934fe03e235ebeb8"
     },
     "01_src/src/core/context_snapshot.py": {
       "bytes": 6276,
@@ -679,9 +685,13 @@
       "bytes": 594,
       "sha256": "5285a5109b570c55c8e12fa36b385c62f17fabcf6082370847efd22a8347d1c6"
     },
+    "01_src/src/core/tool_result_delivery_test.py": {
+      "bytes": 12688,
+      "sha256": "338fae291998cdc72a1bbaeb7f54ac08fb20bbf3c383225b79bccad487376920"
+    },
     "01_src/src/core/tool_result_view.py": {
-      "bytes": 3883,
-      "sha256": "c94e0f3b5c4be98ef5c3d8a5d44b41c5be29cbb0d6df37240af73937d16444dc"
+      "bytes": 5030,
+      "sha256": "011d449dd3fc992107425ffeeaf2157b2faa99bae2b013e734079536a220c4c2"
     },
     "01_src/src/core/tool_results.py": {
       "bytes": 18328,
@@ -980,8 +990,12 @@
       "sha256": "31f87ec17ad2e3398e5e1311e2a5d1f73f160d2e9f0f1963af684471dd2bf9f9"
     },
     "01_src/src/guardrails/turn_checkpoint.py": {
-      "bytes": 13794,
-      "sha256": "f25a992c561fcc850c51764e2b7351d38c68225921dedf6f216e91024590a174"
+      "bytes": 12127,
+      "sha256": "56ae906f2ead3d10741a612543003879e7b15d28418ea6f7a7d82a4b755c5ed8"
+    },
+    "01_src/src/guardrails/turn_checkpoint_deterministic_test.py": {
+      "bytes": 8700,
+      "sha256": "50658798c259b24bd0e9f8b42e49d72be18213dcf97c209913d8cbac4ffa71f6"
     },
     "01_src/src/logger.py": {
       "bytes": 6340,
@@ -1296,8 +1310,8 @@
       "sha256": "882305d59b497d8ad35b9628a93143bc9350848ed32825012dee3edb1b9939b0"
     },
     "01_src/src/research/nature_presets_test.py": {
-      "bytes": 28415,
-      "sha256": "17958f761ac36dd8ed07fbb34a5369b5e42072530efd78a97689212a8b0c72d8"
+      "bytes": 36588,
+      "sha256": "9c9a2cb94b467b1a07f23b169126c6cb9242646951127a0bfed0e65d5092b31c"
     },
     "01_src/src/research/p0c_regression_test.py": {
       "bytes": 9982,
@@ -1324,8 +1338,8 @@
       "sha256": "edfa49a398f9ad09b089ff59c5a0d14730ca8de8a070192cb26e9a234a6d4341"
     },
     "01_src/src/research/presets/nature_volcano.py": {
-      "bytes": 5494,
-      "sha256": "66eff344dfca18d5c54987127798f084101f308f0999adb0782ecf2d55aab45a"
+      "bytes": 5524,
+      "sha256": "51e09da80e9b51e9c7ccbf283f9bb003b1d2504e4778ef73a9a10ece99c8133d"
     },
     "01_src/src/research/presets/relationship_panels.py": {
       "bytes": 1801,
@@ -1364,8 +1378,8 @@
       "sha256": "e7ce96e22bd1c2d2560c3ba7674d7edd27b0ca498f6584cca0aea91f61d6f615"
     },
     "01_src/src/research/script_presets.py": {
-      "bytes": 17839,
-      "sha256": "bbe03a19288d2a107a4b571e9b71d609577d747903ee1ee295002cc9f51a12a2"
+      "bytes": 22796,
+      "sha256": "b4379fa5e68f86890b822df59c969138f4f2c24a4d291851facbab65ee3ea21c"
     },
     "01_src/src/research/script_reconciliation.py": {
       "bytes": 5971,
@@ -1580,8 +1594,8 @@
       "sha256": "c9a36b0477a756438389228ef25519251cf5b5df786a8dbe0979b402cf724163"
     },
     "01_src/web/assets/app.js": {
-      "bytes": 317841,
-      "sha256": "b37981c295175bfed91e139a1b81bdd281ee4e1b7f7f1f5dbc08d311d52ca651"
+      "bytes": 321721,
+      "sha256": "f975c11465a976569ad5ed3c359ae157c1ca8ab8a748caa4ce434dbcc53a1456"
     },
     "01_src/web/assets/avatars/01.webp": {
       "bytes": 9024,
@@ -1712,8 +1726,8 @@
       "sha256": "1df6ba4d24b6b89c33f180e65bd9066335a12376172cd2c61cff0171561e6dd1"
     },
     "01_src/web/assets/guide.js": {
-      "bytes": 20193,
-      "sha256": "c85cd7e0f0b3cce3e85af9cf8b4bf8969d3e94f0d8eb6caebb1126f392e96d09"
+      "bytes": 20145,
+      "sha256": "b4def2c99b62f2f4d61ad9854e4b6a34d8d1a356427767d8ff8faccacf43a9c5"
     },
     "01_src/web/assets/integrity-review.css": {
       "bytes": 3690,
@@ -1784,8 +1798,8 @@
       "sha256": "45ec25a7ce06eb96662b2e297288de747cdeca411cb2b5512ae22b4ef1343d4e"
     },
     "01_src/web/assets/task-cards.js": {
-      "bytes": 19525,
-      "sha256": "1699035be26ba6f7f3a2f78ad6f496803d1f23ad05315f2ff29b3f7fb15e71a4"
+      "bytes": 20055,
+      "sha256": "01a19cadd64a3c9eb089e66c49135a624cd7b4e84ef51192712533add713130d"
     },
     "01_src/web/assets/task-controls.js": {
       "bytes": 14609,
@@ -1836,8 +1850,8 @@
       "sha256": "7f71897f33ef691512c15a67beeeae489d41b88e5d9fbede113f1b5c52bf7d18"
     },
     "01_src/web/index.html": {
-      "bytes": 42689,
-      "sha256": "b23120e19d35ac04daca73f281cb0dc01d96b34990bb2023ea979ebabe898899"
+      "bytes": 42447,
+      "sha256": "167349aa05b828ffb3ba73c09edc07d88e1c9209ecf3d083bf6bdb5dee614751"
     },
     "01_src/web/integrity-review.html": {
       "bytes": 2165,
@@ -1848,20 +1862,28 @@
       "sha256": "55b3b292a0219c0374de998b73e67c4a47f6ae78d938502ecacba270aac4a673"
     },
     "01_src/web/tests/clipboard-attachments.test.cjs": {
-      "bytes": 5263,
-      "sha256": "d5cb070d7ec293d9e0315cbed511acb0ed120f7c9243dd4788d3f3d73bf31239"
+      "bytes": 4764,
+      "sha256": "d79a51dc99aa389d5a90bc0fbe65c1f2551d222e4cd23a906effb629c5723528"
+    },
+    "01_src/web/tests/composer-timeline-ux.test.cjs": {
+      "bytes": 11468,
+      "sha256": "fa05ba495c8a3a6398ccda38c99e54cf8bc3c884b3c684f8ad88498e16d6396a"
+    },
+    "01_src/web/tests/frontend-harness.cjs": {
+      "bytes": 10152,
+      "sha256": "89dd485f598ee9fba637b00ed0e2f6b45325a6f938ec98097248cf631fe250b6"
     },
     "01_src/web/tests/invite-auth.test.cjs": {
       "bytes": 10098,
       "sha256": "6cc5f642fe1c08811d8cfb1ec593fca4369feca32f5580177eaf475a6ee44287"
     },
     "01_src/web/tests/navigation-task-recovery.test.cjs": {
-      "bytes": 6687,
-      "sha256": "6483a965d2d22f6261d7f9479951bd49255c131e44922ec4fc1110c09dd77972"
+      "bytes": 6270,
+      "sha256": "11dea31a0d1fde6f3d1350178aaca694e2b3ee92ef9547a511dbeb34129a3106"
     },
     "01_src/web/tests/session-recovery.test.cjs": {
-      "bytes": 6644,
-      "sha256": "d15f3586a509a796488dc0f15f4bd90be69ccd928bb59941107c85f0dceb553a"
+      "bytes": 5992,
+      "sha256": "ad302bc8b8d62c4a60ee06bf0dd5412702afa1dd4076028a2fb15f6a65bfeff9"
     },
     "01_src/web/tests/task-observation.test.cjs": {
       "bytes": 7428,
@@ -2488,21 +2510,7 @@
       "sha256": "babf1a2e2784d116337bc9539d806e5fff291f096832812603683ef9509236d5"
     }
   },
-  "remote_validation": {
-    "application_sif_sha256": "e7ae08db8557e755d50e44e4e5821345cdb41cdb8a245fabfbc44db6776448aa",
-    "figure_sandbox_sif_sha256": "251e26855bb8d65c4c600f777605a694c5505795fff43631e126e829003996fa",
-    "live_model_autonomy": "not_run",
-    "production_deployment": "not_run",
-    "queue_regression": {
-      "chromium_checks_passed": 41,
-      "chromium_model": "deterministic test fixture",
-      "node_passed": 33,
-      "python_passed": 180,
-      "python_subtests_passed": 13
-    },
-    "report": "docs/audits/invite-nature-acceptance.md",
-    "tested_support_wheel_sha256": "1d9397f49dbd5264e0d2026f202884c5d382a85f6a738b7cd51128847842539a"
-  },
   "schema": "citrusscholar.linux-source/1",
-  "source": "CitrusScholar invite/auth, Nature Figure and durable chat turn queue, 2026-11-20"
+  "source": "CitrusScholar LAN HTTPS, unified context and stability candidate",
+  "source_tree_excluding_manifest": "44398330b330d3ecf09400e74d6c2f7acacef6c2"
 }

@@ -56,7 +56,7 @@
     <button class="api-save" type="submit">继续</button>
     <button class="auth-forgot" type="button" onclick="openRecoverPane()">忘记密码？使用恢复码重置</button>
     <p>对话与附件可能发送至所配置的模型和联网服务。</p>
-    <details class="auth-data-note"><summary>数据与隐私</summary><p>账号数据彼此隔离。问题、回答和工具执行摘要供管理员排障，保留一年。上传文件保存在账号资料库，默认 30 天未使用后清理，不进入共享语料库。公开访问时，连接还会经过 Cloudflare 转发。</p></details>
+    <details class="auth-data-note"><summary>数据与隐私</summary><p>账号数据彼此隔离。问题、回答和工具执行摘要供管理员排障，保留一年。上传文件保存在账号资料库，默认 30 天未使用后清理，不进入共享语料库。</p></details>
   </form>
   <form class="auth-card" id="authRecoverCard" hidden onsubmit="event.preventDefault();submitPasswordRecovery()">
     <div class="auth-brand"><img src="/assets/citrusscholar-mascot.png" alt=""> CitrusScholar</div>
@@ -293,7 +293,7 @@
         </div>
       </div>
         <div id="attachment-list" class="attachment-list" aria-live="polite"></div>
-        <textarea id="user-input" rows="2" placeholder="有什么想做的？(Enter 发送 / Shift+Enter 换行)" onkeydown="if(event.key==='Enter'&amp;&amp;!event.shiftKey&amp;&amp;!event.isComposing)sendMsg()"></textarea>
+        <textarea id="user-input" rows="2" placeholder="有什么想做的？(Enter 发送 / Shift+Enter 换行)"></textarea>
         <div class="input-bottom">
           <div class="input-actions">
             <input id="attachment-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif,.pdf,.docx,.csv,.tsv,.xlsx,.xls,.xlsm,.xlsb" multiple hidden onchange="handleAttachmentSelection(this.files)">
@@ -307,8 +307,7 @@
                 <button type="button" class="skill-refresh" id="skill-picker-refresh">刷新场景目录</button>
               </div>
             </details>
-            <!-- v8.7: 小巧圆形图标按钮；运行中由 JS 隐藏本按钮、显示停止按钮 -->
-            <button class="send-btn" id="send-btn" onclick="sendMsg()" title="发送 (Enter)">↑</button>
+            <button class="send-btn" id="send-btn" style="display:none" onclick="sendMsg()" title="发送 (Enter)">↑</button>
             <!-- v8.4.11 停止按钮：运行中显示；点击中断当前任务（修改问题后重新发送）
                  v8.10p: 执行光环已移至回答气泡状态行（不再渲染在输入框） -->
             <button class="stop-btn" id="stop-btn" onclick="stopCurrentTask()" style="display:none" title="停止当前任务（输入有误时可停止后修改问题重新发送）">⏹</button>

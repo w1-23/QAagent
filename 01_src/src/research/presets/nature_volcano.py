@@ -46,7 +46,7 @@ if mode == "dataset":
 elif mode == "excel":
     frame = pd.read_excel(data, sheet_name=parameters.get("sheet", 0))
 elif mode == "csv":
-    frame = pd.read_csv(data)
+    frame = pd.read_csv(data, float_precision="round_trip")
 else:
     raise ValueError("input_format must be csv, excel or dataset")
 

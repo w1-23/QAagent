@@ -53,7 +53,7 @@
     {id: 'account', nav: '会话与账号', title: '掌握进度，也掌握自己的资料', lead: '历史会话、账号偏好与资料库各自保留对应内容。',
       flow: ['查看执行进度', '停止 / 恢复查看', '管理账号资料'],
       steps: [['进度与停止', '展开执行过程查看步骤，点击停止可请求取消。连接中断不代表任务结束；注意服务端未确认终止等提示。'], ['历史与偏好', '从会话列表继续已有研究。账户菜单可设置偏好；自动记忆已停用，项目材料请使用科研笔记保存。'], ['资料与隐私', '账号数据彼此隔离，上传文件不默认进入共享语料库；文献共享需单独授权。问题、回答和工具摘要供管理员排障，保留一年。']],
-      note: '上传文件默认 30 天未使用后清理；公开访问的连接经过 Cloudflare 转发。重要成果请自行下载保留。'}
+      note: '上传文件默认 30 天未使用后清理。重要成果请自行下载保留。'}
   ];
   // Previously linked topics still open the chapter containing their instructions.
   var aliases = {start: 'research', sources: 'research', audit: 'data', statistics: 'data', edit: 'figures', objects: 'figures', text: 'figures', series: 'figures', save: 'figures', keys: 'figures'};

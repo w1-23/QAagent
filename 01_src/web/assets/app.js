@@ -160,6 +160,7 @@ function resetAccountState() {
   window.lastCopiedSvgSource = '';
   if (chatContainer) chatContainer.replaceChildren();
   if (userInput) { userInput.value = ''; userInput.placeholder = '有什么想做的？'; }
+  refreshTaskComposer();
   ['attachment-list', 'session-list', 'sidebar-content', 'workspace-list',
     'ctxDetail', 'ctxSent', 'ctxItems', 'ctxSummary', 'ctxSuggestions',
     'ctxInTokens', 'ctxInNote', 'ctxOutTokens', 'ctxOutNote', 'ctxBarLabel', 'ctx-pct', 'ctxCompressed',
@@ -1186,6 +1187,7 @@ var _selectedAttachments = [];
 window._selectedAccountFileRefs = window._selectedAccountFileRefs || [];
 var _attachmentPreviewUrls = [];
 var _sentAttachmentPreviewUrls = [];
+var _composerNotice = '';
 var roundHistory = [];
 var _citationsRetry = 0;   // v8.10q: citations 空结果延迟重试计数（防 spawn 时序缺口）
 var currentRoundId = 0;
@@ -1219,6 +1221,7 @@ function handleAttachmentSelection(fileList) {
   _selectedAttachments = _selectedAttachments.concat(added);
   renderAttachmentSelection();
   var picker = document.getElementById('attachment-input'); if (picker) picker.value = '';
+  if (userInput) { try { userInput.focus({preventScroll: true}); } catch (_) { userInput.focus(); } }
 }
 
 function handleAttachmentPaste(event) {
@@ -1249,6 +1252,26 @@ function handleAttachmentPaste(event) {
   if (!clipboard.getData('text/plain')) event.preventDefault();
 }
 if (userInput) userInput.addEventListener('paste', handleAttachmentPaste);
+
+// One composer key handler. Enter sends and suppresses its native newline;
+// Shift+Enter keeps the native newline, IME (composition / keyCode 229) and
+// auto-repeat keydowns never send. The old inline handler is removed from HTML.
+function handleComposerKeydown(event) {
+  if (!event || event.key !== 'Enter') return;
+  if (event.shiftKey) return;
+  if (event.isComposing || event.keyCode === 229) return;
+  event.preventDefault();
+  if (event.repeat) return;
+  _composerNotice = '';
+  sendMsg();
+}
+if (userInput) {
+  userInput.addEventListener('keydown', handleComposerKeydown);
+  userInput.addEventListener('input', function () {
+    if (String(userInput.value || '').trim()) _composerNotice = '';
+    refreshTaskComposer();
+  });
+}
 
 function hasDraggedFiles(event) {
   var types = event.dataTransfer && event.dataTransfer.types;
@@ -1321,7 +1344,7 @@ function renderAttachmentSelection() {
     remove.setAttribute('aria-label', '移除 ' + file.name);
     remove.title = '移除附件';
     remove.textContent = '×';
-    remove.onclick = function() { _selectedAttachments.splice(index, 1); renderAttachmentSelection(); };
+    remove.onclick = function() { _selectedAttachments.splice(index, 1); renderAttachmentSelection(); if (userInput) { try { userInput.focus({preventScroll: true}); } catch (_) { userInput.focus(); } } };
     card.appendChild(remove);
     host.appendChild(card);
   });
@@ -1341,9 +1364,10 @@ function renderAttachmentSelection() {
     remove.type = 'button'; remove.className = 'attachment-preview-remove';
     remove.setAttribute('aria-label', '移除 ' + (file.filename || '资料库文件'));
     remove.textContent = '×';
-    remove.onclick = function() { window._selectedAccountFileRefs.splice(index, 1); renderAttachmentSelection(); };
+    remove.onclick = function() { window._selectedAccountFileRefs.splice(index, 1); renderAttachmentSelection(); if (userInput) { try { userInput.focus({preventScroll: true}); } catch (_) { userInput.focus(); } } };
     card.appendChild(remove); host.appendChild(card);
   });
+  refreshTaskComposer();
 }
 
 function appendSentLibraryReferences(contentEl, files) {
@@ -2493,9 +2517,12 @@ function refreshTaskComposer() {
   var executing = !!((binding && turnQueueIsExecuting(state)) || (binding && stopping && state.job_id && !terminal));
   var queued = queuedTurnCount();
   var button = document.getElementById('send-btn'), stop = document.getElementById('stop-btn');
+  var composerHasText = !!String((userInput && userInput.value) || '').trim();
+  var composerHasAttachments = !!((_selectedAttachments && _selectedAttachments.length) ||
+    (window._selectedAccountFileRefs && window._selectedAccountFileRefs.length));
   if (button) {
     button.disabled = !!historyRequest;
-    button.style.display = 'flex';
+    button.style.display = composerHasText ? 'flex' : 'none';
     button.title = '发送 (Enter)';
     button.setAttribute('aria-label', '发送消息');
   }
@@ -2515,7 +2542,9 @@ function refreshTaskComposer() {
     userInput.parentNode.appendChild(hint);
   }
   if (hint) {
-    hint.textContent = awaitingQuestion ? '当前任务等待选择。新消息会排在它之后。'
+    hint.textContent = _composerNotice && (composerHasText || composerHasAttachments) ? _composerNotice
+      : !composerHasText && composerHasAttachments ? '已选择附件；请填写正文后再发送。'
+      : awaitingQuestion ? '当前任务等待选择。新消息会排在它之后。'
       : stopping ? '停止请求待确认，已完成的结果会保留。'
       : executing ? '当前任务执行中；新消息会排队，不会打断本轮。'
       : queued ? '有 ' + queued + ' 条消息排队中。'
@@ -3551,6 +3580,7 @@ function appendMessageActions(content, role, text) {
     edit.addEventListener('click', function() {
       userInput.value = String(text || '');
       userInput.focus();
+      refreshTaskComposer();
       userInput.setSelectionRange(userInput.value.length, userInput.value.length);
       userInput.scrollIntoView({behavior:'smooth', block:'nearest'});
     });
@@ -3916,8 +3946,16 @@ async function sendMsg(isFollowUp) {
   if (isFollowUp === undefined) isFollowUp = false;
   var sendBtnEl = document.getElementById('send-btn');
   if (sendBtnEl && sendBtnEl.disabled) return;
-  var query = userInput.value.trim();
-  if (!query) return;
+  var query = String(userInput.value || '').trim();
+  if (!query) {
+    if (_selectedAttachments.length || window._selectedAccountFileRefs.length) {
+      _composerNotice = '已选择附件；请填写正文后再发送，附件会保留。';
+      refreshTaskComposer();
+      try { userInput.focus({preventScroll: true}); } catch (_) { userInput.focus(); }
+    }
+    return;
+  }
+  _composerNotice = '';
   var _requestStartedAt = performance.now();
   mascotSay('planning');
   var _turnTotalMs = 0;
@@ -3947,7 +3985,10 @@ async function sendMsg(isFollowUp) {
   userInput.placeholder = '有什么想做的？';
   var userMessageContent = addMessage('user', escapeHtml(query) +
     (filesForRequest.length + fileRefsForRequest.length ? '<div class="sent-attachment-count">已附加 ' + (filesForRequest.length + fileRefsForRequest.length) + ' 个文件</div>' : ''));
+  var _sentPreviewStart = _sentAttachmentPreviewUrls.length;
   appendSentAttachmentPreviews(userMessageContent, filesForRequest);
+  // Only URLs created for this optimistic row are revoked if admission fails.
+  var _optimisticSentPreviewUrls = _sentAttachmentPreviewUrls.slice(_sentPreviewStart);
   appendSentLibraryReferences(userMessageContent, fileRefsForRequest);
   appendMessageActions(userMessageContent, 'user', query);
   // P0: 提交瞬间先给导航一个临时刻度，服务端确认后换成正式 message_id
@@ -3958,6 +3999,19 @@ async function sendMsg(isFollowUp) {
   // P0-A: 实时气泡带与历史恢复相同的轮次锚点（同一套归属规则，文件/跳转可定位）
   if (botContent) { botContent.dataset.requestId = clientRequestId; botContent.dataset.sessionId = requestSessionId; }
   var botMessage = botContent && botContent.closest ? botContent.closest('.message') : botContent.parentNode;
+  var optimisticUserMessage = userMessageContent && userMessageContent.closest ? userMessageContent.closest('.message') : null;
+  var optimisticRemoved = false;
+  function removeOptimisticTurn() {
+    if (optimisticRemoved) return;
+    optimisticRemoved = true;
+    _optimisticSentPreviewUrls.forEach(function (url) { try { URL.revokeObjectURL(url); } catch (_) {} });
+    _sentAttachmentPreviewUrls = _sentAttachmentPreviewUrls.filter(function (url) {
+      return _optimisticSentPreviewUrls.indexOf(url) < 0;
+    });
+    if (optimisticUserMessage && optimisticUserMessage.parentNode) optimisticUserMessage.remove();
+    if (botMessage && botMessage.parentNode) botMessage.remove();
+    if (window.turnRail && window.turnRail.dropPending) window.turnRail.dropPending(clientRequestId);
+  }
   var isCancelled = false;
   var _turnDisconnected = false;  // 断线 ≠ 取消：后台可能仍在运行
   var _turnDisplayStatus = '';    // 服务端 TurnEnvelope 的唯一终态
@@ -4772,8 +4826,19 @@ async function sendMsg(isFollowUp) {
     userInput.focus();
   }
 
+  // A 4xx, or a 5xx carrying an application refusal, proves the server did not
+  // admit this request. A bare 5xx/gateway failure is ambiguous: it may already
+  // be in the queue, so keep the optimistic row and reconcile the same id.
+  function admissionRejectionConfirmed(status, body) {
+    if (status >= 400 && status < 500) return true;
+    if (status >= 500 && body && (body.code || body.detail && (body.detail.code || body.detail.message))) return true;
+    return false;
+  }
+
   function handleAdmissionError(status, body) {
-    var code = body && body.detail && body.detail.code;
+    var detail = body && body.detail && typeof body.detail === 'object' ? body.detail : {};
+    var code = detail.code || (body && body.code);
+    if (!admissionRejectionConfirmed(status, body)) { reconcileQueueAdmission(); return; }
     requestSubmitted = false;
     var message = status === 401 ? '请先登录后继续。'
       : status === 413 ? '附件过大或数量超限，请调整后重试。'
@@ -4782,8 +4847,11 @@ async function sendMsg(isFollowUp) {
       : code === 'turn_payload_conflict' ? '相同请求标识已用于不同内容；请重新发送为新请求。'
       : code === 'skill_selection_changed' ? '所选技能已变更或不可用，请打开“＋”刷新技能目录后重新选择。'
       : code === 'account_closed' ? '账户已停用，不能接受新请求。'
+      : detail.message ? String(detail.message)
       : '这次没有完成，请稍后重试。';
     restoreDraft(message);
+    stopCurrentTurn('switch');
+    removeOptimisticTurn();
   }
 
   function showQueueRetry() {
@@ -4886,7 +4954,10 @@ async function sendMsg(isFollowUp) {
         if (!ownsTurn() || requestAbortController !== streamAbortController || streamAbortController.signal.aborted) return;
         if (!requestSubmitted) {
           clearTimeout(spinnerTimeout); clearStatus();
-          if (ownsControls()) { if (!userInput.value) userInput.value = query; showBanner('发送未完成，内容已保留，请重试。'); }
+          if (!userInput.value) userInput.value = query;
+          showBanner('发送未完成，内容已保留，请重试。');
+          stopCurrentTurn('switch');
+          removeOptimisticTurn();
           setSendDisabled(false);
         } else reconcileQueueAdmission();
       } finally {

@@ -35,6 +35,7 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, HTML
 from sse_starlette.sse import EventSourceResponse
 from pydantic import BaseModel, ConfigDict, Field
 
+from src.api.lan_ingress import load_lan_ingress
 from src.config import PROJECT_ROOT, WEB_DIR, settings
 from src.guardrails.memory import memory_store
 from src.session.manager import session_manager
@@ -91,6 +92,7 @@ class RequestBodyLimitMiddleware:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    app.state.lan_ingress = load_lan_ingress()
     logger.info("[Lifespan] starting...")
     from src.graph.general_agent_graph import _model_timeout
     logger.info("[Lifespan] timeouts: task=%ss (0 disables deadline), model=%ss; "
@@ -387,8 +389,13 @@ def require_owned_session(session_id: str, user: dict, *,
 
 @app.middleware("http")
 async def account_auth_guard(request: Request, call_next):
+    ingress = getattr(request.app.state, "lan_ingress", None)
+    if ingress is not None:
+        denied = ingress.check(request)
+        if denied is not None:
+            return denied
     path = request.url.path
-    if request.method not in {"GET", "HEAD", "OPTIONS"}:
+    if ingress is None and request.method not in {"GET", "HEAD", "OPTIONS"}:
         origin = request.headers.get("origin")
         has_auth_cookie = bool(request.cookies.get("citrus_auth"))
         if origin:
@@ -733,7 +740,10 @@ def _normalize_avatar_data_url(data_url: str) -> bytes:
 
 
 def _client_ip(request: Request) -> str:
-    """Use Cloudflare's visitor address only when the deployment enables it."""
+    """Use the authenticated LAN proxy address or the configured legacy peer."""
+    ingress = getattr(request.app.state, "lan_ingress", None)
+    if ingress is not None:
+        return getattr(request.state, "lan_client_ip", "unknown")
     if os.getenv("CITRUS_TRUST_CLOUDFLARE_PROXY", "0").strip().lower() in {"1", "true", "yes"}:
         remote = request.client.host if request.client else ""
         trusted = {value.strip() for value in os.getenv(
@@ -838,8 +848,12 @@ class CitationCheckRequest(BaseModel):
     citation_text: str = Field(default="", max_length=2000)
 
 
-def _set_auth_cookie(response: Response, token: str) -> None:
-    secure = os.getenv("CITRUS_COOKIE_SECURE", "0").strip().lower() in {"1", "true", "yes"}
+def _auth_cookie_secure(request: Request) -> bool:
+    return (getattr(request.app.state, "lan_ingress", None) is not None
+            or os.getenv("CITRUS_COOKIE_SECURE", "0").strip().lower() in {"1", "true", "yes"})
+
+
+def _set_auth_cookie(response: Response, token: str, *, secure: bool) -> None:
     response.set_cookie("citrus_auth", token, max_age=7 * 24 * 60 * 60,
                         httponly=True, secure=secure, samesite="lax", path="/")
 
@@ -871,7 +885,7 @@ async def login_account(req: CredentialsRequest, request: Request, response: Res
     user, token = await asyncio.to_thread(login, req.username, req.password)
     if not user or not token:
         raise HTTPException(status_code=401, detail="用户名或密码错误。")
-    _set_auth_cookie(response, token)
+    _set_auth_cookie(response, token, secure=_auth_cookie_secure(request))
     return {"status": "ok", "user": user}
 
 
@@ -879,7 +893,8 @@ async def login_account(req: CredentialsRequest, request: Request, response: Res
 async def logout_account(request: Request, response: Response):
     from src.auth import logout
     await asyncio.to_thread(logout, request.cookies.get("citrus_auth", ""))
-    response.delete_cookie("citrus_auth", path="/", httponly=True, samesite="lax")
+    response.delete_cookie("citrus_auth", path="/", httponly=True, samesite="lax",
+                           secure=_auth_cookie_secure(request))
     return {"status": "ok"}
 
 
@@ -5654,19 +5669,14 @@ async def session_turn_context(session_id: str, request: Request,
 
 
 @app.get("/api/v2/diag/loop-watchdog")
-async def diag_loop_watchdog(request: Request, reset: int = 0):
-    """A1: 事件循环卡顿记录（诊断只读接口）。
-
-    返回看门狗捕获的卡顿次数、最长卡顿时长，以及每次卡顿时**循环线程的
-    栈**——最深的那一帧就是真正占住事件循环的函数。``reset=1`` 清零计数，
-    便于一次实验只观察一个时间窗。
-    """
-    current_user(request)
+async def diag_loop_watchdog(request: Request):
+    """Return runtime watchdog counters for administrators."""
+    require_admin(request)
     from src.core import loop_watchdog
-    data = loop_watchdog.snapshot()
-    if reset:
-        loop_watchdog.reset()
-    return data
+    snapshot = loop_watchdog.snapshot()
+    fields = ("installed", "stall_ms", "tick_s", "tick", "stall_count", "max_stall_ms")
+    return JSONResponse({field: snapshot[field] for field in fields},
+                        headers={"Cache-Control": "no-store"})
 
 
 @app.get("/api/v2/session/{session_id}/tool-result/{tool_call_id}")

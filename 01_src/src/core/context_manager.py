@@ -151,19 +151,9 @@ class ContextManager:
         # v8.16.3: format_hint 会话级缓存（(session_id, mode) → 非 fallback 格式），
         # 追问轮直接复用，省一次 fast 调用；上限 256 防会话膨胀
         self._hint_fmt_cache: dict[tuple, str] = {}
-        if budget:
-            from src.guardrails.history_compactor import compact_messages
-            async def _compact(msgs, query="", prior_summary="", session_id=""):
-                return await compact_messages(
-                    msgs,
-                    fast_llm=self._get_compact_llm(),
-                    max_tokens=self._budget.config.compact_max_tokens,
-                    query=query,
-                    prior_summary=prior_summary,
-                    usage_session_id=session_id,
-                    return_result=True,
-                )
-            budget.set_compact_fn(_compact)
+        # Loading history never performs model compression. WorkingContextProjection
+        # at model-send time is the single physical summary path; ContextBudget is
+        # retained only for deterministic size estimates and status reporting.
 
     def _get_fast_llm(self, thinking_off: bool = False):
         # v8.17.19: hints 属高频低价值 fast 调用——关思维链经 llm_pool extra_body
@@ -345,10 +335,12 @@ class ContextManager:
         *,
         checkpoint: dict | None = None,
     ) -> tuple[list, bool]:
-        """v8.4: 基于 checkpoint 构建发送视图（用户轮边界，压缩只在此时发生）。
+        """Build the model send view from raw history; never compact at load.
 
-        返回 (视图消息, 是否触发压缩)。视图不写回 SQLite；压缩发生时
-        通过 session.set_checkpoint 持久化摘要位置（原始轨迹永不改写）。
+        Returns (messages, compacted). A verified deterministic checkpoint
+        contributes only a bounded navigation view; every covered raw message
+        stays recoverable through the authorized read tools. Legacy or invalid
+        prose is not injected, and no model call occurs here.
         """
         from src.core.model_context import historical_send_view
         if not raw_messages:
@@ -381,11 +373,19 @@ class ContextManager:
                 # Invalid quotations, deleted evidence or mismatched raw rows
                 # cannot authorize hiding source history or exposing stale prose.
                 cp_summary = ""
+        else:
+            # Legacy/model prose is never authoritative: keep every raw row.
+            usable = False
         view_msgs, view_ids = [], []
-        if cp_summary.strip():
+        if structured is not None and usable:
+            # Only verified, explicitly bounded navigation is sent. The full
+            # inventory and host task state remain durable in the checkpoint.
+            from src.core.checkpoint_restore import navigation_view
             view_msgs.append(SystemMessage(
-                content="<conversation_summary>\n" + cp_summary + "\n</conversation_summary>",
-                additional_kwargs={"context_origin": "summary", "context_trusted": True}))
+                content="<conversation_checkpoint>\n" + navigation_view(structured)
+                        + "\n</conversation_checkpoint>",
+                additional_kwargs={"context_origin": "summary", "context_trusted": True,
+                                   "checkpoint_schema": structured.get("schema", "")}))
             view_ids.append(0)
         else:
             cp_summary = ""
@@ -402,27 +402,8 @@ class ContextManager:
                         + "\n</context_working_state>",
                 additional_kwargs={"context_origin": "working_state", "context_trusted": True}))
             view_ids.insert(0, 0)
-        if self._budget is None or structured is not None:
-            # Post-turn checkpoints were already generated after a saved answer.
-            # Loading one never starts another compression/model call.
-            return view_msgs, False
-        try:
-            result = await self._budget.check(
-                view_msgs, query=query, ids=view_ids, session_id=session_id,
-                prior_summary=cp_summary, working_state=working_state)
-            if result.level != ContextBudgetLevel.NORMAL and result.summary and result.cutoff_id:
-                if self._session:
-                    saved = self._session.set_checkpoint(
-                        session_id, result.cutoff_id, result.summary,
-                        expected_revision=checkpoint.get("revision", 0),
-                        expected_message_watermark=max(row_ids, default=0),
-                        working_state=working_state)
-                    if not saved:
-                        # A stale async summary is not a valid new view either.
-                        return view_msgs, False
-                return result.messages, True
-        except Exception as exc:
-            logger.warning("[ContextManager] budget check failed: %s", exc)
+        # Raw history is loaded verbatim. No load-time model compaction runs;
+        # WorkingContextProjection is the sole physical summary path.
         return view_msgs, False
 
     async def _generate_hints(

@@ -217,8 +217,8 @@ class EncryptedContextArchive:
         return messages_to_dict(messages[start:end])
 
 
-def _tokens(messages) -> int:
-    return estimate_request(list(messages))["estimated_input_tokens"]
+def _tokens(messages, tools=None) -> int:
+    return estimate_request(list(messages), tools=tools)["estimated_input_tokens"]
 
 
 def _units(messages):
@@ -392,7 +392,9 @@ class WorkingContextProjection(AgentMiddleware):
                  enabled: bool, deadline: float, trigger_tokens: int = 48000,
                  keep_messages: int = 20, target_tokens: int | None = None,
                  required_message_ids: Callable[[], Collection[str]] = lambda: (),
-                 readback_available: bool = False, on_projection: Callable | None = None):
+                 readback_available: bool = False,
+                 tool_schemas: Sequence[dict] | Callable[[], Sequence[dict]] | None = None,
+                 on_projection: Callable | None = None):
         if type(enabled) is not bool or type(readback_available) is not bool:
             raise ValueError("context_projection_explicit_boolean_required")
         target_tokens = max(1, trigger_tokens * 2 // 3) if target_tokens is None else target_tokens
@@ -405,17 +407,27 @@ class WorkingContextProjection(AgentMiddleware):
         self.required_message_ids, self.readback_available = required_message_ids, readback_available
         self.summary_model = summary_model
         self.on_projection = on_projection
+        # Schemas are part of the real request; count them without enlarging limits.
+        # A callable resolves one exact snapshot per projection.
+        self.tool_schemas = tool_schemas if callable(tool_schemas) else list(tool_schemas or [])
+        self._schemas = None if callable(tool_schemas) else self.tool_schemas
         self._cache = None
+
+    def _count(self, messages) -> int:
+        if self._schemas is None:
+            self._schemas = self.tool_schemas()
+        return _tokens(messages, self._schemas)
 
     def wrap_model_call(self, request, handler):
         raise AdmissionStopped("context_projection_async_required")
-
     async def awrap_model_call(self, request, handler):
         projected = await self.project(request.messages)
         return await handler(request.override(messages=list(projected)))
 
     async def project(self, messages: Sequence[BaseMessage]) -> tuple[BaseMessage, ...]:
         raw = tuple(messages)
+        # One schema snapshot per projection; readiness is re-checked per turn.
+        self._schemas = None if callable(self.tool_schemas) else self.tool_schemas
         # Per-call state keeps concurrent projections from sharing a stage.
         trace = _ProjectionTrace(message_count=len(raw))
         # Explicit opt-out means no projection, archival, or summary model calls.
@@ -454,7 +466,7 @@ class WorkingContextProjection(AgentMiddleware):
                 raise AdmissionStopped("context_projection_private_state_missing_or_mismatched")
         _complete_tool_groups(raw)
         trace.mark("estimate")
-        before = _tokens(raw)
+        before = self._count(raw)
         trace.estimated_input_tokens = before
         if before < self.trigger_tokens:
             return raw
@@ -482,9 +494,11 @@ class WorkingContextProjection(AgentMiddleware):
                     and all(type(a) is type(b) and a == b for a, b in zip(raw, previous))
                     and not set(tail).intersection(removed)):
                 baseline = _view(raw, removed, summary)
-                if (_tokens(baseline) < self.trigger_tokens
-                        or all(set(unit).issubset(removed) for unit in eligible)):
+                if self._count(baseline) < self.trigger_tokens:
                     return baseline
+                if all(set(unit).issubset(removed) for unit in eligible):
+                    return self._defer(baseline, reason="no_new_eligible_units", before=before,
+                                       protected=len(protected), eligible=len(eligible))
         trace.mark("estimate")
         if not tail or not eligible:
             return self._defer(baseline, reason="no_eligible_units", before=before,
@@ -540,7 +554,7 @@ class WorkingContextProjection(AgentMiddleware):
 
         middleware = SummarizationMiddleware(
             model=model, trigger=("messages", 1), keep=("messages", keep),
-            token_counter=_tokens, trim_tokens_to_summarize=None, summarizer=summarize_source)
+            token_counter=self._count, trim_tokens_to_summarize=None, summarizer=summarize_source)
         trace.mark("middleware")
         update = await middleware.abefore_model({"messages": working}, Runtime())
         if model.failure is not None:
@@ -579,13 +593,14 @@ class WorkingContextProjection(AgentMiddleware):
                                "context_projection": "working_summary_v1"})
         view = _view(raw, removed, summary)
         trace.mark("estimate")
-        after = _tokens(view)
+        after = self._count(view)
         trace.estimated_after_tokens = after
-        if after >= _tokens(baseline):
+        if after >= self._count(baseline):
             return self._defer(baseline, reason="summary_not_smaller", before=before,
                                protected=len(protected), eligible=len(eligible))
         trace.mark("middleware")
         _complete_tool_groups(view)
+        self._check_tool_budget(view, after)
         if self.on_projection:
             trace.mark("callback")
             await self.on_projection({"event": ("working_context_archived" if archived_only == removed
@@ -598,13 +613,26 @@ class WorkingContextProjection(AgentMiddleware):
         self._cache = (tuple(m.model_copy(deep=True) for m in raw), required, removed, summary)
         return view
 
+    def _check_tool_budget(self, view, tokens):
+        if tokens < self.trigger_tokens:
+            return
+        without_tools = [message for message in view if not isinstance(message, ToolMessage)]
+        if len(without_tools) < len(view) and self._count(without_tools) < self.trigger_tokens:
+            # Protected tool groups and exact readback pages cannot be shortened
+            # here without breaking provider pairing or losing requested evidence.
+            logger.info("context_projection_stopped reason=tool_observations input_tokens=%s soft_limit=%s",
+                        tokens, self.trigger_tokens)
+            raise AdmissionStopped("context_budget_exhausted:tool_observations")
+
     def _defer(self, view, *, reason, before, protected, eligible):
         # The callback is reserved for actual compression (hosts may announce
         # success from it). Log only sizes and stable codes, never message data.
         # The caller's ModelDriver must still admit the complete bound request;
         # this soft threshold cannot bypass its input/output/schema budget.
+        after = self._count(view)
+        self._check_tool_budget(view, after)
         logger.info("context_projection_deferred reason=%s before_tokens=%s after_tokens=%s "
                     "trigger_tokens=%s target_tokens=%s protected_messages=%s eligible_units=%s",
-                    reason, before, _tokens(view), self.trigger_tokens, self.target_tokens,
+                    reason, before, after, self.trigger_tokens, self.target_tokens,
                     protected, eligible)
         return view

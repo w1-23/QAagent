@@ -215,7 +215,9 @@ def _validate_request(*, request, owner_user_id, session_id,
         raise _http(400, "请求标识无效。")
 
     query = request.get("query")
-    if not isinstance(query, str) or not query or len(query) > MAX_QUERY_CHARS:
+    # Pure whitespace is not a valid user body; attachments without a caption
+    # are rejected here and the client keeps the selection and explains why.
+    if not isinstance(query, str) or not query.strip() or len(query) > MAX_QUERY_CHARS:
         raise _http(400, "问题内容为空或过长。")
 
     options = {

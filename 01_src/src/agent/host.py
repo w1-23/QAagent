@@ -488,17 +488,19 @@ async def _run(state, identity, ledger):
         deadline=deadline, trigger_tokens=settings.CONTEXT_WORKING_SOFT_TOKENS,
         target_tokens=min(settings.CONTEXT_WORKING_TARGET_TOKENS, settings.CONTEXT_WORKING_SOFT_TOKENS),
         required_message_ids=lambda: skills.required_message_ids,
-        readback_available="read_context_evidence" in refresh_allowed(), on_projection=context_projected)
+        readback_available="read_context_evidence" in refresh_allowed(),
+        tool_schemas=lambda: driver.schemas_for(identity), on_projection=context_projected)
 
     async def metered_model(history, current_identity):
+        # One schema snapshot for both the send-view estimate and ModelDriver.
+        model_allowed.clear()
+        model_allowed.update(refresh_allowed())
         # before_model's host_state watermark is already synchronously committed.
         task_events.acknowledge_updates(identity.run_id, update_version)
         view = await projection.project(history)
         await asyncio.to_thread(skills.verify_view, view)
         # ModelDriver's synchronous schema callback consumes this request-local
         # snapshot; exact hashes are revalidated before every physical proposal.
-        model_allowed.clear()
-        model_allowed.update(refresh_allowed())
         return await driver(view, current_identity)
 
     async def durable_execute(response, current_identity):
@@ -674,6 +676,7 @@ async def _finish(state, identity, ledger, host, result, trace_start, started, *
             "deadline": "本轮任务时间预算已用完。",
             "model_step_limit": "本轮模型调用次数已达上限。",
             "context_budget_exhausted": "当前模型上下文无法安全容纳下一次请求。",
+            "context_budget_exhausted:tool_observations": "工具结果和已读取的证据超出本轮发送预算，请缩小读取范围后再试。",
             "context_summary_input_limit": "工作摘要的输入超过模型窗口，没有发出该摘要请求。",
             "context_summary_incomplete": "工作摘要输出未完成，原始上下文未被替换。",
             "context_summary_timeout": "工作摘要请求超时，原始上下文未被替换。",

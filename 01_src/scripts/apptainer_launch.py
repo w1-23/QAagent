@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+from ipaddress import IPv4Address
 import json
 import os
 from pathlib import Path
@@ -20,6 +21,26 @@ def absolute(value):
             or any(part in {'.', '..', ''} for part in value.split('/')[1:])):
         raise ValueError('An absolute normalized bind-safe Linux path is required')
     return value
+
+
+def lan_ingress(config, port):
+    ingress = config.get('lan_ingress')
+    if ingress is None:
+        return [], []
+    if not isinstance(ingress, dict) or set(ingress) != {'ipv4', 'port', 'proxy_token_file'}:
+        raise ValueError('LAN ingress requires ipv4, port and proxy_token_file')
+    if not isinstance(ingress['ipv4'], str):
+        raise ValueError('LAN ingress requires an explicit IPv4 address')
+    ip = IPv4Address(ingress['ipv4'])
+    ingress_port = ingress['port']
+    if (ip.is_unspecified or ip.is_multicast or ip.is_reserved or ip.is_link_local
+            or type(ingress_port) is not int or not 1024 <= ingress_port <= 65535
+            or ingress_port == port or config.get('listen_host', '127.0.0.1') != '127.0.0.1'):
+        raise ValueError('LAN ingress requires a dedicated IPv4 port and a loopback Web listener')
+    token_file = absolute(ingress['proxy_token_file'])
+    return ([(token_file, 'ro')], ['--env', f'CITRUS_LAN_AUTHORITY={ip}:{ingress_port}',
+                                  '--env', f'CITRUS_LAN_UPSTREAM_PORT={port}',
+                                  '--env', f'CITRUS_LAN_TOKEN_FILE={token_file}'])
 
 
 def command(config, role):
@@ -68,6 +89,10 @@ def command(config, role):
     if role != 'worker':
         binds += [(absolute(config['corpus_root']), 'ro'),
                   (absolute(config['model_cache_root']), 'rw')]
+    if role == 'web':
+        ingress_binds, ingress_env = lan_ingress(config, port)
+        binds += ingress_binds
+        result += ingress_env
     if role == 'web' and config.get('browse_config'):
         browse_path = absolute(config['browse_config'])
         browse = json.loads(Path(browse_path).read_text(encoding='utf-8'))
@@ -133,15 +158,41 @@ def verify_image(path, expected):
         raise ValueError('SIF pin mismatch or image changed')
 
 
+def wait_for_worker(config, *, timeout=90):
+    """Wait for a heartbeat published after this Web startup began."""
+    import time
+
+    source = Path(absolute(config['source_root']))
+    runtime = Path(absolute(config['runtime_root']))
+    sys.path.insert(0, str(source / '01_src'))
+    try:
+        from src.code_execution.presence import worker_available
+    finally:
+        sys.path.pop(0)
+    db = runtime / 'state' / 'code_executions.sqlite3'
+    since = time.time()
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if worker_available(db, since=since):
+            return
+        time.sleep(0.5)
+    raise SystemExit('No new offline Code Worker heartbeat for the configured runtime')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', type=Path, required=True)
-    parser.add_argument('--role', choices=('web', 'worker', 'prepare'), required=True)
+    parser.add_argument('--role', choices=('web', 'worker', 'prepare', 'wait-worker'), required=True)
     parser.add_argument('--print-command', action='store_true')
     args = parser.parse_args()
     if sys.platform != 'linux' or os.getuid() == 0:
         parser.error('Run as the unprivileged Linux service user')
     config = json.loads(args.config.read_text(encoding='utf-8'))
+    if args.role == 'wait-worker':
+        if args.print_command:
+            parser.error('wait-worker does not launch an Apptainer command')
+        wait_for_worker(config)
+        return
     argv = command(config, args.role)
     if args.print_command:
         print(json.dumps(argv))

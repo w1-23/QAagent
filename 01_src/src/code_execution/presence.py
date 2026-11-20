@@ -9,15 +9,16 @@ _SCHEMA = ('CREATE TABLE IF NOT EXISTS code_worker_presence ('
            'instance TEXT PRIMARY KEY, seen REAL NOT NULL, policy TEXT NOT NULL)')
 
 
-def worker_available(path, *, now=None):
+def worker_available(path, *, now=None, since=None):
     if not path.is_file():
         return False
+    observed_at = time.time() if now is None else now
+    earliest = observed_at - 10 if since is None else max(since, observed_at - 10)
     try:
         with sqlite3.connect(path.as_uri() + '?mode=ro', uri=True, timeout=1) as conn:
             return conn.execute('SELECT 1 FROM code_worker_presence WHERE seen>? AND seen<=? '
                 "AND policy='offline-development' LIMIT 1",
-                ((time.time() if now is None else now) - 10,
-                 (time.time() if now is None else now) + 1)).fetchone() is not None
+                (earliest, observed_at + 1)).fetchone() is not None
     except sqlite3.Error:
         return False
 

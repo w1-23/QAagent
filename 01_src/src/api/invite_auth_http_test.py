@@ -72,6 +72,7 @@ def api(tmp_path, monkeypatch):
         ("/api/v2/auth/password/recovery-codes", main.issue_recovery_codes, ["POST"]),
         ("/api/v2/auth/password/recover", main.recover_account_password, ["POST"]),
         ("/api/v2/auth/me", main.current_account, ["GET"]),
+        ("/api/v2/diag/loop-watchdog", main.diag_loop_watchdog, ["GET"]),
         ("/api/v2/auth/account", main.delete_account, ["DELETE"]),
         ("/api/v2/admin/users", main.admin_list_users, ["GET"]),
         ("/api/v2/admin/users/{user_id}/reset-password", main.admin_reset_password, ["POST"]),
@@ -713,3 +714,76 @@ def test_registration_requires_invite_and_rejects_role_override(api):
     response = api.client.post('/api/v2/auth/register', json={**body, 'role': 'admin'})
     assert response.status_code == 422 and APPLICANT_PASSWORD not in response.text
     assert api.client.post('/api/v2/auth/register', json=body).status_code == 202
+
+
+def test_watchdog_is_admin_read_only_and_omits_stacks(api, monkeypatch):
+    from src.core import loop_watchdog
+
+    path = '/api/v2/diag/loop-watchdog'
+    visible = {'installed': True, 'stall_ms': 100, 'tick_s': 0.1,
+               'tick': 3, 'stall_count': 1, 'max_stall_ms': 220}
+    monkeypatch.setattr(loop_watchdog, 'snapshot', lambda: {**visible, 'stalls': [{'stack': ['internal']}]})
+
+    def unexpected_reset():
+        pytest.fail('GET must leave watchdog counters intact')
+
+    monkeypatch.setattr(loop_watchdog, 'reset', unexpected_reset)
+    _, member_token = _make_user()
+    _, admin_token = _make_admin()
+    assert api.client.get(path).status_code == 401
+    assert api.client.get(path, cookies=_cookies(member_token)).status_code == 403
+    response = api.client.get(path + '?reset=1', cookies=_cookies(admin_token))
+    assert response.status_code == 200
+    assert response.headers['cache-control'] == 'no-store'
+    assert response.json() == visible
+
+
+def test_lan_mode_auth_uses_https_origin_cookie_and_verified_client(api, monkeypatch):
+    from src.api.lan_ingress import load_lan_ingress
+
+    address = '192.0.2.10:18443'
+    origin = f'https://{address}'
+    token_path = api.tmp / 'proxy-token'
+    token = 'f0' * 32
+    token_path.write_text(token + '\n')
+    token_path.chmod(0o600)
+    monkeypatch.setenv('CITRUS_LAN_AUTHORITY', address)
+    monkeypatch.setenv('CITRUS_LAN_UPSTREAM_PORT', '8043')
+    monkeypatch.setenv('CITRUS_LAN_TOKEN_FILE', str(token_path))
+    monkeypatch.setenv('CITRUS_COOKIE_SECURE', '0')
+    monkeypatch.setenv('CITRUS_TRUST_CLOUDFLARE_PROXY', '1')
+    app = api.client.app
+    app.state.lan_ingress = load_lan_ingress()
+    same_host = TestClient(app, base_url=origin, client=('127.0.0.1', 44000))
+    other_host = TestClient(app, base_url=origin, client=('192.0.2.31', 44000))
+    headers = {'Origin': origin, 'X-Citrus-Proxy-Auth': token,
+               'X-Citrus-Client-Ip': '192.0.2.21', 'X-Forwarded-For': '192.0.2.99',
+               'CF-Connecting-IP': '192.0.2.99'}
+    login_path = '/api/v2/auth/login'
+    body = {'username': 'lan-test-member', 'password': USER_PASSWORD}
+    _make_user(body['username'])
+    rate_keys = []
+    original_limit = auth.check_rate_limit
+
+    def observe_rate_limit(action, key, limit, seconds):
+        rate_keys.append((action, key))
+        return original_limit(action, key, limit, seconds)
+
+    monkeypatch.setattr(auth, 'check_rate_limit', observe_rate_limit)
+    assert same_host.post(login_path, json=body, headers={**headers, 'Host': 'testserver'}).status_code == 400
+    assert same_host.post(login_path, json=body, headers={**headers, 'Origin': f'http://{address}'}).status_code == 403
+    assert same_host.post(login_path, json=body, headers={**headers, 'X-Citrus-Proxy-Auth': ''}).status_code == 403
+    assert other_host.post(login_path, json=body, headers=headers).status_code == 403
+    assert rate_keys == []
+
+    response = same_host.post(login_path, json=body, headers=headers)
+    assert response.status_code == 200
+    cookie = response.headers['set-cookie']
+    assert all(flag in cookie for flag in ('Secure', 'HttpOnly', 'SameSite=lax', 'Path=/'))
+    assert same_host.get('/api/v2/auth/me', headers=headers).status_code == 200
+    assert same_host.post(login_path, json=body, headers={**headers, 'X-Citrus-Client-Ip': '192.0.2.22'}).status_code == 200
+    assert rate_keys == [('login', f'192.0.2.{number}|lan-test-member') for number in (21, 22)]
+
+    token_path.chmod(0o644)
+    with pytest.raises(RuntimeError, match='Invalid LAN proxy credential file'):
+        load_lan_ingress()

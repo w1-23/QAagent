@@ -19,17 +19,20 @@ class ModelDriver:
     max_output_tokens: int | None = None
     output_tokens: int | None = None
 
-    async def __call__(self, messages: tuple[BaseMessage, ...],
-                       identity: ExecutionIdentity) -> AIMessage:
+    def schemas_for(self, identity: ExecutionIdentity) -> list[dict]:
         # Resolving implementations is the executor's job. Tool discovery cannot
         # import an unavailable scientific plugin before the model can act.
         schemas = self.catalog.schemas(self.allowed(identity))
         from langchain_core.utils.function_calling import convert_to_openai_function
         # convert_to_openai_tool returns already-wrapped function tools unchanged,
         # ignoring strict. Apply the conversion to the function definition itself.
-        schemas = [{"type": "function", "function": convert_to_openai_function(schema["function"], strict=True)}
+        return [{"type": "function", "function": convert_to_openai_function(schema["function"], strict=True)}
                    if self.catalog.execution_mode(schema["function"]["name"]) == "interaction"
                    else schema for schema in schemas]
+
+    async def __call__(self, messages: tuple[BaseMessage, ...],
+                       identity: ExecutionIdentity) -> AIMessage:
+        schemas = self.schemas_for(identity)
         model = self.model
         limit = int(self.output_tokens or getattr(model, "max_tokens", 0) or 4096)
         if self.max_output_tokens is not None:

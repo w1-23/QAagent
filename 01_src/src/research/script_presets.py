@@ -37,6 +37,7 @@ for index in range(len(panels), rows * columns):
 _VOLCANO_RENDERER = """import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import math
 
 frame = data["volcano_data"]
 fig, ax = plt.subplots(figsize=(4.4, 3.8), layout="constrained")
@@ -58,9 +59,6 @@ ax.plot([-effect_threshold, -effect_threshold], [ymin, ymax], color="#6b7280",
         linewidth=0.8, linestyle="--")
 ax.plot([xmin, xmax], [neg_threshold, neg_threshold], color="#6b7280",
         linewidth=0.8, linestyle="--")
-for _, row in frame.loc[frame["label"] != ""].iterrows():
-    ax.text(float(row["effect"]), float(row["neg_log10_p"]), str(row["label"]),
-            fontsize=6, ha="left", va="bottom", color="#111827")
 ax.set_xlabel(str(frame["effect_label"].iloc[0]))
 ax.set_ylabel("-log10(" + str(frame["significance_label"].iloc[0]) + ")")
 ax.set_title("Volcano plot")
@@ -69,6 +67,124 @@ ax.grid(alpha=0.15, linewidth=0.7)
 ax.set_axisbelow(True)
 ax.legend(frameon=False, fontsize=6, loc="upper left",
           bbox_to_anchor=(1.01, 1.0), borderaxespad=0)
+
+labeled = frame.loc[frame["label"] != ""].copy()
+labeled["_row"] = [int(index) for index in labeled.index]
+labeled = labeled.sort_values(["neg_log10_p", "_row"],
+                              ascending=[False, True], kind="mergesort")
+labels = [
+    ax.text(float(row["effect"]), float(row["neg_log10_p"]), str(row["label"]),
+            fontsize=6, ha="left", va="bottom", color="#111827")
+    for _, row in labeled.iterrows()
+]
+
+if labels:
+    # Measure rendered glyphs, then move each label by a deterministic
+    # display-space offset until it clears earlier labels and every drawn
+    # threshold or grid line. Positions stay in data coordinates, so a
+    # frozen-table replay reproduces the same figure.
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    scale = fig.dpi / 72.0
+    gap = 2.0 * scale
+    pad = 1.0 * scale
+
+    def box_of(text):
+        box = text.get_window_extent(renderer=renderer)
+        return (box.x0, box.y0, box.x1, box.y1)
+
+    def intersects(first, second):
+        return (first[0] < second[2] and second[0] < first[2]
+                and first[1] < second[3] and second[1] < first[3])
+
+    def segment_hits(segment, box):
+        (x0, y0), (x1, y1) = segment
+        dx, dy = x1 - x0, y1 - y0
+        lower, upper = 0.0, 1.0
+        for direction, distance in ((-dx, x0 - box[0]), (dx, box[2] - x0),
+                                    (-dy, y0 - box[1]), (dy, box[3] - y0)):
+            if direction == 0.0:
+                if distance < 0.0:
+                    return False
+                continue
+            ratio = distance / direction
+            if direction < 0.0:
+                lower = max(lower, ratio)
+            else:
+                upper = min(upper, ratio)
+            if lower > upper:
+                return False
+        return True
+
+    def data_segment(first, last):
+        return (ax.transData.transform(first), ax.transData.transform(last))
+
+    strokes = [
+        data_segment((effect_threshold, ymin), (effect_threshold, ymax)),
+        data_segment((-effect_threshold, ymin), (-effect_threshold, ymax)),
+        data_segment((xmin, neg_threshold), (xmax, neg_threshold)),
+    ]
+    for line in list(ax.get_xgridlines()) + list(ax.get_ygridlines()):
+        if not line.get_visible():
+            continue
+        points = line.get_transform().transform(line.get_xydata())
+        if len(points) >= 2:
+            strokes.append((tuple(points[0]), tuple(points[-1])))
+
+    axes_box = ax.bbox
+    bounds = (axes_box.x0 + pad, axes_box.y0 + pad,
+              axes_box.x1 - pad, axes_box.y1 - pad)
+    marker_radius = 1.5 * scale
+    markers = [ax.transData.transform((float(row["effect"]),
+                                       float(row["neg_log10_p"])))
+               for _, row in labeled.iterrows()]
+    inverse = ax.transData.inverted()
+    placed = []
+    for text in labels:
+        anchor = ax.transData.transform(text.get_position())
+        current = box_of(text)
+        width, height = current[2] - current[0], current[3] - current[1]
+        base = 0.5 * math.hypot(width, height) + gap
+        candidates = []
+        for level in (1.0, 1.6, 2.4, 3.4, 4.8, 6.6, 9.0, 12.0):
+            radius = base * level
+            for step in range(16):
+                angle = math.radians(22.5 * step)
+                candidates.append((radius * math.cos(angle),
+                                   radius * math.sin(angle)))
+        chosen = None
+        chosen_score = None
+        for dx, dy in candidates:
+            left = anchor[0] + dx - width / 2.0
+            bottom = anchor[1] + dy - height / 2.0
+            candidate = (left, bottom, left + width, bottom + height)
+            outside = (max(0.0, bounds[0] - candidate[0])
+                       + max(0.0, bounds[1] - candidate[1])
+                       + max(0.0, candidate[2] - bounds[2])
+                       + max(0.0, candidate[3] - bounds[3]))
+            score = 1000000.0 * outside
+            for other in placed:
+                padded = (other[0] - gap, other[1] - gap,
+                          other[2] + gap, other[3] + gap)
+                if intersects(candidate, padded):
+                    score += 1000.0
+            expanded = (candidate[0] - pad, candidate[1] - pad,
+                        candidate[2] + pad, candidate[3] + pad)
+            for stroke in strokes:
+                if segment_hits(stroke, expanded):
+                    score += 1000.0
+            for marker in markers:
+                if (marker[0] + marker_radius > candidate[0]
+                        and marker[0] - marker_radius < candidate[2]
+                        and marker[1] + marker_radius > candidate[1]
+                        and marker[1] - marker_radius < candidate[3]):
+                    score += 1.0
+            if chosen is None or score < chosen_score:
+                chosen, chosen_score = candidate, score
+            if score == 0.0:
+                break
+        text.set_position(inverse.transform((chosen[0], chosen[1])))
+        placed.append(chosen)
 """
 
 _ROC_RENDERER = """import matplotlib

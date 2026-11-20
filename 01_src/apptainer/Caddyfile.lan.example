@@ -1,0 +1,25 @@
+{
+	admin off
+	auto_https disable_redirects
+	skip_install_trust
+	servers {
+		protocols h1 h2
+	}
+}
+
+https://{$CITRUS_LAN_IP}:18443 {
+	bind {$CITRUS_LAN_IP}
+	tls internal
+
+	reverse_proxy 127.0.0.1:8043 {
+		header_up X-Citrus-Proxy-Auth {env.CITRUS_PROXY_TOKEN}
+		header_up X-Citrus-Client-Ip {http.request.remote.host}
+		header_up -Forwarded
+		header_up -Cf-Connecting-Ip
+	}
+}
+
+https://:18443 {
+	bind {$CITRUS_LAN_IP}
+	respond 400
+}

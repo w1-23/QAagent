@@ -16,5 +16,6 @@
   "host_python": "/usr/bin/python3.12",
   "existing_runtime": false,
   "listen_host": "127.0.0.1",
-  "port": 8031
+  "port": 8043,
+  "lan_ingress": null
 }

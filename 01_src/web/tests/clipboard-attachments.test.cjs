@@ -2,17 +2,7 @@
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const {File} = require('node:buffer');
-const {readFileSync} = require('node:fs');
-const {join} = require('node:path');
-const vm = require('node:vm');
-const harness = {exports: {}};
-vm.runInNewContext(readFileSync(join(__dirname, 'frontend-isolation.test.cjs'), 'utf8') +
-  '\nmodule.exports = {browser, flush};', {
-  module: harness, __dirname, console, AbortController, DOMException, TextDecoder,
-  TextEncoder, URLSearchParams,
-  require(name) { return name === 'node:test' ? {test() {}} : require(name); }
-}, {filename: 'frontend-isolation.test.cjs'});
-const {browser, flush} = harness.exports;
+const {browser, flush} = require("./frontend-harness.cjs");
 function setup() {
   const b = browser('app.js');
   b.ctx.currentAccount = {user_id: 'A', username: 'A'};
