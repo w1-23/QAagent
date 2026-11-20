@@ -115,6 +115,25 @@ def _make_invite(admin_id, admin_token):
 
 # ---------------------------------------------------------------- AUTH ids
 
+def test_locally_seeded_trial_invite_reaches_registration(api):
+    admin_id, token = _make_admin()
+    invite = _make_invite(admin_id, token)
+    trial_code = "ABCDEF"
+    with auth._connect() as conn:
+        conn.execute("UPDATE account_invites SET code_hash=? WHERE invite_id=?",
+                     (auth.auth_invites._hash_code(trial_code), invite["invite_id"]))
+
+    response = api.client.post("/api/v2/auth/register",
+                               json=_register_body("trial-applicant", APPLICANT_PASSWORD, trial_code))
+    assert response.status_code == 202
+    assert response.json()["status"] == "pending"
+    assert "set-cookie" not in response.headers
+    replay = api.client.post("/api/v2/auth/register",
+                             json=_register_body("second-applicant", APPLICANT_PASSWORD, trial_code))
+    assert replay.status_code == 400
+    assert replay.json()["code"] == "invalid_invite"
+
+
 def test_auth08_anonymous_paths_reachable_without_session(api):
     client = api.client
     assert client.post("/api/v2/auth/logout").status_code == 200

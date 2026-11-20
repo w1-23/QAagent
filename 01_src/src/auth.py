@@ -246,7 +246,7 @@ def register(username: str, password: str, avatar_preset: str = "01", *,
     avatar_preset = str(avatar_preset or "01").strip()
     if not re.fullmatch(r"(?:0[1-9]|1[0-9]|20)", avatar_preset):
         raise AccountInviteError("invalid_avatar")
-    if not isinstance(invite_code, str) or not re.fullmatch(r"[A-Za-z0-9_-]{32}", invite_code):
+    if not isinstance(invite_code, str) or not auth_invites.INVITE_CODE_RE.fullmatch(invite_code):
         raise AccountInviteError("invalid_invite")
     salt = secrets.token_bytes(16)
     digest = _password_hash(password, salt)
