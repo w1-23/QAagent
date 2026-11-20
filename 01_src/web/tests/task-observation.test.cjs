@@ -120,3 +120,33 @@ test('an admission failure without an envelope stops polling after replay', asyn
   assert.deepEqual(frames, []);
   assert.equal(requests.length, 2);
 });
+
+
+test('continuation starts at cursor zero and ignores the retired job response', async t => {
+  const requests = [], received = [];
+  let lateResponse, oldSignal;
+  const store = CitrusTaskState.create({onEvent: (_, data) => received.push(data)});
+  store.receive('job', {...running.data, seq: 1});
+  const child = {job_id: 'child', status: 'completed', event_cursor: 1, terminal_snapshot: envelope};
+  const transport = CitrusTaskTransport.create({store, owns: () => true, fetch: (url, options) => {
+    requests.push(url);
+    if (url.startsWith('/jobs/job-1/')) {
+      oldSignal = options.signal;
+      return new Promise(resolve => { lateResponse = resolve; });
+    }
+    if (url.includes('/events')) return reply({job_id: child.job_id, protocol: 'citrus-task/1',
+      events: [{seq: 1, event: 'done', data: {...terminal.data, job_id: child.job_id, answer: 'Child answer'}}],
+      next_cursor: 1, has_more: false});
+    return reply(child);
+  }});
+  t.after(() => transport.stop());
+  const old = transport.follow(job.job_id);
+  await transport.followContinuation(child.job_id);
+  assert.equal(oldSignal.aborted, true);
+  lateResponse(page([output, terminal], 3));
+  await old;
+  assert.deepEqual(requests, ['/jobs/job-1/events?after=1&limit=200', '/jobs/child/events?after=0&limit=200', '/jobs/child']);
+  assert.equal(store.state.job_id, child.job_id);
+  assert.equal(store.state.cursor, 1);
+  assert.deepEqual(received.filter(data => data.answer).map(data => data.answer), ['Child answer']);
+});

@@ -6,6 +6,24 @@
     message.setAttribute('role', 'status'); host.appendChild(message);
     var recover = document.createElement('div'); recover.className = 'task-recovery'; host.appendChild(recover);
     options.container.appendChild(host);
+    var updateForm = document.createElement('div'); updateForm.className = 'task-update-form'; updateForm.hidden = true;
+    var updateInput = document.createElement('textarea'); updateInput.className = 'task-update-input';
+    updateInput.rows = 2; updateInput.maxLength = 8000;
+    updateInput.setAttribute('aria-label', '补充本轮要求');
+    updateInput.placeholder = '补充本轮要求（仅作用于当前任务）';
+    var updateSubmit = document.createElement('button'); updateSubmit.type = 'button';
+    updateSubmit.className = 'task-update-submit'; updateSubmit.textContent = '添加要求';
+    updateForm.appendChild(updateInput); updateForm.appendChild(updateSubmit); host.appendChild(updateForm);
+    updateSubmit.onclick = async function () {
+      if (updateSubmit.disabled) return;
+      var instruction = updateInput.value;
+      if (!String(instruction || '').trim()) return;
+      updateSubmit.disabled = true;
+      var accepted = await submitUpdate(instruction);
+      if (accepted && alive() && updateInput.value === instruction) updateInput.value = '';
+      updateSubmit.disabled = false;
+      if (alive()) render(options.store.state);
+    };
     var busy = false, recoveryKey = '', requestNote = '', acceptedVersion = 0;
     function alive() { return options.owns(); }
     function render(state) {
@@ -48,7 +66,11 @@
           note.textContent = '仅恢复支持的本地读取或计算步骤；不会重新执行整轮任务。'; recover.appendChild(note);
         }
       }
-      host.hidden = !state.job_id || (!message.textContent && !eligible.length);
+      var updatable = canUpdate();
+      updateForm.hidden = !updatable;
+      updateSubmit.disabled = !updatable;
+      updateInput.disabled = !updatable;
+      host.hidden = !state.job_id || (!message.textContent && !eligible.length && !updatable);
       if (options.onChange) options.onChange(state);
     }
     function canUpdate() {
@@ -151,8 +173,8 @@
           });
           if (!options.owns() || !result) return;
           if (result.question) options.store.hydrate({job_id: state.job_id, question: result.question});
-          if (result.child_job_id && result.question && result.question.child_status === 'queued') {
-            note.textContent = '答复已保存，任务尚未启动；可重试继续。';
+          if (result.dispatch_pending || (result.child_job_id && result.question && result.question.child_status === 'queued')) {
+            note.textContent = '答复已保存，任务正在排队，稍后会自动继续。';
           } else if (result.child_job_id && options.onContinue) options.onContinue(result);
           else if (!result.question) note.textContent = '答复已提交，等待状态确认。';
         } catch (error) {

@@ -2023,7 +2023,7 @@ def _turn_segment_phase(job: dict) -> str:
 
 async def _reconcile_turn_queue_startup():
     from src.api.turn_envelope import release_turn_inputs
-    from src.core import chat_turn_queue as queue
+    from src.core import chat_turn_queue as queue, jobs
     cursor = None
     while True:
         page = await asyncio.to_thread(queue.scan_open_turns, after=cursor)
@@ -2044,6 +2044,12 @@ async def _reconcile_turn_queue_startup():
                     continue
                 if state == queue.AWAITING_INPUT and job.get("status") == "awaiting_input":
                     continue
+                if (state == queue.RUNNING and job.get("status") in jobs.TERMINAL_STATUS
+                        and jobs.decode_terminal_snapshot(job) and job.get("current_step") != "interrupted"):
+                    # Startup has exclusive ownership. Reuse normal settlement, including
+                    # the operation ledger check, for a durable outcome from the old process.
+                    _settle_dispatched_turn(turn, job["job_id"])
+                    continue
                 queue.mark_reconcile_required(**_turn_fence(turn), reason="turn_dispatch_interrupted")
         if not page["has_more"]:
             return
@@ -2051,7 +2057,7 @@ async def _reconcile_turn_queue_startup():
 
 
 async def _consume_chat_turns(wake: asyncio.Event):
-    from src.core import chat_turn_queue as queue
+    from src.core import chat_turn_queue as queue, user_questions
     cursor = None
     workers: dict[tuple[int, str], asyncio.Task] = {}
 
@@ -2065,18 +2071,32 @@ async def _consume_chat_turns(wake: asyncio.Event):
         while True:
             page = await asyncio.to_thread(queue.scan_open_turns, limit=32, after=cursor)
             for turn in page["turns"]:
-                if turn["state"] != queue.QUEUED:
+                state = turn["state"]
+                if state not in {queue.QUEUED, queue.AWAITING_INPUT}:
                     continue
                 key = (turn["owner_user_id"], turn["session_id"])
                 if key in workers or len(workers) >= chat_capacity.max_active:
                     continue
-                if queue.session_blocker(owner_user_id=key[0], session_id=key[1]):
+                action, child = "dispatch", ""
+                if state == queue.AWAITING_INPUT:
+                    parent = turn["active_child_job_id"] or turn["root_job_id"]
+                    try:
+                        action, child = await asyncio.to_thread(user_questions.queue_wait_state,
+                            parent, owner_user_id=key[0], session_id=key[1])
+                    except user_questions.QuestionConflict:
+                        action = "unknown"
+                    if action == "pending":
+                        continue
+                elif queue.session_blocker(owner_user_id=key[0], session_id=key[1]):
                     continue
-                counts = await chat_capacity.snapshot(owner_user_id=key[0])
-                if (counts["queued"] or counts["active"] >= counts["max_active"]
-                        or counts["owner_active"] >= counts["max_active_per_owner"]):
-                    continue
-                worker = workers[key] = asyncio.create_task(_dispatch_queued_turn(*key))
+                if action == "dispatch":
+                    counts = await chat_capacity.snapshot(owner_user_id=key[0])
+                    if (counts["queued"] or counts["active"] >= counts["max_active"]
+                            or counts["owner_active"] >= counts["max_active_per_owner"]):
+                        continue
+                work = (_advance_question_turn(turn, action, child) if state == queue.AWAITING_INPUT
+                        else _dispatch_queued_turn(*key))
+                worker = workers[key] = asyncio.create_task(work)
                 worker.add_done_callback(lambda task, key=key: worker_finished(key, task))
             cursor = page["next_cursor"] if page["has_more"] else None
             if cursor is not None:
@@ -2092,6 +2112,62 @@ async def _consume_chat_turns(wake: asyncio.Event):
         for worker in active_workers:
             worker.cancel()
         await asyncio.gather(*active_workers, return_exceptions=True)
+
+
+async def _advance_question_turn(turn: dict, action: str, child: str):
+    from src.api.turn_envelope import release_turn_inputs
+    from src.auth import user_by_id
+    from src.core import chat_turn_queue as queue, jobs, user_questions
+    from src.core.account_leases import AccountUnavailable
+
+    owner, sid = turn["owner_user_id"], turn["session_id"]
+    worker = None
+    async with _turn_session_lock(sid):
+        current = queue.get_turn(owner_user_id=owner, session_id=sid,
+                                 client_request_id=turn["client_request_id"])
+        if current is None or current["state"] != queue.AWAITING_INPUT or current["generation"] != turn["generation"]:
+            return
+        parent = current["active_child_job_id"] or current["root_job_id"]
+        if action == "expire":
+            await asyncio.to_thread(user_questions.expire_questions)
+        try:
+            latest = await asyncio.to_thread(user_questions.queue_wait_state, parent,
+                owner_user_id=owner, session_id=sid)
+        except user_questions.QuestionConflict:
+            latest = ("unknown", "")
+        action, child = latest
+        if action in {"pending", "expire"}:
+            return
+        if action == "dispatch":
+            try:
+                user = user_by_id(owner)
+                if not user or not user.get("active"):
+                    raise AccountUnavailable("account_closed")
+                worker = await _dispatch_question_child(child, user, queued_turn=current)
+            except (OverflowError, TimeoutError, queue.TurnQueueNotReady):
+                return  # No dispatch intent was committed in these paths.
+            except (AccountUnavailable, HTTPException, ValueError, user_questions.QuestionConflict):
+                latest = queue.get_turn(owner_user_id=owner, session_id=sid,
+                    client_request_id=current["client_request_id"])
+                if latest and latest["state"] == queue.AWAITING_INPUT:
+                    queue.mark_reconcile_required(**_turn_fence(latest), reason="turn_continuation_unavailable")
+                return
+        elif action in {"question_cancelled", "question_expired"}:
+            job = _turn_job(current)
+            snapshot = jobs.decode_terminal_snapshot(job) or {}
+            if job.get("status") != "awaiting_input" or not snapshot:
+                queue.mark_reconcile_required(**_turn_fence(current), reason="turn_question_result_unconfirmed")
+                return
+            saved = bool(snapshot.get("history_saved"))
+            settling = queue.begin_settling(**_turn_fence(current), history_saved=saved, clear_reason=action,
+                terminal_evidence={"job_id": parent, "job_status": job["status"]})
+            queue.finalize_terminal(**_turn_fence(settling), history_saved=saved, reason=action,
+                                    cleanup_confirmed=True)
+            release_turn_inputs(owner, sid, current["client_request_id"])
+        else:
+            queue.mark_reconcile_required(**_turn_fence(current), reason="turn_question_result_unconfirmed")
+    if worker:
+        await asyncio.shield(worker)
 
 
 async def _dispatch_queued_turn(owner: int, sid: str):
@@ -2365,7 +2441,8 @@ async def _prepare_claimed_chat(req: ChatRequest, request_lease,
     # persisting later (after capacity is granted) loses files on refresh or
     # when a queued request is cancelled.
     from src.session import files as session_files
-    if recovery_state is None and not capacity_acquired:
+    queued_root = capacity_acquired and continuation_state is None
+    if recovery_state is None and not queued_root:
         uploaded_ids = await run_account_thread(
             request_lease, _register_session_files, req.attachments, sid,
             int(user["user_id"]), req.client_request_id)
@@ -3166,7 +3243,7 @@ async def _prepare_claimed_chat(req: ChatRequest, request_lease,
                         raise
                     acquired = True
                 check_cancelled()
-                if capacity_acquired:
+                if queued_root:
                     from src.core.chat_turn_queue import find_turn_by_job, mark_started
                     turn = find_turn_by_job(owner_user_id=identity.owner_user_id, session_id=sid, job_id=job_id)
                     if turn is None or turn["root_job_id"] != job_id:
@@ -3183,7 +3260,7 @@ async def _prepare_claimed_chat(req: ChatRequest, request_lease,
                         from src.core.executors import ATTACHMENT_EXECUTOR
                         request_attachments = req.attachments + await run_account_thread(
                             graph_lease, _load_account_file_references, ref_infos,
-                            frozen_owner=int(user["user_id"]) if capacity_acquired else None,
+                            frozen_owner=int(user["user_id"]) if queued_root else None,
                             executor=ATTACHMENT_EXECUTOR)
                         paper_suffixes = {".pdf", ".doc", ".docx"}
                         initial_state["has_paper_attachment"] = any(
@@ -3514,52 +3591,76 @@ async def get_operation_result(job_id: str, operation_id: str, request: Request)
 from src.core.user_questions import QuestionAnswer as QuestionAnswerRequest
 
 
-async def _dispatch_question_child(child_job_id: str, user: dict) -> bool:
-    """Schedule a fresh segment through normal capacity/lease and event paths."""
-    from src.core import jobs, user_questions
+async def _dispatch_question_child(child_job_id: str, user: dict, *, queued_turn=None):
+    """Start a legacy child, or claim a queue child only after old cleanup."""
+    from src.core import chat_turn_queue as queue, jobs, user_questions
     from src.core.account_leases import acquire_account_lease
     from src.core.cancel import CancelToken
     from src.graph.general_agent_graph import request_deadline_from_settings
     import math
+
+    async def defer_if_waiting(*_):
+        raise OverflowError("turn_capacity_busy")
+
     child = jobs.get_job(child_job_id)
     if not child:
         raise HTTPException(status_code=404, detail="Job not found")
     sid, owner = str(child["session_id"]), int(user["user_id"])
-    state = user_questions.get_continuation(child_job_id, owner_user_id=owner, session_id=sid)
-    context = state.get("continuation_context") or {}
-    refs = context.get("attachment_refs") or context.get("source_refs") or []
-    file_ids = list(dict.fromkeys(str(ref["file_id"]) for ref in refs
-                                if isinstance(ref, dict) and ref.get("file_id")))
-    ref_infos = _validate_account_file_refs(file_ids, owner)
-    deadline = request_deadline_from_settings()
-    epoch_deadline = (time.time() + max(0.0, deadline - time.monotonic())
-                      if math.isfinite(deadline) else math.inf)
-    lease = acquire_account_lease(owner)
-    claimed = False
+    lease = acquire_account_lease(owner, expected_epoch=queued_turn["account_epoch"] if queued_turn else None)
+    claimed = acquired = False
+    fence = None
     try:
-        claimed = user_questions.claim_child_dispatch(child_job_id, owner_user_id=owner,
-            session_id=sid, deadline=epoch_deadline)
-        if not claimed:
-            return False
-        token = CancelToken()
-        _job_tokens[child_job_id] = token
+        if queued_turn is not None:
+            _require_active_turn_session(sid, user)
+        state = user_questions.get_continuation(child_job_id, owner_user_id=owner, session_id=sid)
+        context = state.get("continuation_context") or {}
+        refs = context.get("attachment_refs") or context.get("source_refs") or []
+        file_ids = list(dict.fromkeys(str(ref["file_id"]) for ref in refs
+                                    if isinstance(ref, dict) and ref.get("file_id")))
+        ref_infos = _validate_account_file_refs(file_ids, owner)
+        byte_count = sum(int(info.get("size_bytes") or 0) for info in ref_infos)
         req = ChatRequest(query=state["query"], session_id=sid,
                           client_request_id=state["client_request_id"], file_refs=file_ids,
                           visualization_enabled=state.get("visualization_enabled", False),
                           selected_skills=state.get("selected_skills") or [],
                           context_compression=state.get("context_compression", True))
-        await _start_claimed_chat(req, lease, user, sid,
-            state["request_id"], child_job_id, token, ref_infos,
-            sum(int(info.get("size_bytes") or 0) for info in ref_infos),
-            continuation_state=state, quota_reserved=False, observe=False)
-        return True
+        if queued_turn is not None:
+            await chat_capacity.acquire(on_wait=defer_if_waiting, owner_user_id=owner,
+                                        queued_payload_bytes=byte_count)
+            acquired = True
+            from src.core.account_leases import current_store, AccountUnavailable
+            if not current_store().check_epoch(owner, lease.epoch):
+                raise AccountUnavailable("account_authorization_changed")
+        deadline = request_deadline_from_settings()
+        epoch_deadline = (time.time() + max(0.0, deadline - time.monotonic())
+                          if math.isfinite(deadline) else math.inf)
+        if queued_turn is None:
+            claimed = user_questions.claim_child_dispatch(child_job_id, owner_user_id=owner,
+                session_id=sid, deadline=epoch_deadline)
+            if not claimed:
+                return False
+        else:
+            fence = queue.resume_continuation(**_turn_fence(queued_turn),
+                active_child_job_id=child_job_id, deadline=epoch_deadline)
+        token = _job_tokens[child_job_id] = CancelToken()
+        worker = await _start_claimed_chat(req, lease, user, sid,
+            state["request_id"], child_job_id, token, ref_infos, byte_count,
+            continuation_state=state, quota_reserved=False, observe=False, capacity_acquired=acquired)
+        acquired = False  # The retained worker owns the capacity slot now.
+        return worker if queued_turn is not None else True
     except BaseException:
-        if claimed and child_job_id not in _running_graph_tasks:
-            user_questions.release_child_dispatch(child_job_id, owner_user_id=owner, session_id=sid)
-            _job_tokens.pop(child_job_id, None)
+        if child_job_id not in _running_graph_tasks:
+            if fence is not None:
+                queue.mark_reconcile_required(**_turn_fence(fence), reason="turn_continuation_dispatch_unconfirmed")
+                _job_tokens.pop(child_job_id, None)
+            elif claimed:
+                user_questions.release_child_dispatch(child_job_id, owner_user_id=owner, session_id=sid)
+                _job_tokens.pop(child_job_id, None)
         raise
     finally:
         lease.release()
+        if acquired:
+            await chat_capacity.release(owner_user_id=owner)
 
 
 @app.get("/api/tasks/{job_id}/questions")
@@ -3576,11 +3677,20 @@ async def get_task_questions(job_id: str, request: Request):
 async def answer_task_question(job_id: str, question_id: str, req: QuestionAnswerRequest, request: Request):
     job = _owned_protocol_job(job_id, request)
     user = current_user(request)
+    from src.core.chat_turn_queue import find_turn_by_job
     from src.core.user_questions import answer_question, QuestionConflict
+    turn = find_turn_by_job(owner_user_id=int(user["user_id"]), session_id=job["session_id"], job_id=job_id)
     try:
         result = answer_question(job_id, question_id, owner_user_id=int(user["user_id"]),
             session_id=job["session_id"], **req.model_dump())
-        if result.get("dispatch_required"):
+        if turn is not None:
+            wake = getattr(request.app.state, "turn_queue_wake", None)
+            if wake is not None:
+                wake.set()
+            if result.get("dispatch_required"):
+                result["dispatch_pending"] = True
+                result["question"]["child_status"] = "queued"
+        elif result.get("dispatch_required"):
             try:
                 result["dispatched"] = await _dispatch_question_child(result["child_job_id"], user)
             except Exception as exc:

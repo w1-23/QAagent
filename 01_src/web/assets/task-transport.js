@@ -33,10 +33,11 @@
     function owns() { return !stopped && options.owns(); }
     async function json(url, settings) {
       if (!owns()) return null;
-      var response = await options.fetch(url, settings || {signal: reads.signal, cache: 'no-store'});
-      if (!owns()) return null;
+      var scope = reads;
+      var response = await options.fetch(url, settings || {signal: scope.signal, cache: 'no-store'});
+      if (!owns() || scope !== reads) return null;
       var data = await response.json();
-      if (!owns()) return null;
+      if (!owns() || scope !== reads) return null;
       if (!response.ok) {
         var error = new Error(response.status === 409 ? '任务已更新，请核对最新状态后重试。' : '请求未完成，请稍后重试。');
         error.status = response.status; error.detail = data.detail; throw error;
@@ -51,9 +52,11 @@
     async function replay(jobId) {
       if (!jobId || !owns()) return;
       if (replaying) return replaying;
-      replaying = (async function () {
+      var scope = reads;
+      var flight = replaying = (async function () {
         var more = true;
         while (more && owns()) {
+          if (scope !== reads) return;
           var before = store.state.cursor;
           var page = await json('/jobs/' + encodeURIComponent(jobId) + '/events?after=' + before + '&limit=200');
           if (!owns() || !page) return;
@@ -69,7 +72,7 @@
           if (!more) snapshot(Object.assign({}, page, {event_cursor: page.next_cursor}));
         }
       }());
-      try { return await replaying; } finally { replaying = null; }
+      try { return await flight; } finally { if (replaying === flight) replaying = null; }
     }
     async function refresh(jobId, withEvents) {
       var job = await json('/jobs/' + encodeURIComponent(jobId));
@@ -98,6 +101,15 @@
         if (owns() && version === followVersion) timer = setTimeout(poll, 2000);
       }
       return poll();
+    }
+    function followContinuation(jobId) {
+      if (store.state.job_id !== jobId) {
+        reads.abort();
+        reads = new AbortController();
+        replaying = null;
+        store.resetJob(jobId);
+      }
+      return follow(jobId);
     }
     function followRequest(sessionId, requestId, onFound, onUnavailable) {
       if (timer) clearTimeout(timer);
@@ -150,7 +162,7 @@
         if (!owns() || signal.aborted) await reader.cancel().catch(function () {});
       }
     }
-    return {stream: stream, replay: replay, refresh: refresh, follow: follow, followRequest: followRequest,
+    return {stream: stream, replay: replay, refresh: refresh, follow: follow, followContinuation: followContinuation, followRequest: followRequest,
       answer: function (jobId, questionId, payload) { return json('/api/tasks/' + encodeURIComponent(jobId) + '/questions/' + encodeURIComponent(questionId) + '/answer', {
         method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
       }); },

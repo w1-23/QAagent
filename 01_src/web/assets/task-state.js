@@ -287,14 +287,16 @@
       }
       notify(); return true;
     }
+    function reset(jobId) {
+      pending.clear(); context = createContext(options); state.context_snapshot = null;
+      Object.assign(state, {job_id: jobId, cursor: 0, task_version: 0, applied_version: 0, status: '',
+        display_status: '', terminal_snapshot: null, question: null, approvals: [], operations: [], pending_updates: [], not_applied_updates: []});
+    }
     return {state: state, receive: receive, hydrate: hydrate,
       hasGap: function () { return pending.size > 0; },
       subscribe: function (fn) { subscribers.push(fn); return function () { subscribers = subscribers.filter(function (item) { return item !== fn; }); }; },
-      clear: function () {
-        pending.clear(); subscribers.length = 0; context = createContext(options); state.context_snapshot = null;
-        Object.assign(state, {job_id: '', cursor: 0, task_version: 0, applied_version: 0, status: '',
-          display_status: '', terminal_snapshot: null, question: null, approvals: [], operations: [], pending_updates: [], not_applied_updates: []});
-      }};
+      resetJob: function (jobId) { reset(jobId); notify(); },
+      clear: function () { subscribers.length = 0; reset(''); }};
   }
   root.CitrusTaskState = {create: create, createProcess: createProcess, createContext: createContext, displayStatus: displayStatus,
     snapshotStatus: snapshotStatus, isTerminal: function (state) { return terminal.indexOf(state.display_status) >= 0; },

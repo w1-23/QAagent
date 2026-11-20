@@ -347,6 +347,35 @@ def list_questions(job_id, *, owner_user_id, session_id):
         return result
 
 
+def queue_wait_state(job_id, *, owner_user_id, session_id):
+    """Publish only the scheduler's dispatch or settlement evidence."""
+    with transaction() as conn:
+        _authorized(conn, job_id, owner_user_id, session_id)
+        rows = conn.execute("""SELECT q.status, q.child_job_id, q.expires_at, q.pin_until,
+                                      c.status AS child_status, c.error AS child_error
+            FROM task_questions q LEFT JOIN task_jobs c ON c.job_id=q.child_job_id
+                  AND c.question_id=q.id AND c.parent_job_id=q.job_id
+                  AND c.owner_user_id=q.owner_user_id AND c.session_id=q.session_id
+            WHERE q.job_id=? AND q.owner_user_id=? AND q.session_id=? LIMIT 2""",
+            (job_id, owner_user_id, session_id)).fetchall()
+        if len(rows) != 1:
+            return "unknown", ""
+        row = rows[0]
+        if row["status"] == "pending":
+            return ("expire" if row["expires_at"] <= time.time() else "pending"), ""
+        if row["status"] in {"cancelled", "expired"} and not row["child_job_id"]:
+            return "question_" + row["status"], ""
+        if row["status"] == "answered":
+            if row["child_status"] == "queued":
+                if 0 < row["pin_until"] <= time.time():
+                    return "expire", ""
+                return "dispatch", row["child_job_id"]
+            if (row["child_status"] == "cancelled"
+                    and row["child_error"] == "continuation_inputs_expired"):
+                return "question_expired", ""
+        return "unknown", ""
+
+
 def answer_question(job_id, question_id, *, owner_user_id, session_id, version,
                     selected_option_ids=None, text="", cancelled=False, client_request_id):
     answer = QuestionAnswer.model_validate(dict(version=version,

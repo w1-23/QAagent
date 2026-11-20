@@ -398,17 +398,23 @@ def _require_root_job(conn, row):
 def _legacy_blocker(conn, owner_user_id: int, session_id: str):
     """Open facts not managed by this queue that still gate the session.
 
-    Turn-queue roots are excluded because their order is enforced separately.
-    Legacy open jobs, explicit code reconciliation and pending user questions
-    remain shields: they are never superseded or executed by this module.
+    A closed question segment keeps its immutable awaiting_input job status.
+    Once answered, its validated child carries the outstanding work instead.
+    Never suppress an open child, unresolved question or Code reconciliation.
     """
     row = conn.execute(
-        "SELECT job_id,status,current_step FROM task_jobs "
-        "WHERE owner_user_id=? AND session_id=? "
-        "AND job_id NOT IN (SELECT root_job_id FROM chat_turn_queue) "
-        "AND (status IN (" + _LEGACY_STATUS_PLACEHOLDERS + ") "
-        "OR current_step='code_reconciliation_required') "
-        "ORDER BY created_at LIMIT 1",
+        "SELECT j.job_id,j.status,j.current_step FROM task_jobs j "
+        "WHERE j.owner_user_id=? AND j.session_id=? "
+        "AND j.job_id NOT IN (SELECT root_job_id FROM chat_turn_queue) "
+        "AND (j.current_step='code_reconciliation_required' OR (j.status IN ("
+        + _LEGACY_STATUS_PLACEHOLDERS + ") AND NOT (j.status='awaiting_input' AND EXISTS("
+        "SELECT 1 FROM task_questions q LEFT JOIN task_jobs c ON c.job_id=q.child_job_id "
+        "AND c.question_id=q.id AND c.parent_job_id=q.job_id "
+        "AND c.owner_user_id=q.owner_user_id AND c.session_id=q.session_id "
+        "WHERE q.job_id=j.job_id AND q.owner_user_id=j.owner_user_id AND q.session_id=j.session_id "
+        "AND ((q.status IN ('cancelled','expired') AND q.child_job_id='') "
+        "OR (q.status='answered' AND c.job_id IS NOT NULL)))))) "
+        "ORDER BY j.created_at LIMIT 1",
         (owner_user_id, session_id, *LEGACY_OPEN_JOB_STATUSES),
     ).fetchone()
     if row is not None:
@@ -965,43 +971,51 @@ def mark_awaiting_input(*, owner_user_id: int, session_id: str,
 
 def resume_continuation(*, owner_user_id: int, session_id: str,
                         client_request_id: str, generation: int,
-                        active_child_job_id: str) -> dict:
-    """Fence the original run for an answered continuation child.
-
-    This does not start a model task or create a child. The existing
-    ``user_questions.claim_child_dispatch`` remains the child's dispatch fence;
-    here we only CAS the parent generation from ``awaiting_input`` to
-    ``running`` so no second turn can enter the session.
-    """
+                        active_child_job_id: str, deadline: float) -> dict:
+    """Commit a cleaned-up head's new execution generation and child dispatch together."""
     _validate_identity(owner_user_id, session_id)
     _validate_client_request_id(client_request_id)
-    if not isinstance(active_child_job_id, str) or not active_child_job_id:
-        raise ValueError("active_child_job_id is required")
     _validate_child_id(active_child_job_id)
+    if not active_child_job_id or not deadline > time.time():
+        raise ValueError("continuation child and execution deadline required")
     with _transaction() as conn:
         row = _scoped(conn, owner_user_id, session_id, client_request_id)
         if row is None:
             raise TurnNotFound("turn_not_found")
-        if row["state"] == RUNNING \
-                and row["active_child_job_id"] == active_child_job_id:
-            return _with_position(conn, _decode(row))
-        if row["state"] != AWAITING_INPUT:
+        head = _head(conn, owner_user_id, session_id)
+        if row["state"] != AWAITING_INPUT or head is None or head["root_job_id"] != row["root_job_id"]:
             raise TurnNotQueued(row["state"], job_id=row["root_job_id"])
         _check_generation(row, generation)
-        if row["active_child_job_id"] not in ("", active_child_job_id):
-            raise TurnStateConflict("active_child_conflict",
-                                    job_id=row["root_job_id"])
+        parent = row["active_child_job_id"] or row["root_job_id"]
+        child = conn.execute(
+            "SELECT 1 FROM task_jobs c JOIN task_questions q ON q.id=c.question_id "
+            "AND q.child_job_id=c.job_id AND q.job_id=c.parent_job_id "
+            "AND q.owner_user_id=c.owner_user_id AND q.session_id=c.session_id "
+            "WHERE c.job_id=? AND c.owner_user_id=? AND c.session_id=? "
+            "AND c.parent_job_id=? AND c.status='queued' AND q.status='answered'",
+            (active_child_job_id, owner_user_id, session_id, parent),
+        ).fetchone()
+        if child is None:
+            raise TurnStateConflict("continuation_child_conflict", job_id=row["root_job_id"])
         now = time.time()
         cursor = conn.execute(
             "UPDATE chat_turn_queue SET state=?, generation=generation+1, "
             "active_child_job_id=?, updated_at=? WHERE owner_user_id=? "
             "AND session_id=? AND client_request_id=? AND state=? AND generation=?",
-            (RUNNING, active_child_job_id, now, owner_user_id, session_id,
-             client_request_id, AWAITING_INPUT, generation),
+            (RUNNING, active_child_job_id, now, owner_user_id,
+             session_id, client_request_id, AWAITING_INPUT, generation),
         )
         if cursor.rowcount != 1:
-            raise TurnQueueNotReady("continuation_lost",
-                                    job_id=row["root_job_id"])
+            raise TurnQueueNotReady("continuation_lost", job_id=row["root_job_id"])
+        child_update = conn.execute(
+            "UPDATE task_jobs SET status='running',current_step='init',updated_at=? "
+            "WHERE job_id=? AND status='queued'",
+            (datetime.fromtimestamp(now).isoformat(), active_child_job_id),
+        )
+        if child_update.rowcount != 1:
+            raise TurnQueueNotReady("continuation_child_lost", job_id=row["root_job_id"])
+        conn.execute("UPDATE task_budgets SET deadline=? WHERE job_id=?",
+                     (deadline, active_child_job_id))
         return _reread(conn, owner_user_id, session_id, client_request_id)
 
 

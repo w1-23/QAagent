@@ -1371,7 +1371,7 @@ function appendRestoredAttachmentCards(contentEl, files) {
     var card = document.createElement('button'); card.type = 'button';
     card.className = 'sent-attachment-card sent-library-card';
     card.title = file.filename || '附件';
-    if (file.kind === 'image' && file.preview_url) {
+    if ((file.kind === 'image' || /^image\//.test(file.mime_type || '')) && file.preview_url) {
       var img = document.createElement('img'); img.className = 'sent-attachment-image';
       img.src = file.preview_url; img.alt = file.filename || '上传图片'; card.appendChild(img);
     } else {
@@ -2340,6 +2340,9 @@ var composerRunning = false;
 var historyTaskDisposers = [];
 var historyRestoreVersion = 0;
 var historyRequest = null, historyPageRequest = null;
+var turnQueueBindings = [];
+var turnAdmissionChain = Promise.resolve();
+var turnQueueReads = [];
 
 function abortHistoryRequests() {
   if (historyRequest) historyRequest.abort();
@@ -2347,12 +2350,67 @@ function abortHistoryRequests() {
   historyRequest = null; historyPageRequest = null;
 }
 
+function enqueueTurnAdmission(work) {
+  var run = turnAdmissionChain.then(function () { return work(); });
+  turnAdmissionChain = run.catch(function () {});
+  return run;
+}
+
+function turnQueueURL(sid) {
+  return '/api/v2/session/' + encodeURIComponent(sid) + '/turn-queue';
+}
+
+function abortTurnQueueReads() {
+  turnQueueReads.splice(0).forEach(function (controller) {
+    try { controller.abort(); } catch (_) {}
+  });
+}
+
+function readTurnQueue(sid, callback, requestId) {
+  if (!sid) { callback(new Error('session_missing')); return null; }
+  var controller = new AbortController();
+  turnQueueReads.push(controller);
+  function finish() {
+    var index = turnQueueReads.indexOf(controller);
+    if (index >= 0) turnQueueReads.splice(index, 1);
+  }
+  var url = requestId ? '/api/v2/session/' + encodeURIComponent(sid) + '/task-by-request/' + encodeURIComponent(requestId)
+    : turnQueueURL(sid) + '?limit=100';
+  accountFetch(url, {signal: controller.signal, cache: 'no-store'})
+    .then(function (response) {
+      return response.json().then(function (body) {
+        return {ok: response.ok, status: response.status, body: body};
+      }, function () { return {ok: response.ok, status: response.status, body: null}; });
+    })
+    .then(function (result) {
+      finish();
+      callback(controller.signal.aborted ? new Error('queue_read_aborted') : null, result);
+    }, function (error) {
+      finish();
+      callback(error);
+    });
+  return controller;
+}
+
+function findTurnQueueEntry(turns, requestId) {
+  for (var i = 0; i < (turns || []).length; i++) {
+    var turn = turns[i];
+    if (turn && String(turn.client_request_id || '') === String(requestId)) return turn;
+  }
+  return null;
+}
+
 // Retire observers and view controls only. Navigation never sends cancellation.
 function disposeTaskView() {
   historyRestoreVersion += 1;
   abortHistoryRequests();
+  abortTurnQueueReads();
   if (activeTurnCancel) activeTurnCancel('switch');
   else if (activeTurnComposer) activeTurnComposer.cancel('switch');
+  turnQueueBindings.slice().forEach(function (binding) {
+    try { if (binding && binding.dispose) binding.dispose('switch'); } catch (_) {}
+  });
+  turnQueueBindings.length = 0;
   historyTaskDisposers.splice(0).forEach(function(dispose) { dispose(); });
   activeTurnCancel = null; activeTurnComposer = null;
   currentJobId = ''; window._currentJobId = '';
@@ -2365,31 +2423,90 @@ function disposeTaskView() {
   refreshTaskComposer();
 }
 
+function turnQueueIsExecuting(state) {
+  if (!state || !state.job_id || CitrusTaskState.isTerminal(state)) return false;
+  if (state.question && state.question.status === 'pending') return false;
+  return ['running', 'detached', 'cancel_requested'].indexOf(state.status) >= 0;
+}
+
+function queueStateLabel(entry) {
+  if (!entry) return '';
+  var names = {queued: '排队中', claimed: '准备执行', running: '执行中',
+    awaiting_input: '等待你的选择', settling: '正在保存结果', terminal: '已结束',
+    reconcile_required: '状态待核对'};
+  var label = names[entry.state] || '等待确认';
+  if (entry.state === 'queued' && Number(entry.queue_position) > 1)
+    label += ' · 前面还有 ' + (Number(entry.queue_position) - 1) + ' 条';
+  return label;
+}
+
+function queuedTurnCount() {
+  var count = 0;
+  for (var i = 0; i < turnQueueBindings.length; i++) {
+    var binding = turnQueueBindings[i];
+    if (!binding || !binding.owns || !binding.owns()) continue;
+    if (CitrusTaskState.isTerminal(binding.store.state)) continue;
+    if (!turnQueueIsExecuting(binding.store.state)) count++;
+  }
+  return count;
+}
+
+// Only one turn can drive the composer: the executing job first, otherwise the
+// earliest still-pending admission. Queued turns keep their own observers.
+function selectActiveTurn() {
+  var chosen = null, pending = null, binding;
+  for (var i = 0; i < turnQueueBindings.length; i++) {
+    binding = turnQueueBindings[i];
+    if (!binding || !binding.owns || !binding.owns()) continue;
+    if (turnQueueIsExecuting(binding.store.state)) { chosen = binding; break; }
+    if (!pending && !CitrusTaskState.isTerminal(binding.store.state)) pending = binding;
+  }
+  if (!chosen) chosen = pending;
+  activeTurnComposer = chosen;
+  activeTurnCancel = chosen && chosen.cancel ? chosen.cancel : null;
+  currentJobId = chosen && chosen.store.state.job_id ? chosen.store.state.job_id : '';
+  window._currentJobId = currentJobId;
+  refreshTaskComposer();
+  return chosen;
+}
+
+function registerTurnBinding(binding) {
+  if (!binding || turnQueueBindings.indexOf(binding) >= 0) return binding;
+  turnQueueBindings.push(binding);
+  selectActiveTurn();
+  return binding;
+}
+
+function unregisterTurnBinding(binding) {
+  var index = turnQueueBindings.indexOf(binding);
+  if (index >= 0) turnQueueBindings.splice(index, 1);
+  if (activeTurnComposer === binding) activeTurnComposer = null;
+  selectActiveTurn();
+}
+
 function refreshTaskComposer() {
   var binding = activeTurnComposer && activeTurnComposer.owns() ? activeTurnComposer : null;
   var state = binding && binding.store.state;
   var terminal = state && CitrusTaskState.isTerminal(state);
   var awaitingQuestion = state && state.question && state.question.status === 'pending';
   var stopping = binding && (binding.stopping || state.status === 'cancel_requested');
-  var submitting = binding && binding.controls.isBusy();
-  var running = !!(!terminal && (stopping || !awaitingQuestion && (composerRunning || binding && ['queued', 'running', 'detached'].indexOf(state.status) >= 0)));
-  var canAppend = !!(running && binding && !stopping && binding.controls.canUpdate());
+  var executing = !!((binding && turnQueueIsExecuting(state)) || (binding && stopping && state.job_id && !terminal));
+  var queued = queuedTurnCount();
   var button = document.getElementById('send-btn'), stop = document.getElementById('stop-btn');
   if (button) {
-    button.disabled = !!historyRequest || running && !canAppend;
-    button.style.display = !running || canAppend || !state || !state.job_id ? 'flex' : 'none';
-    button.title = canAppend ? '追加本轮要求 (Enter)' : '发送 (Enter)';
-    button.setAttribute('aria-label', canAppend ? '追加本轮要求' : '发送消息');
+    button.disabled = !!historyRequest;
+    button.style.display = 'flex';
+    button.title = '发送 (Enter)';
+    button.setAttribute('aria-label', '发送消息');
   }
   if (stop) {
-    stop.style.display = running && state && state.job_id ? 'flex' : 'none';
-    stop.title = '停止当前任务，确认后可补充要求继续对话';
+    stop.style.display = executing ? 'flex' : 'none';
+    stop.title = '停止执行中的任务；排队中的消息不会被取消';
   }
-  if (userInput) userInput.placeholder = stopping && !terminal
-    ? '正在停止；确认后可补充要求继续对话'
-    : submitting ? '正在提交补充，可继续编辑下一条要求'
-    : canAppend ? '补充本轮要求，Enter 提交 / Shift+Enter 换行'
-    : running ? '任务正在启动，可先输入补充要求'
+  if (userInput) userInput.placeholder = awaitingQuestion
+    ? '可发送新消息，答复请使用选择卡片'
+    : executing ? '有新要求？发送后会排在当前任务之后'
+    : queued ? '可继续发送，消息会按发送顺序排队'
     : '有什么想做的？(Enter 发送 / Shift+Enter 换行)';
   var hint = document.getElementById('composer-task-status');
   if (!hint && userInput && userInput.parentNode) {
@@ -2398,10 +2515,11 @@ function refreshTaskComposer() {
     userInput.parentNode.appendChild(hint);
   }
   if (hint) {
-    hint.textContent = running ? (stopping ? '停止请求待确认，已完成的结果会保留。'
-      : submitting ? '正在提交本轮补充。'
-      : canAppend ? '补充会在后续步骤生效，已完成的结果保留。' : '正在等待任务确认。')
-      : terminal && state.display_status === 'cancelled' ? '已停止。可补充要求继续对话，已完成操作不会自动重放。' : '';
+    hint.textContent = awaitingQuestion ? '当前任务等待选择。新消息会排在它之后。'
+      : stopping ? '停止请求待确认，已完成的结果会保留。'
+      : executing ? '当前任务执行中；新消息会排队，不会打断本轮。'
+      : queued ? '有 ' + queued + ' 条消息排队中。'
+      : terminal && state.display_status === 'cancelled' ? '已停止。可继续发送新的消息。' : '';
     hint.hidden = !hint.textContent;
   }
 }
@@ -2410,7 +2528,8 @@ function refreshTaskComposer() {
 var planModeEnabled = true;
 
 function setSendDisabled(val) {
-  composerRunning = !!val;
+  // The durable queue keeps the composer available; val is retained so existing
+  // call sites continue to mark admission completion without hiding send.
   refreshTaskComposer();
 }
 
@@ -3791,24 +3910,10 @@ async function sendMsg(isFollowUp) {
   if (!currentAccount || !sessionId || accountDocumentRetired || historyRequest) return;
   var epoch = authEpoch, requestSessionId = sessionId;
   function ownsTurn() { return epoch === authEpoch && requestSessionId === sessionId && (!botContent || chatContainer.contains(botContent)); }
-  function ownsControls() { return ownsTurn() && (requestRoundId === undefined || requestRoundId === currentRoundId); }
-  if (isFollowUp === undefined) isFollowUp = false;
-  // During a live turn the composer updates that job, never starts another one.
-  var binding = activeTurnComposer && activeTurnComposer.owns() ? activeTurnComposer : null;
-  if (binding && !CitrusTaskState.isTerminal(binding.store.state) && (binding.store.state.job_id || composerRunning || binding.stopping)) {
-    if (!binding.stopping && binding.controls.canUpdate()) {
-      var draft = userInput.value;
-      if (_selectedAttachments.length || window._selectedAccountFileRefs.length || (skillPicker && skillPicker.capture().items.length)) {
-        showBanner('本轮补充仅支持文字；请移除待发送附件或新选技能，或停止后再发送。');
-        return;
-      }
-      var accepted = await binding.controls.submitUpdate(draft);
-      if (accepted && binding === activeTurnComposer && binding.owns() && userInput.value === draft) userInput.value = '';
-    } else if (binding.store.state.question && binding.store.state.question.status === 'pending') {
-      showBanner('请在任务中的选择卡片确认后继续。');
-    }
-    return;
+  function ownsControls() {
+    return ownsTurn() && !!activeTurnComposer && activeTurnComposer.requestId === clientRequestId;
   }
+  if (isFollowUp === undefined) isFollowUp = false;
   var sendBtnEl = document.getElementById('send-btn');
   if (sendBtnEl && sendBtnEl.disabled) return;
   var query = userInput.value.trim();
@@ -3817,19 +3922,22 @@ async function sendMsg(isFollowUp) {
   mascotSay('planning');
   var _turnTotalMs = 0;
   var _firstTokenElapsedMs = null;
+  var visualizeForRequest = visualizationEnabled;
   var filesForRequest = _selectedAttachments.slice();
   var fileRefsForRequest = window._selectedAccountFileRefs.slice();
-  var skillsForRequest = skillPicker ? skillPicker.capture() : {items: []};
+  // Freeze the exact skills snapshot; later picker edits must not alter this turn.
+  var capturedSkills = skillPicker ? skillPicker.capture() : {items: []};
+  var skillsForRequest = {items: (capturedSkills.items || []).map(function (item) {
+    return Object.assign({}, item);
+  })};
 
   // v8.3.7 M1: 每次点击生成稳定幂等 ID，重试复用（防重发重复写历史）
   var clientRequestId = 'crid-' + Date.now().toString(36) + '-' +
     Math.random().toString(36).slice(2, 10);
 
   if (historyPageRequest) { historyPageRequest.abort(); historyPageRequest = null; }
-  activeTurnComposer = null;
   currentRoundId++;
   var requestRoundId = currentRoundId;
-  currentJobId = ''; window._currentJobId = '';
   currentQuery = query;
   renderContextPanel({max_tokens: _ctxMaxTokens(), request_id: clientRequestId, session_id: requestSessionId});
 
@@ -3845,7 +3953,6 @@ async function sendMsg(isFollowUp) {
   // P0: 提交瞬间先给导航一个临时刻度，服务端确认后换成正式 message_id
   if (window.turnRail && window.turnRail.addPending) window.turnRail.addPending(clientRequestId, query);
   userInput.value = '';
-  setSendDisabled(true);
 
   var botContent = addMessage('bot', '');
   // P0-A: 实时气泡带与历史恢复相同的轮次锚点（同一套归属规则，文件/跳转可定位）
@@ -3889,16 +3996,17 @@ async function sendMsg(isFollowUp) {
   // never supplies a business terminal state; replay confirms that state.
   function stopCurrentTurn(reason) {
     if (reason === 'account' || reason === 'switch') {
-      if (activeTurnComposer && activeTurnComposer.cancel === stopCurrentTurn) activeTurnComposer = null;
+      if (activeTurnComposer === myBinding) activeTurnComposer = null;
       composerRunning = false;
       isCancelled = true;
+      clearQueuePoll();
+      if (unsubscribeBinding) { unsubscribeBinding(); unsubscribeBinding = null; }
       if (taskTransport) taskTransport.stop();
       if (taskControls) taskControls.dispose();
       if (taskStore) taskStore.clear();
       clearTimeout(spinnerTimeout); clearInterval(_elapsedTimer);
-      if (requestAbortController) requestAbortController.abort();
-      requestAbortController = null;
-      filesForRequest.length = 0; fileRefsForRequest.length = 0;
+      if (reason === 'account' && requestAbortController) requestAbortController.abort();
+      unregisterTurnBinding(myBinding);
       return;
     }
     if (!ownsTurn() || (isCancelled && !existingJobNotice)) return;
@@ -3957,14 +4065,8 @@ async function sendMsg(isFollowUp) {
   var statusElapsed = processPanel.elapsed;
   botContent.appendChild(statusDiv);
 
-  activeTurnCancel = stopCurrentTurn;
-  spinnerTimeout = setTimeout(function() {
-    if (ownsTurn() && !isCancelled) {
-      stopCurrentTurn('disconnect');
-      showBanner('本轮长时间无响应；正在查询后台任务状态。');
-    }
-  }, 300000);
-
+  // The dispatch spinner starts when the queue reports this turn is running,
+  // so a long wait behind other queued messages is not treated as a hang.
   var answerDiv = document.createElement('div'); answerDiv.className = 'turn-answer';
   answerDiv.style.display = 'none';
 
@@ -3989,12 +4091,24 @@ async function sendMsg(isFollowUp) {
   });
   var taskControls = CitrusTaskControls.create({container: botContent, store: taskStore, transport: taskTransport, owns: ownsTurn,
     onChange: function () { if (ownsControls()) refreshTaskComposer(); }});
-  activeTurnComposer = {owns: ownsControls, store: taskStore, controls: taskControls, cancel: stopCurrentTurn, stopping: false};
+  var myBinding = {
+    requestId: clientRequestId, sessionId: requestSessionId, owns: ownsTurn,
+    store: taskStore, controls: taskControls, cancel: stopCurrentTurn,
+    stopping: false, following: false, queueEntry: null,
+    dispose: function (reason) { stopCurrentTurn(reason || 'switch'); },
+    cancelQueued: function () { cancelQueuedEntry(); }
+  };
+  registerTurnBinding(myBinding);
+  var unsubscribeBinding = taskStore.subscribe(function () {
+    if (!ownsTurn()) return;
+    myBinding.following = !!queueFollowedJobId;
+    selectActiveTurn();
+    renderQueueStatus();
+  });
   refreshTaskComposer();
   var questionCard = CitrusTaskControls.createQuestion({container: botContent, store: taskStore, transport: taskTransport, owns: ownsTurn,
     onContinue: function (result) {
-      if (ownsControls()) { setSendDisabled(false); refreshQuestionContinuation(result, ownsControls, questionCard.element); }
-      else showQuestionContinuation(questionCard.element, result.child_job_id, ownsTurn);
+      if (!queueEntry) refreshQuestionContinuation(result, ownsTurn, questionCard.element);
     }});
 
   function reconcileTaskSnapshot(job) {
@@ -4279,9 +4393,9 @@ async function sendMsg(isFollowUp) {
         // _fullTextFromDone 是更根本的判据（done.answer 恒为重排终稿），用于兜住
         // done 事件期间流式全失败、fullText 只能取自 done.answer 的情况。
         var _preRenumbered = !!data.pre_renumbered
-                             || !!(window._fullTextFromDone || {})[currentRoundId];
+                             || !!(window._fullTextFromDone || {})[clientRequestId];
         if ((Object.keys(_remap).length > 0 || _dropped.length > 0)
-            && !_applied[currentRoundId]) {
+            && !_applied[clientRequestId]) {
           if (Object.keys(_remap).length > 0 && !_preRenumbered) {
             fullText = _rewriteRefsByMap(fullText, _remap);
           }
@@ -4290,7 +4404,7 @@ async function sendMsg(isFollowUp) {
             fullText = fullText.replace(new RegExp('\\[' + _tok + '\\]', 'g'), '');
           }
           renderAnswer();
-          _applied[currentRoundId] = 1;
+          _applied[clientRequestId] = 1;
         }
         // ── v10.14（阶段 3 · 修复「侧栏不显示联网条目」）────────────────────────
         //   实测根因：`citations` 事件里 `web_separate` 有 26–27 条（每条带
@@ -4395,24 +4509,24 @@ async function sendMsg(isFollowUp) {
         var _ansOk = !!data.answer && data.answer.indexOf('An error occurred') !== 0;
         if (_ansOk) {
           fullText = data.answer;
-          _fromDone[currentRoundId] = 1;
+          _fromDone[clientRequestId] = 1;
           if (_repaired) {
             showBanner('回答已完成一致性检查。');
           }
         } else if (!fullText && data.answer) {
           fullText = data.answer;
-          _fromDone[currentRoundId] = 1;
+          _fromDone[clientRequestId] = 1;
         }
         // A cancelled or empty turn has no answer, but it still has a real
         // terminal text (stop marker / honest notice). Show it instead of an
         // empty bubble; never fabricate answer prose.
         if (!fullText && data.stop_notice) {
           fullText = String(data.stop_notice);
-          _fromDone[currentRoundId] = 1;
+          _fromDone[clientRequestId] = 1;
         }
         if (!fullText && data.notice && _terminal !== 'completed') {
           fullText = String(data.notice);
-          _fromDone[currentRoundId] = 1;
+          _fromDone[clientRequestId] = 1;
         }
         // v10.0（卡点③）: 审计结果轻提示（critical / 需求未满足）
         try {
@@ -4522,92 +4636,263 @@ async function sendMsg(isFollowUp) {
     userInput.focus();
   }
 
+  var queueEntry = null, queuePollTimer = null, queueFollowedJobId = '', queueStatusEl = null;
+  var queueUncertainAttempts = 0;
+
+  function queueStatusNode() {
+    if (queueStatusEl || !botContent) return queueStatusEl;
+    queueStatusEl = document.createElement('div');
+    queueStatusEl.className = 'turn-queue-state';
+    queueStatusEl.setAttribute('role', 'status');
+    queueStatusEl.setAttribute('aria-live', 'polite');
+    botContent.appendChild(queueStatusEl);
+    return queueStatusEl;
+  }
+
+  function renderQueueStatus() {
+    if (!ownsTurn() || !queueEntry) return;
+    var node = queueStatusNode();
+    if (!node) return;
+    var entry = queueEntry;
+    if (entry.state === 'terminal' && !entry.clear_reason) {
+      node.remove(); queueStatusEl = null; return;
+    }
+    node.replaceChildren();
+    var text = document.createElement('span');
+    text.className = 'turn-queue-status';
+    text.textContent = entry.state === 'terminal' && entry.clear_reason === 'cancelled'
+      ? '已取消' : queueStateLabel(entry);
+    node.appendChild(text);
+    if (entry.state === 'queued') {
+      var cancel = document.createElement('button');
+      cancel.type = 'button'; cancel.className = 'turn-queue-cancel';
+      cancel.textContent = '取消这条';
+      cancel.setAttribute('aria-label', '取消这条排队中的消息');
+      cancel.onclick = function () { cancelQueuedEntry(); };
+      node.appendChild(cancel);
+    }
+    if (entry.state === 'queued' || entry.state === 'claimed')
+      statusLabel.textContent = queueStateLabel(entry);
+  }
+
+  function clearQueuePoll() { if (queuePollTimer) { clearTimeout(queuePollTimer); queuePollTimer = null; } }
+
+  function scheduleQueuePoll() {
+    if (queuePollTimer || !ownsTurn()) return;
+    if (!queueEntry || queueEntry.state === 'terminal') return;
+    queuePollTimer = setTimeout(function () {
+      queuePollTimer = null;
+      if (!ownsTurn() || !queueEntry || queueEntry.state === 'terminal') return;
+      readTurnQueue(requestSessionId, function (error, result) {
+        if (!ownsTurn()) return;
+        if (!error && result && result.ok && result.body) {
+          var found = findTurnQueueEntry(result.body.turns || [], clientRequestId);
+          if (found) { adoptTurnEntry(found, true); return; }
+        }
+        scheduleQueuePoll();
+      });
+    }, 2000);
+  }
+
+  function maybeFollowObserver() {
+    var observer = queueEntry && observeQueuedJob(queueEntry);
+    if (!observer || queueFollowedJobId === observer) return;
+    if (queueFollowedJobId) {
+      fullText = ''; preAnswerText = ''; isAnswerStarted = false; isFinalAnswerArmed = false;
+      hasTerminalEvent = false; snapshotOnly = false;
+    }
+    queueFollowedJobId = observer;
+    myBinding.following = true;
+    clearTimeout(spinnerTimeout);
+    spinnerTimeout = setTimeout(function () {
+      if (ownsTurn() && !isCancelled && !hasTerminalEvent) {
+        showBanner('本轮长时间无响应；正在查询后台任务状态。');
+        followSubmittedRequest();
+      }
+    }, 300000);
+    startElapsedTimer();
+    taskTransport.followContinuation(observer);
+    selectActiveTurn();
+  }
+
+  function onQueueTerminal(entry) {
+    clearQueuePoll();
+    renderQueueStatus();
+    if (!ownsTurn() || hasTerminalEvent) return;
+    if (entry.clear_reason === 'cancelled') {
+      isCancelled = true; hasTerminalEvent = true; _turnDisplayStatus = 'cancelled';
+      clearTimeout(spinnerTimeout); clearInterval(_elapsedTimer);
+      processPanel.terminal('cancelled');
+      answerDiv.style.display = ''; answerDiv.textContent = '已取消，这条消息不会执行。';
+      statusLabel.textContent = '已取消';
+      setSendDisabled(false);
+      selectActiveTurn();
+    } else if (entry.clear_reason && !queueFollowedJobId) {
+      // Rejected before dispatch: no job stream will follow this turn.
+      clearTimeout(spinnerTimeout); clearStatus();
+      isCancelled = true; hasTerminalEvent = true; _turnDisplayStatus = 'failed';
+      processPanel.terminal('failed');
+      answerDiv.style.display = ''; answerDiv.textContent = '这条消息未能开始执行，请重新发送。';
+      statusLabel.textContent = '未开始执行';
+      setSendDisabled(false);
+      selectActiveTurn();
+    }
+  }
+
+  function adoptTurnEntry(entry, silent) {
+    if (!ownsTurn() || !entry || entry.client_request_id !== clientRequestId) return false;
+    if (queueEntry && queueEntry.state === 'terminal' && entry.state !== 'terminal') return false;
+    queueEntry = entry;
+    myBinding.queueEntry = entry;
+    if (entry.job_id) botContent.dataset.jobId = String(entry.active_child_job_id || entry.job_id);
+    if (!silent) {
+      if (skillPicker && skillsForRequest) skillPicker.acknowledge(skillsForRequest);
+      if (filesForRequest.length || fileRefsForRequest.length) {
+        window.dispatchEvent(new Event('citrus-turn-finished'));
+        _selectedAttachments = _selectedAttachments.filter(function (f) { return filesForRequest.indexOf(f) < 0; });
+        window._selectedAccountFileRefs = window._selectedAccountFileRefs.filter(function (f) { return fileRefsForRequest.indexOf(f) < 0; });
+        renderAttachmentSelection();
+      }
+      if (window.turnRail && window.turnRail.addPending && entry.job_id) window.turnRail.addPending(clientRequestId, query);
+    }
+    renderQueueStatus();
+    maybeFollowObserver();
+    if (entry.state === 'terminal') onQueueTerminal(entry);
+    else scheduleQueuePoll();
+    return true;
+  }
+
+  function restoreDraft(message) {
+    clearTimeout(spinnerTimeout); clearStatus();
+    isCancelled = true; hasTerminalEvent = true;
+    if (!userInput.value) userInput.value = query;
+    answerDiv.style.display = ''; answerDiv.textContent = '';
+    showBanner(message);
+    setSendDisabled(false);
+    userInput.focus();
+  }
+
+  function handleAdmissionError(status, body) {
+    var code = body && body.detail && body.detail.code;
+    requestSubmitted = false;
+    var message = status === 401 ? '请先登录后继续。'
+      : status === 413 ? '附件过大或数量超限，请调整后重试。'
+      : status === 429 || code === 'turn_queue_full' ? '待处理消息已达上限，请稍后再试。'
+      : status === 503 || code === 'turn_queue_unavailable' ? '消息队列暂不可用，请稍后重试。'
+      : code === 'turn_payload_conflict' ? '相同请求标识已用于不同内容；请重新发送为新请求。'
+      : code === 'skill_selection_changed' ? '所选技能已变更或不可用，请打开“＋”刷新技能目录后重新选择。'
+      : code === 'account_closed' ? '账户已停用，不能接受新请求。'
+      : '这次没有完成，请稍后重试。';
+    restoreDraft(message);
+  }
+
+  function showQueueRetry() {
+    if (statusRetry) return;
+    statusRetry = document.createElement('button');
+    statusRetry.type = 'button'; statusRetry.className = 'history-retry';
+    statusRetry.textContent = '重新确认消息状态';
+    statusRetry.onclick = function () {
+      if (statusRetry) { statusRetry.remove(); statusRetry = null; }
+      reconcileQueueAdmission();
+    };
+    statusDiv.appendChild(statusRetry);
+  }
+
+  function reconcileQueueAdmission() {
+    if (!ownsTurn()) return;
+    statusLabel.textContent = '网络中断，正在确认消息是否已进入队列';
+    readTurnQueue(requestSessionId, function (error, result) {
+      if (!ownsTurn()) return;
+      if (!error && result && result.ok && result.body && result.body.client_request_id === clientRequestId) {
+        queueUncertainAttempts = 0;
+        adoptTurnEntry(result.body, !requestSubmitted);
+        return;
+      }
+      if (!requestSubmitted) { restoreDraft('发送未完成，内容已保留，请重试。'); return; }
+      if (++queueUncertainAttempts < 8) { setTimeout(reconcileQueueAdmission, 1500); return; }
+      statusLabel.textContent = '消息状态暂未同步';
+      showQueueRetry();
+    }, clientRequestId);
+  }
+
+  function cancelQueuedEntry() {
+    if (!queueEntry || queueEntry.state !== 'queued') return;
+    var node = queueStatusEl;
+    var cancel = node && node.querySelector ? node.querySelector('.turn-queue-cancel') : null;
+    if (cancel) cancel.disabled = true;
+    accountFetch(turnQueueURL(requestSessionId) + '/' + encodeURIComponent(clientRequestId), {method: 'DELETE'})
+      .then(function (response) {
+        return response.json().then(function (body) {
+          return {ok: response.ok, status: response.status, body: body};
+        }, function () { return {ok: response.ok, status: response.status, body: null}; });
+      })
+      .then(function (outcome) {
+        if (!ownsTurn()) return;
+        if (outcome.ok && outcome.body) adoptTurnEntry(outcome.body, true);
+        else {
+          if (cancel) cancel.disabled = false;
+          showBanner((outcome.body && outcome.body.detail && outcome.body.detail.message) || '消息已不在可取消状态。');
+        }
+      })
+      .catch(function () {
+        if (!ownsTurn()) return;
+        if (cancel) cancel.disabled = false;
+        showBanner('取消请求暂未确认，请稍后重试。');
+      });
+  }
+
   function streamOnce() {
     if (!ownsTurn()) return;
-    // Start this request once; permission approval resumes its existing execution.
-    fullText = '';
-    preAnswerText = '';
-    isAnswerStarted = false;
-    isFinalAnswerArmed = false;
-    renderPending = false;
-    _turnDisconnected = false;
-    _turnDisplayStatus = '';
-    _turnEnvelope = null;
-    _turnTotalMs = 0;                 // 服务端实测整轮耗时（done 事件下发）
-    _requestStartedAt = performance.now();
-    answerDiv.style.display = '';
-    answerDiv.innerHTML = '';
+    fullText = ''; preAnswerText = ''; isAnswerStarted = false; isFinalAnswerArmed = false;
+    renderPending = false; _turnDisconnected = false; _turnDisplayStatus = ''; _turnEnvelope = null;
+    _turnTotalMs = 0; _requestStartedAt = performance.now();
+    answerDiv.style.display = ''; answerDiv.innerHTML = '';
     statusLabel.textContent = ''; statusElapsed.textContent = '';
-    statusDiv.className = 'research-process';
-    hasTerminalEvent = false;
-    startElapsedTimer();
+    statusDiv.className = 'research-process'; hasTerminalEvent = false;
 
-    if (currentAbortController) currentAbortController.abort();
     var streamAbortController = new AbortController();
     requestAbortController = streamAbortController;
-    currentAbortController = streamAbortController;
 
-    (async function() {
+    function ownsAdmission() {
+      return epoch === authEpoch && !accountDocumentRetired && !streamAbortController.signal.aborted;
+    }
+    // Finishing admission is independent of the current view and of graph execution.
+    enqueueTurnAdmission(async function () {
+      if (!ownsAdmission()) return;
       try {
-        var attachments = await Promise.all(filesForRequest.map(async function(file) { return {name:file.name,type:file.type,data:await fileAsDataUrl(file)}; }));
-        if (!ownsTurn() || streamAbortController.signal.aborted) return;
+        var attachments = await Promise.all(filesForRequest.map(async function (file) {
+          return {name: file.name, type: file.type, data: await fileAsDataUrl(file)};
+        }));
+        if (!ownsAdmission()) return;
         requestSubmitted = true;
-        var response = await accountFetch(API_URL, {method:'POST',headers:{'Content-Type':'application/json'},signal:streamAbortController.signal,body:JSON.stringify({session_id:requestSessionId,query:query,client_request_id:clientRequestId,visualization_enabled:visualizationEnabled,selected_skills:skillsForRequest.items,attachments:attachments,file_refs:fileRefsForRequest.map(function(f){return f.file_id;})})});
+        var response = await accountFetch(turnQueueURL(requestSessionId), {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          signal: streamAbortController.signal,
+          body: JSON.stringify({
+            session_id: requestSessionId, query: query, client_request_id: clientRequestId,
+            visualization_enabled: visualizeForRequest,
+            selected_skills: skillsForRequest.items, attachments: attachments,
+            file_refs: fileRefsForRequest.map(function (f) { return f.file_id; })
+          })
+        });
         if (!ownsTurn() || streamAbortController.signal.aborted) return;
-        if (response.ok && skillPicker) skillPicker.acknowledge(skillsForRequest);
-        if (response.ok && response.headers &&
-            String(response.headers.get('content-type') || '').indexOf('application/json') >= 0) {
-          var replay = await response.json();
-          if (!ownsTurn() || streamAbortController.signal.aborted) return;
-          if (replay.code !== 'existing_job') throw new Error('Unexpected chat response');
-          showExistingJob(replay);
-          return;
-        }
-        if (response.ok && (filesForRequest.length || fileRefsForRequest.length)) {
-          window.dispatchEvent(new Event('citrus:turn-finished'));
-        }
-        if (response.ok && (filesForRequest.length || fileRefsForRequest.length)) {
-          _selectedAttachments = _selectedAttachments.filter(function(f) { return filesForRequest.indexOf(f) < 0; });
-          window._selectedAccountFileRefs = window._selectedAccountFileRefs.filter(function(f) { return fileRefsForRequest.indexOf(f) < 0; });
-          renderAttachmentSelection();
-        }
-        if (!response.ok) {
-          var conflictMessage = '';
-          if (response.status === 409) {
-            var conflict = await response.json().catch(function () { return {}; });
-            if (!ownsTurn() || streamAbortController.signal.aborted) return;
-            if (conflict.detail && conflict.detail.code === 'idempotency_conflict') {
-              conflictMessage = '相同请求标识已用于不同内容；请重新发送为新请求。';
-            } else if (conflict.detail && conflict.detail.code === 'skill_selection_changed') {
-              conflictMessage = '所选技能已变更或不可用，请打开“＋”刷新技能目录后重新选择。';
-            }
-          }
-          clearTimeout(spinnerTimeout); isCancelled = true;
-          if (activeTurnCancel === stopCurrentTurn) activeTurnCancel = null;
-          clearStatus(); answerDiv.style.display = '';
-          answerDiv.textContent = conflictMessage || (response.status === 401 ? '请先登录后继续。'
-            : response.status === 413 ? '附件过大或数量超限，请调整后重试。'
-            : response.status === 429 ? '当前请求较多，请稍后重试。'
-            : response.status === 503 ? '资料暂时无法处理，请稍后重试。' : '这次没有完成，请稍后重试。');
-          setSendDisabled(false); userInput.focus(); return;
-        }
-        await taskTransport.stream(response, streamAbortController.signal);
-        if (!hasTerminalEvent && !isCancelled) {
-          stopCurrentTurn('disconnect');
-          if (!(taskStore.state.question && taskStore.state.question.status === 'pending') && ownsControls()) showBanner('连接提前结束；已完成的步骤保留。');
-        }
-      } catch(err){
-        if (!ownsTurn() || requestAbortController !== streamAbortController) return;
+        var body = null;
+        try { body = await response.json(); } catch (_) {}
+        if (!ownsTurn() || streamAbortController.signal.aborted) return;
+        if (!response.ok) { handleAdmissionError(response.status, body); return; }
+        if (!body) { reconcileQueueAdmission(); return; }
+        adoptTurnEntry(body);
+      } catch (err) {
+        if (!ownsTurn() || requestAbortController !== streamAbortController || streamAbortController.signal.aborted) return;
         if (!requestSubmitted) {
-          clearTimeout(spinnerTimeout); clearStatus(); setSendDisabled(false);
-          if (ownsControls()) { userInput.value = userInput.value || query; showBanner('附件读取失败，请重试发送。'); }
-        } else stopCurrentTurn('disconnect');
+          clearTimeout(spinnerTimeout); clearStatus();
+          if (ownsControls()) { if (!userInput.value) userInput.value = query; showBanner('发送未完成，内容已保留，请重试。'); }
+          setSendDisabled(false);
+        } else reconcileQueueAdmission();
+      } finally {
+        if (requestAbortController === streamAbortController) requestAbortController = null;
       }
-      finally{
-        if (currentAbortController === streamAbortController) currentAbortController = null;
-        if (activeTurnCancel === stopCurrentTurn && (isCancelled || hasTerminalEvent)) activeTurnCancel = null;
-      }
-    })();
+    });
   }
 
   streamOnce();
@@ -5025,7 +5310,10 @@ async function restoreSessionHistory() {
     var savedContext = data.context_snapshot || data.context;
     if (savedContext) renderContextPanel(restoredContext.receive('context_snapshot', savedContext));
     _historyMsgs = data.messages || [];
-    _historyTurns = normalizeHistoryTurns(data.turns);
+    var queueTurns = await loadQueueTurns(sid);
+    if (!ownsRestore()) return false;
+    var savedTurns = normalizeHistoryTurns(data.turns);
+    _historyTurns = mergeQueuedHistory(savedTurns.length ? savedTurns : groupHistoryTurns(_historyMsgs), queueTurns);
     if (!_historyTurns.length) _historyTurns = null;
     _historyHasMore = !!data.has_more;
     renderHistoryMessages(_historyMsgs, _historyTurns);
@@ -5352,6 +5640,61 @@ async function refreshQuestionContinuation(result, owns, container) {
   if (owns() && !await restoreSessionHistory() && owns()) showQuestionContinuation(container, result.child_job_id, owns);
 }
 
+function observeQueuedJob(turn) {
+  if (['running', 'awaiting_input', 'settling', 'terminal'].indexOf(turn.state) < 0) return '';
+  if (turn.state === 'terminal' && !turn.dispatch_at) return '';
+  return String(turn.active_child_job_id || turn.job_id || '');
+}
+
+function loadQueueTurns(sid) {
+  return new Promise(function (resolve) {
+    readTurnQueue(sid, function (error, result) {
+      resolve(!error && result && result.ok && result.body ? result.body.turns || [] : []);
+    });
+  });
+}
+
+function mergeQueuedHistory(history, entries) {
+  var byRequest = new Map(), byJob = new Map(), hidden = new Set(), missing = [];
+  history.forEach(function (turn) {
+    if (turn.turnRequestId) byRequest.set(turn.turnRequestId, turn);
+    if (turn.jobId) byJob.set(turn.jobId, turn);
+  });
+  entries.forEach(function (entry) {
+    var root = byRequest.get(entry.client_request_id);
+    var observed = observeQueuedJob(entry);
+    var segment = observed && byJob.get(observed);
+    if (!root) {
+      if (entry.state === 'terminal' && !segment) return;
+      root = normalizeHistoryTurn({turn_request_id: entry.client_request_id});
+      missing.push(root);
+    }
+    if (!root.user) root.user = {content: entry.query || '', request_id: entry.client_request_id, attachments: entry.attachments || []};
+    if (segment && segment !== root) {
+      root.answer = segment.answer || root.answer;
+      var files = new Map(root.files.concat(segment.files).map(function (file) { return [file.file_id, file]; }));
+      root.files = Array.from(files.values());
+      root.trace = segment.trace;
+      root.messageIds = root.messageIds.concat(segment.messageIds);
+    }
+    if (observed && observed !== root.jobId) {
+      root.jobId = observed;
+      root.jobStatus = segment ? segment.jobStatus : '';
+      root.question = segment ? segment.question : null;
+      root.terminalSnapshot = segment ? segment.terminalSnapshot : null;
+      root.contextSnapshot = segment ? segment.contextSnapshot : null;
+      root.displayStatus = segment ? segment.displayStatus : '';
+    }
+    root.queueEntry = entry;
+    var relative = segment;
+    while (relative && relative !== root && !hidden.has(relative)) {
+      hidden.add(relative);
+      relative = byJob.get(relative.parentJobId);
+    }
+  });
+  return history.filter(function (turn) { return !hidden.has(turn); }).concat(missing);
+}
+
 function projectHistoryTrace(process, trace) {
   // Server trace order preserves public notes interleaved with action groups.
   // Never sort notes by a neighbouring tool's completion timestamp.
@@ -5370,9 +5713,9 @@ function projectHistoryTrace(process, trace) {
 
 function bindHistoryTask(turn, content, answer, process, ownsContext, useComposer) {
   var epoch = authEpoch, sid = sessionId, round = currentRoundId, armed = false, streamedAnswer = '', closed = false;
-  var binding = null;
+  var binding = null, entry = turn.queueEntry, queuePoll = null, observed = '', queueStatus;
   function owns() { return !closed && epoch === authEpoch && sid === sessionId && chatContainer.contains(content); }
-  function ownsComposer() { return owns() && activeTurnComposer === binding && round === currentRoundId; }
+  function ownsComposer() { return owns() && activeTurnComposer === binding; }
   function projectContext() {
     if (owns() && ownsContext && round === currentRoundId && store.state.context_snapshot) renderContextPanel(store.state.context_snapshot);
   }
@@ -5385,13 +5728,6 @@ function bindHistoryTask(turn, content, answer, process, ownsContext, useCompose
   function reconcileControls() {
     if (!ownsComposer()) return;
     var state = store.state, terminal = CitrusTaskState.isTerminal(state);
-    if (terminal) {
-      if (activeTurnCancel === cancel) activeTurnCancel = null;
-      if (currentJobId === state.job_id) { currentJobId = ''; window._currentJobId = ''; }
-    } else if (state.job_id) {
-      activeTurnCancel = cancel;
-      currentJobId = state.job_id; window._currentJobId = state.job_id;
-    }
     var approvals = terminal ? [] : state.approvals;
     if (_pendingPermission && _pendingPermission.job_id === state.job_id) {
       var pending = approvals.find(function(item) { return item.approval_id === _pendingPermission.approval_id && item.status === 'pending'; });
@@ -5403,7 +5739,7 @@ function bindHistoryTask(turn, content, answer, process, ownsContext, useCompose
     approvals.forEach(function(item) {
       if (item.status === 'pending' && (!_pendingPermission || _pendingPermission.approval_id !== item.approval_id)) showPermissionCard(Object.assign({job_id: state.job_id}, item));
     });
-    refreshTaskComposer();
+    selectActiveTurn();
   }
   function snapshot(job) {
     if (!owns()) return;
@@ -5417,9 +5753,9 @@ function bindHistoryTask(turn, content, answer, process, ownsContext, useCompose
   }
   function dispose() {
     if (closed) return;
-    closed = true; transport.stop(); controls.dispose(); questionCard.dispose(); store.clear();
-    if (activeTurnComposer === binding) { activeTurnComposer = null; composerRunning = false; }
-    if (activeTurnCancel === cancel) activeTurnCancel = null;
+    closed = true; clearTimeout(queuePoll); transport.stop(); controls.dispose(); questionCard.dispose(); store.clear();
+    composerRunning = false;
+    unregisterTurnBinding(binding);
   }
   function cancel(reason) {
     if (reason === 'account' || reason === 'switch') { dispose(); return; }
@@ -5457,18 +5793,63 @@ function bindHistoryTask(turn, content, answer, process, ownsContext, useCompose
   var controls = CitrusTaskControls.create({container: content, store: store, transport: transport, owns: owns,
     onChange: function() { if (binding) reconcileControls(); }});
   var questionCard = CitrusTaskControls.createQuestion({container: content, store: store, transport: transport, owns: owns,
-    onContinue: function (result) { refreshQuestionContinuation(result, owns, questionCard.element); }});
+    onContinue: function (result) { if (!entry) refreshQuestionContinuation(result, owns, questionCard.element); }});
   store.hydrate({job_id: turn.jobId, status: turn.jobStatus, terminal_snapshot: turn.terminalSnapshot, question: turn.question, context_snapshot: turn.contextSnapshot});
-  if (useComposer) {
-    binding = {owns: ownsComposer, store: store, controls: controls, cancel: cancel, stopping: false};
-    activeTurnComposer = binding; activeTurnCancel = cancel;
-    currentJobId = turn.jobId; window._currentJobId = turn.jobId;
+  if (useComposer || entry && entry.state !== 'terminal') {
+    binding = {owns: owns, store: store, controls: controls, cancel: cancel, stopping: false,
+      queueEntry: entry, following: false, dispose: dispose};
+    registerTurnBinding(binding);
   }
   snapshot({status: turn.jobStatus, terminal_snapshot: turn.terminalSnapshot});
-  if (turn.question && turn.question.child_job_id) showQuestionContinuation(questionCard.element, turn.question.child_job_id, owns);
+  if (!entry && turn.question && turn.question.child_job_id) showQuestionContinuation(questionCard.element, turn.question.child_job_id, owns);
   historyTaskDisposers.push(dispose);
-  // Snapshot cursors do not establish consumed events. This view starts at 0.
-  if (turn.jobId) transport.follow(turn.jobId);
+
+  function adopt(entryNow) {
+    if (!owns() || entry.state === 'terminal' && entryNow.state !== 'terminal') return;
+    entry = entryNow;
+    if (binding) binding.queueEntry = entry;
+    queueStatus.replaceChildren();
+    var label = document.createElement('span');
+    label.textContent = entry.state === 'terminal' && entry.clear_reason === 'cancelled' ? '已取消' : queueStateLabel(entry);
+    queueStatus.appendChild(label);
+    if (entry.state === 'queued') {
+      var button = document.createElement('button');
+      button.type = 'button'; button.className = 'turn-queue-cancel'; button.textContent = '取消这条';
+      button.onclick = async function () {
+        button.disabled = true;
+        try {
+          var response = await accountFetch(turnQueueURL(sid) + '/' + encodeURIComponent(entry.client_request_id), {method: 'DELETE'});
+          var result = await response.json();
+          if (response.ok && owns()) adopt(result);
+          else if (owns()) showBanner('消息已不在可取消状态。');
+        } catch (_) { if (owns()) showBanner('暂时无法取消这条消息，请重试。'); }
+        finally { button.disabled = false; }
+      };
+      queueStatus.appendChild(button);
+    }
+    var job = observeQueuedJob(entry);
+    if (job && job !== observed) {
+      observed = job;
+      streamedAnswer = ''; armed = false;
+      content.dataset.jobId = job;
+      transport.followContinuation(job);
+    }
+    selectActiveTurn();
+  }
+  async function pollQueue() {
+    if (!owns() || entry.state === 'terminal') return;
+    var next = findTurnQueueEntry(await loadQueueTurns(sid), entry.client_request_id);
+    if (!owns()) return;
+    if (next) adopt(next);
+    if (entry.state !== 'terminal') queuePoll = setTimeout(pollQueue, 2000);
+  }
+  if (entry) {
+    queueStatus = document.createElement('div'); queueStatus.className = 'turn-queue-state';
+    queueStatus.setAttribute('role', 'status');
+    content.appendChild(queueStatus);
+    adopt(entry);
+    if (entry.state !== 'terminal') queuePoll = setTimeout(pollQueue, 2000);
+  } else if (turn.jobId) transport.follow(turn.jobId);
 }
 
 function renderHistoryMessages(msgs, serverTurns, placement) {
@@ -5526,7 +5907,7 @@ function renderHistoryMessages(msgs, serverTurns, placement) {
       // Unmarked legacy stage labels cannot establish a public model note.
     }
     var ownsContext = (!placement || placement.append) && ti === (composerIndex >= 0 ? composerIndex : turns.length - 1);
-    if (turn.jobId || turn.question) bindHistoryTask(turn, contentEl, answerBody, process, ownsContext, ti === composerIndex);
+    if (turn.jobId || turn.question || turn.queueEntry) bindHistoryTask(turn, contentEl, answerBody, process, ownsContext, ti === composerIndex);
     else if (ownsContext) {
       var context = CitrusTaskState.createContext({session_id: sessionId, request_id: turn.turnRequestId});
       if (turn.contextSnapshot) context.receive('context_snapshot', turn.contextSnapshot);
