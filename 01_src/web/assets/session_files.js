@@ -11,6 +11,16 @@
   var panelEl = null;
   var apiBase = '';
   var fileCache = Object.create(null);
+  var retentionIdleDays = 0;
+  var catalogScope = 0;
+
+  function resetSessionFiles() {
+    catalogScope += 1;
+    fileCache = Object.create(null);
+    retentionIdleDays = 0;
+    listLoaded = false;
+    closeSessionFilePreview();
+  }
 
   function el(id) { return document.getElementById(id); }
 
@@ -42,6 +52,13 @@
     docx: 'Word', text: '文本', download: '文件', svg: 'SVG'
   };
 
+  function previewMetaText(file) {
+    var meta = '资料库文件 · ' + (KIND_LABEL[displayKind(file)] || '文件');
+    var last = fmtTime(file.last_accessed_at);
+    if (last) meta += ' · 最近访问 ' + last;
+    return meta;
+  }
+
   function currentSessionId() {
     if (typeof window.currentSessionId === 'function') return window.currentSessionId();
     try { return sessionStorage.getItem('citrus_session_id') || ''; } catch (e) { return ''; }
@@ -52,61 +69,103 @@
     var label = KIND_LABEL[kind] || '文件';
     var deletable = f.origin === 'uploaded';
     var svg = isSvgFile(f);
-    var jumpBtn = (f.turn_request_id && f.source_session_id)
-      ? '    <button type="button" class="session-file-act" onclick="jumpToFileTurn(\'' +
-          esc(f.source_session_id) + '\',\'' + esc(f.turn_request_id) + '\')" title="定位到生成它的会话" aria-label="定位到会话">↗</button>'
-      : '';
+    var jump = (f.turn_request_id && f.source_session_id);
+    var menuId = 'session-file-menu-' + String(f.file_id || '');
+    var lastAccess = fmtTime(f.last_accessed_at);
+    // Card content is not itself a button: preview is an explicit, labelled
+    // action, and every secondary operation lives in the ⋯ menu. This keeps a
+    // single tab stop per action and gives touch/pointer users a 44px target.
     return '' +
       '<div class="session-file-item" data-file-id="' + esc(f.file_id) + '"' +
       '     data-kind="' + esc(kind) + '" data-filename="' + esc(f.filename) + '">' +
-      '  <button type="button" class="session-file-open" onclick="openAccountFilePreview(\'' +
-           esc(f.file_id) + '\')" title="预览 ' + esc(f.filename) + '">' +
+      '  <div class="session-file-open">' +
       '    <span class="session-file-badge k-' + esc(kind) + '">' + esc(label) + '</span>' +
       // 完整文件名始终放在 title 里：卡片里最多两行，超出的部分截断但可悬停看全名
       '    <span class="session-file-name" title="' + esc(f.filename) + '">' + esc(f.filename) + '</span>' +
       '    <span class="session-file-sub">' + esc(fmtSize(f.size_bytes)) +
-             ' · ' + esc(fmtTime(f.created_at)) + '</span>' +
-      '  </button>' +
-      '  <div class="session-file-actions">' +
-           jumpBtn +
-      '    <button type="button" class="session-file-act" onclick="queueAccountFileReference(\'' +
-          esc(f.file_id) + '\')" title="在当前对话中引用" aria-label="引用 ' +
-          esc(f.filename) + '">＋</button>' +
-      (svg
-        ? '    <button type="button" class="session-file-act is-svg" data-file-act="copy-svg" data-file-id="' +
-          esc(f.file_id) + '" title="复制 SVG 源码" aria-label="复制 SVG 源码">⧉</button>'
-        : '') +
-      '    <button type="button" class="session-file-act" data-file-act="export" data-file-id="' +
-           esc(f.file_id) + '" title="导出已有成果" aria-label="导出 ' + esc(f.filename) + '">导出</button>' +
-      '    <button type="button" class="session-file-act" data-file-act="more" data-file-id="' +
-           esc(f.file_id) + '" title="更多操作" aria-label="更多操作" aria-haspopup="menu" aria-expanded="false">⋯</button>' +
-      (deletable
-        ? '<button type="button" class="session-file-act danger" onclick="deleteSessionFile(\'' +
-          esc(f.file_id) + '\')" title="删除此上传文件" aria-label="删除 ' +
-          esc(f.filename) + '">×</button>'
+             ' · 创建 ' + esc(fmtTime(f.created_at) || '—') + '</span>' +
+      (lastAccess
+        ? '    <span class="session-file-last">最近访问 ' + esc(lastAccess) + '</span>'
         : '') +
       '  </div>' +
-      '  <div class="session-file-more" data-file-menu="' + esc(f.file_id) + '" role="menu" hidden>' +
+      '  <div class="session-file-actions">' +
+      '    <button type="button" class="session-file-preview-btn" data-file-act="preview" data-file-id="' +
+           esc(f.file_id) + '" title="预览 ' + esc(f.filename) + '" aria-label="预览 ' +
+           esc(f.filename) + '" aria-haspopup="dialog">预览</button>' +
+      '    <button type="button" class="session-file-ref-pill" data-file-act="reference" data-file-id="' +
+           esc(f.file_id) + '" title="在当前对话中引用" aria-label="引用 ' +
+           esc(f.filename) + '">＋ 引用</button>' +
+      '    <button type="button" class="session-file-act session-file-more-btn" data-file-act="more" data-file-id="' +
+           esc(f.file_id) + '" title="更多操作" aria-label="更多操作（' + esc(f.filename) +
+           '）" aria-haspopup="menu" aria-controls="' + esc(menuId) + '" aria-expanded="false">⋯</button>' +
+      '  </div>' +
+      '  <div class="session-file-more" id="' + esc(menuId) + '" data-file-menu="' + esc(f.file_id) +
+      '" role="menu" aria-label="更多操作" hidden>' +
       '    <button type="button" role="menuitem" data-file-act="info" data-file-id="' + esc(f.file_id) + '">文件信息</button>' +
+      '    <button type="button" role="menuitem" data-file-act="download" data-file-id="' + esc(f.file_id) + '">下载原件</button>' +
+      '    <button type="button" role="menuitem" data-file-act="export" data-file-id="' + esc(f.file_id) + '">导出已有成果</button>' +
       (svg
         ? '    <button type="button" role="menuitem" data-file-act="copy-svg" data-file-id="' + esc(f.file_id) + '">复制 SVG 源码</button>'
         : '') +
-      '    <button type="button" role="menuitem" data-file-act="export" data-file-id="' + esc(f.file_id) + '">导出已有成果</button>' +
-      '    <button type="button" role="menuitem" data-file-act="preview" data-file-id="' + esc(f.file_id) + '">预览</button>' +
+      (jump
+        ? '    <button type="button" role="menuitem" data-file-act="jump" data-file-id="' + esc(f.file_id) + '">定位到来源会话</button>'
+        : '') +
+      // Generated deliverables are owned by the research pipeline: the library
+      // never offers deletion for them. Uploaded files may be removed here.
+      (deletable
+        ? '    <button type="button" role="menuitem" class="danger" data-file-act="delete" data-file-id="' +
+          esc(f.file_id) + '">删除此上传文件</button>'
+        : '') +
       '  </div>' +
       '</div>';
   }
 
   function renderGroup(listEl, groupEl, files) {
-    if (!files || !files.length) { groupEl.hidden = true; listEl.innerHTML = ''; return; }
-    groupEl.hidden = false;
-    listEl.innerHTML = files.map(itemHtml).join('');
+    listEl.replaceChildren();
+    groupEl.hidden = !files.length;
+    if (!files.length) return;
+    var shown = 0, batchSize = 50;
+    var more = document.createElement('button');
+    more.type = 'button';
+    more.className = 'session-file-preview-btn session-file-list-more';
+    more.setAttribute('aria-controls', listEl.id);
+    function appendBatch() {
+      var next = Math.min(shown + batchSize, files.length);
+      var batch = document.createElement('div');
+      batch.innerHTML = files.slice(shown, next).map(itemHtml).join('');
+      var first = batch.querySelector('[data-file-act="preview"]');
+      while (batch.firstChild) listEl.insertBefore(batch.firstChild, more.parentNode ? more : null);
+      shown = next;
+      more.hidden = shown === files.length;
+      if (!more.hidden) more.textContent = '再显示 ' + Math.min(batchSize, files.length - shown) + ' 个文件';
+      return first;
+    }
+    appendBatch();
+    if (more.hidden) return;
+    listEl.appendChild(more);
+    more.addEventListener('click', function () {
+      var first = appendBatch();
+      if (first) first.focus();
+    });
+  }
+
+  function retentionSentence(days) {
+    var n = Math.floor(Number(days) || 0);
+    // The backend expires by per-file inactivity (last_accessed_at), not by a
+    // calendar age: opening the library, previewing, downloading or attaching a
+    // file to a turn all reset the clock. Keep the copy aligned with that.
+    if (n > 0) {
+      return '账号资料库 · 跨会话可引用；打开资料库、预览、下载或引用文件都会重新计时，连续 ' +
+             n + ' 天未使用的文件会自动清理。';
+    }
+    return '账号资料库 · 跨会话可引用；长期未使用的文件会自动清理。';
   }
 
   function renderList(payload) {
     var empty = el('sessionFilesEmpty');
     var up = (payload.uploaded || []).filter(function (f) { return f.visibility !== 'internal'; });
     var gen = (payload.generated || []).filter(function (f) { return f.visibility !== 'internal'; });
+    retentionIdleDays = Math.max(0, Math.floor(Number(payload.retention_idle_days) || 0));
     fileCache = Object.create(null);
     up.concat(gen).forEach(function(file) { fileCache[file.file_id] = file; });
     renderGroup(el('sessionFilesUploaded'), el('sessionFilesUploadedGroup'), up);
@@ -115,13 +174,13 @@
     if (!empty.hidden) empty.textContent = '还没有资料。上传文件和按需生成的文件保存在你的账号资料库中，可在其他会话引用。';
     var retention = el('sessionFilesRetention');
     if (retention) {
-      retention.textContent = payload.retention_idle_days
-        ? '账号资料库 · 文件保留 30 天，可在其他会话中引用。'
-        : '';
+      retention.textContent = retentionSentence(payload.retention_idle_days);
     }
   }
 
   function loadSessionFiles() {
+    var scope = catalogScope;
+    var fetchCatalog = window.accountFetch || fetch;
     var empty = el('sessionFilesEmpty');
     var hasFiles = (el('sessionFilesUploaded') && el('sessionFilesUploaded').children.length)
       || (el('sessionFilesGenerated') && el('sessionFilesGenerated').children.length);
@@ -130,7 +189,7 @@
       empty.classList.remove('session-files-error');
       empty.textContent = '正在加载资料库…';
     }
-    return fetch(apiBase + '/api/v2/files',
+    return fetchCatalog(apiBase + '/api/v2/files',
                  { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
       .then(function (r) {
         if (!r.ok) {
@@ -141,6 +200,7 @@
         return r.json();
       })
       .then(function (d) {
+        if (scope !== catalogScope) return;
         renderList(d || {});
         listLoaded = true;
         decorateTurnCards();
@@ -149,6 +209,7 @@
         return d || {};
       })
       .catch(function (err) {
+        if (scope !== catalogScope || err && err.name === 'AbortError') return;
         var empty = el('sessionFilesEmpty');
         if (empty) {
           empty.hidden = false;
@@ -324,41 +385,248 @@
   }
 
   // 表格预览：浏览器端解析 CSV / XLSX，不经过后端模型。
+  // 上限只在浏览器端生效：超限就明确拒绝解析并要求下载原件，绝不以“截断后
+  // 当作完整表格”展示。XLSX 另有 sheetRows 解析上限，超出部分会在页脚写明。
+  var TABLE_PAGE_ROWS = 100;              // 每批渲染的 DOM 行数（客户端“显示更多”）
+  var TABLE_MAX_RENDERED_ROWS = 2000;     // 单个预览最多留在 DOM 里的数据行数
+  var CSV_MAX_BYTES = 8 * 1024 * 1024;    // CSV/TSV 下载字节上限
+  var XLSX_MAX_BYTES = 16 * 1024 * 1024;  // XLSX 下载字节上限
+  var XLSX_PARSE_ROW_CAP = 2000;          // SheetJS sheetRows 硬上限
+
+  function tooLarge(bytes, limit) {
+    var err = new Error('too-large');
+    err.bytes = Number(bytes) || 0;
+    err.limit = Number(limit) || 0;
+    return err;
+  }
+
+  function mbLabel(bytes) {
+    var mb = (Number(bytes) || 0) / 1048576;
+    return (mb >= 10 ? mb.toFixed(0) : mb.toFixed(1)) + ' MB';
+  }
+
+  function concatChunks(chunks, total) {
+    var out = new Uint8Array(total);
+    var offset = 0;
+    for (var i = 0; i < chunks.length; i++) {
+      out.set(chunks[i], offset);
+      offset += chunks[i].byteLength;
+    }
+    return out.buffer;
+  }
+
+  // 优先流式读取，字节数一到上限就取消连接；没有流式 body 时退回
+  // arrayBuffer 并再核对一次大小。两条路径都保证“超限 = 不解析”。
+  function fetchTableBytes(url, maxBytes) {
+    return fetch(url, { credentials: 'same-origin' })
+      .then(function (r) {
+        if (!r.ok) {
+          var err = new Error('HTTP ' + r.status);
+          err.status = r.status;
+          throw err;
+        }
+        var declared = Number(r.headers && r.headers.get ? r.headers.get('content-length') : 0) || 0;
+        if (declared > maxBytes) throw tooLarge(declared, maxBytes);
+        if (r.body && typeof r.body.getReader === 'function') {
+          var reader = r.body.getReader();
+          var chunks = [];
+          var total = 0;
+          function pump() {
+            return reader.read().then(function (step) {
+              if (step.done) {
+                if (!total) throw new Error('empty');
+                return concatChunks(chunks, total);
+              }
+              var chunk = step.value || new Uint8Array(0);
+              total += chunk.byteLength;
+              if (total > maxBytes) {
+                try { reader.cancel(); } catch (ignore) { /* 连接已中断 */ }
+                throw tooLarge(total, maxBytes);
+              }
+              chunks.push(chunk);
+              return pump();
+            });
+          }
+          return pump();
+        }
+        return r.arrayBuffer().then(function (buf) {
+          if (!buf || !buf.byteLength) throw new Error('empty');
+          if (buf.byteLength > maxBytes) throw tooLarge(buf.byteLength, maxBytes);
+          return buf;
+        });
+      });
+  }
+
+  function tableErrorHtml(src, err, isCsv) {
+    var reason = String((err && err.message) || err);
+    var limit = isCsv ? CSV_MAX_BYTES : XLSX_MAX_BYTES;
+    var message;
+    if (reason === 'too-large') {
+      message = '文件为 ' + mbLabel(err && err.bytes ? err.bytes : limit) +
+        '，超过浏览器端 ' + mbLabel(limit) +
+        ' 的解析上限；为避免显示不完整的数据，未在页面内解析。';
+    } else if (reason === 'empty') {
+      message = '文件内容为空（0 字节），没有可显示的表格。';
+    } else if (err && err.status === 401) {
+      message = '登录后才能预览这个文件。';
+    } else if (err && err.status === 403) {
+      message = '无权访问该文件（它属于其他会话或账号），请联系文件所有者。';
+    } else if (err && err.status === 404) {
+      message = '文件不存在或已被删除，请刷新资料库确认。';
+    } else if (reason.indexOf('HTTP ') === 0) {
+      message = '服务器返回 ' + reason + '，未能读取文件；请稍后重试或下载原件。';
+    } else if (/Failed to fetch|NetworkError|Load failed/i.test(reason)) {
+      message = '网络中断，文件没能下载下来；请检查网络后重试，或下载到本地打开。';
+    } else {
+      message = '表格解析失败，请下载原件查看。';
+    }
+    return '<div class="sf-preview-note">' + esc(message) + '</div>' +
+      '<div class="sf-table-footer"><a class="api-secondary" href="' + esc(src) + '" download>下载原件</a></div>';
+  }
+
   function loadTablePreview(node) {
     var src = node.getAttribute('data-src');
     var name = node.getAttribute('data-name') || '';
     var isCsv = /\.(csv|tsv)$/i.test(name);
     if (!src) return;
-    fetch(src, { credentials: 'same-origin' })
-      .then(function (r) { return r.arrayBuffer(); })
+    fetchTableBytes(src, isCsv ? CSV_MAX_BYTES : XLSX_MAX_BYTES)
       .then(function (buf) {
-        if (isCsv) { renderCsv(node, buf); return; }
+        if (isCsv) { renderCsv(node, buf, name); return; }
         if (window.XLSX) { renderXlsx(node, buf); return; }
         node.innerHTML = '该浏览器未加载表格解析组件。' +
           '<br><a href="' + esc(src) + '" download>下载原件</a>';
       })
-      .catch(function () { node.innerHTML = '读取失败，请下载原件查看。'; });
+      .catch(function (err) {
+        node.innerHTML = tableErrorHtml(src, err, isCsv);
+      });
   }
 
-  function renderCsv(node, buf) {
-    var text = new TextDecoder('utf-8').decode(buf);
-    var rows = text.split(/\r?\n/).filter(function (l) { return l.length; });
-    var limit = Math.min(rows.length, 200);
-    var html = '<table class="sf-table">';
-    for (var i = 0; i < limit; i++) {
-      var cells = rows[i].split(/[,\t]/);
-      html += '<tr>';
-      for (var j = 0; j < cells.length; j++) {
-        html += (i === 0 ? '<th>' : '<td>') + esc(cells[j]) + (i === 0 ? '</th>' : '</td>');
+  // RFC 4180 兼容：双引号包裹的字段里可以有分隔符、换行和成对双引号。
+  // 字段内的换行原样保留在单元格文本里，不会被当成新行拆开。
+  function parseDelimitedText(text, delimiter) {
+    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    var rows = [];
+    var row = [];
+    var field = '';
+    var inQuotes = false;
+    var endedWithBreak = false;
+    for (var i = 0; i < text.length; i++) {
+      var ch = text.charAt(i);
+      if (inQuotes) {
+        if (ch === '"') {
+          if (text.charAt(i + 1) === '"') { field += '"'; i++; }
+          else inQuotes = false;
+        } else {
+          field += ch;
+        }
+        endedWithBreak = false;
+        continue;
       }
-      html += '</tr>';
+      if (ch === '"') {
+        inQuotes = true;
+        endedWithBreak = false;
+      } else if (ch === delimiter) {
+        row.push(field); field = ''; endedWithBreak = false;
+      } else if (ch === '\r' || ch === '\n') {
+        if (ch === '\r' && text.charAt(i + 1) === '\n') i++;
+        row.push(field); rows.push(row);
+        row = []; field = ''; endedWithBreak = true;
+      } else {
+        field += ch;
+        endedWithBreak = false;
+      }
     }
-    html += '</table>';
-    if (rows.length > limit) {
-      html += '<div class="sf-preview-note">仅显示前 ' + limit + ' 行，共 ' +
-              rows.length + ' 行。完整内容请下载原件。</div>';
+    if (!endedWithBreak && (field.length || row.length)) {
+      row.push(field);
+      rows.push(row);
     }
-    node.innerHTML = html;
+    return rows;
+  }
+
+  function csvRowHtml(cells, isHeader) {
+    var tag = isHeader ? 'th' : 'td';
+    var html = '<tr>';
+    for (var i = 0; i < cells.length; i++) {
+      html += '<' + tag + '>' + esc(cells[i]) + '</' + tag + '>';
+    }
+    return html + '</tr>';
+  }
+
+  function renderCsv(node, buf, name) {
+    var delimiter = /\.tsv$/i.test(name) ? '\t' : ',';
+    var text = new TextDecoder('utf-8').decode(buf);
+    var rows = parseDelimitedText(text, delimiter);
+    if (!rows.length) {
+      node.innerHTML = '<div class="sf-preview-note">文件没有可显示的数据行。</div>';
+      return;
+    }
+    node.innerHTML =
+      '<div class="sf-table-wrap"><table class="sf-table"><tbody></tbody></table></div>' +
+      '<div class="sf-table-footer" aria-live="polite">' +
+      '  <span class="sf-table-status"></span>' +
+      '  <button type="button" class="sf-load-more" hidden>再显示</button>' +
+      '</div>';
+    var state = {
+      rows: rows,
+      rendered: 0,
+      tbody: node.querySelector('tbody'),
+      status: node.querySelector('.sf-table-status'),
+      more: node.querySelector('.sf-load-more')
+    };
+    node.__sfCsvState = state;
+    state.more.addEventListener('click', function () {
+      appendCsvRows(node, TABLE_PAGE_ROWS);
+    });
+    appendCsvRows(node, TABLE_PAGE_ROWS);
+  }
+
+  // “显示更多”纯客户端分批：先解析出的行保存在内存里，每次只把下一批写进
+  // DOM。服务器没有分页契约，这里也不声称是服务器分页。
+  function appendCsvRows(node, count) {
+    var state = node.__sfCsvState;
+    if (!state) return;
+    var moreHadFocus = state.more && document.activeElement === state.more;
+    var total = state.rows.length;
+    var limit = Math.min(total, state.rendered + count, TABLE_MAX_RENDERED_ROWS);
+    var html = '';
+    for (var i = state.rendered; i < limit; i++) html += csvRowHtml(state.rows[i], i === 0);
+    if (typeof state.tbody.insertAdjacentHTML === 'function') {
+      state.tbody.insertAdjacentHTML('beforeend', html);   // 追加，不重排已有行
+    } else {
+      state.tbody.innerHTML += html;
+    }
+    state.rendered = limit;
+    updateCsvFooter(node);
+    // The final batch hides the focused button; keep keyboard users in the
+    // table instead of dropping them back to the page body.
+    if (moreHadFocus && state.more.hidden) {
+      var wrap = node.querySelector('.sf-table-wrap');
+      if (wrap) {
+        try {
+          wrap.setAttribute('tabindex', '-1');
+          wrap.focus({ preventScroll: true });
+        } catch (err) { /* 旧浏览器没有 preventScroll */ }
+      }
+    }
+  }
+
+  function updateCsvFooter(node) {
+    var state = node.__sfCsvState;
+    var total = state.rows.length;
+    var remaining = total - state.rendered;
+    if (remaining > 0 && state.rendered < TABLE_MAX_RENDERED_ROWS) {
+      var next = Math.min(TABLE_PAGE_ROWS, remaining, TABLE_MAX_RENDERED_ROWS - state.rendered);
+      state.status.textContent = '浏览器端显示：已渲染 ' + state.rendered + ' / ' + total + ' 行。';
+      state.more.hidden = false;
+      state.more.textContent = '再显示 ' + next + ' 行';
+    } else if (remaining > 0) {
+      state.status.textContent = '浏览器端最多渲染 ' + TABLE_MAX_RENDERED_ROWS +
+        ' 行，剩余 ' + remaining + ' 行未显示；完整内容请下载原件。';
+      state.more.hidden = true;
+    } else {
+      state.status.textContent = '已渲染全部 ' + total + ' 行（浏览器端解析）。';
+      state.more.hidden = true;
+    }
   }
 
   function renderXlsx(node, buf) {
@@ -367,7 +635,11 @@
         type: 'array',
         cellStyles: true,
         cellDates: true,
-        cellNF: false
+        cellNF: false,
+        // Hard parse bound: never let one workbook freeze the page. When the
+        // decoded range reaches this count the footer says so and points to
+        // the original file instead of pretending the sheet is complete.
+        sheetRows: XLSX_PARSE_ROW_CAP
       });
       var sheets = wb.SheetNames || [];
       var tabs = sheets.map(function (n, i) {
@@ -377,6 +649,7 @@
       node.innerHTML = '<div class="sf-sheet-tabs">' + tabs +
         '</div><div class="sf-sheet-body"></div>';
       var body = node.querySelector('.sf-sheet-body');
+      var state = { visibleRows: TABLE_PAGE_ROWS, sheet: '' };
 
       function colorOf(spec) {
         if (!spec || !spec.rgb) return '';
@@ -440,11 +713,18 @@
           tr.addEventListener('click', function () {
             var ref = /^([A-Z]+)(\d+)$/.test(target) ? target : '';
             var rowMatch = target.match(/第\s*(\d+)\s*行/);
+            var rowNum = rowMatch ? parseInt(rowMatch[1], 10)
+              : (ref ? parseInt(ref.replace(/^[A-Z]+/, ''), 10) : 0);
             pendingFocus = {
               sheet: sheetName,
               ref: ref,
               row: rowMatch ? parseInt(rowMatch[1], 10) : 0
             };
+            // Make sure the referenced row is inside the rendered page.
+            if (rowNum > 0) {
+              state.visibleRows = Math.max(state.visibleRows,
+                Math.min(rowNum, XLSX_PARSE_ROW_CAP, TABLE_MAX_RENDERED_ROWS));
+            }
             var tab = null;
             node.querySelectorAll('.sf-sheet-tab').forEach(function (b) {
               if (b.getAttribute('data-sheet') === sheetName) tab = b;
@@ -478,14 +758,20 @@
         window.setTimeout(function () { target.classList.remove('sf-cell-focus'); }, 2400);
       }
 
-      function showSheet(name) {
+      function showSheet(name, focusMore) {
         var ws = wb.Sheets[name];
         if (!ws || !ws['!ref']) {
           body.innerHTML = '<div class="sf-preview-note">该工作表没有可显示的数据区域。</div>';
           return;
         }
+        state.sheet = name;
         var range = window.XLSX.utils.decode_range(ws['!ref']);
-        var limit = Math.min(range.e.r - range.s.r + 1, 200);
+        var totalRows = range.e.r - range.s.r + 1;
+        // sheetRows already caps the parse; visibleRows only decides how much
+        // of that parsed range is in the DOM right now.
+        var visible = Math.min(totalRows, Math.max(1, state.visibleRows || TABLE_PAGE_ROWS),
+          TABLE_MAX_RENDERED_ROWS);
+        var truncatedByCap = totalRows >= XLSX_PARSE_ROW_CAP;
         // Merged ranges: the anchor cell renders with colspan/rowspan; the cells
         // it covers are skipped so the table keeps its real grid shape.
         var anchors = {};
@@ -501,7 +787,7 @@
           }
         });
         var html = '<table class="sf-table sf-table-styled">';
-        for (var r = range.s.r; r < range.s.r + limit; r++) {
+        for (var r = range.s.r; r < range.s.r + visible; r++) {
           html += '<tr>';
           for (var c = range.s.c; c <= range.e.c; c++) {
             if (covered[r + ':' + c]) continue;
@@ -536,15 +822,46 @@
           html += '</tr>';
         }
         html += '</table>';
-        if (range.e.r - range.s.r + 1 > limit) {
-          html += '<div class="sf-preview-note">仅显示前 ' + limit + ' 行，共 ' +
-                  (range.e.r - range.s.r + 1) + ' 行；完整内容请下载原件。</div>';
-        } else if (Object.keys(anchors).length || Object.keys(covered).length) {
+        if (visible < totalRows) {
+          html += '<div class="sf-table-footer" aria-live="polite">' +
+            '<span class="sf-table-status">浏览器端显示：已渲染 ' + visible + ' / ' +
+            totalRows + ' 行' + (truncatedByCap ? '（已达解析上限 ' + XLSX_PARSE_ROW_CAP + ' 行）' : '') +
+            '。' + (truncatedByCap ? '超出部分请下载原件查看。' : '') + '</span>' +
+            '<button type="button" class="sf-load-more">再显示 ' +
+            Math.min(TABLE_PAGE_ROWS, totalRows - visible) + ' 行</button></div>';
+        } else if (truncatedByCap) {
+          html += '<div class="sf-table-footer" aria-live="polite">' +
+            '<span class="sf-table-status">浏览器端最多解析前 ' + XLSX_PARSE_ROW_CAP +
+            ' 行；若表格还有更多行，请下载原件查看完整内容。</span></div>';
+        } else {
+          html += '<div class="sf-table-footer" aria-live="polite">' +
+            '<span class="sf-table-status">已渲染全部 ' + totalRows +
+            ' 行（浏览器端解析）。</span></div>';
+        }
+        if (visible >= totalRows && !truncatedByCap &&
+            (Object.keys(anchors).length || Object.keys(covered).length)) {
           html += '<div class="sf-preview-note">已按原始合并单元格还原显示。</div>';
         }
         body.innerHTML = html;
         if (name === _ISSUE_SHEET) bindIssueList(body);
         applyPendingFocus(body);
+        var moreBtn = body.querySelector('.sf-load-more');
+        if (moreBtn) {
+          moreBtn.addEventListener('click', function () {
+            state.visibleRows = Math.min(totalRows,
+              visible + TABLE_PAGE_ROWS, TABLE_MAX_RENDERED_ROWS);
+            showSheet(name, true);
+          });
+          if (focusMore) {
+            try { moreBtn.focus({ preventScroll: true }); } catch (err) { moreBtn.focus(); }
+          }
+        } else if (focusMore) {
+          // The final page removed the button; keep keyboard users in the sheet.
+          try {
+            body.setAttribute('tabindex', '-1');
+            body.focus({ preventScroll: true });
+          } catch (err) { /* 旧浏览器没有 preventScroll */ }
+        }
       }
 
       node.querySelectorAll('.sf-sheet-tab').forEach(function (btn) {
@@ -553,6 +870,7 @@
             b.classList.remove('active');
           });
           btn.classList.add('active');
+          state.visibleRows = TABLE_PAGE_ROWS;
           showSheet(btn.getAttribute('data-sheet'));
         });
       });
@@ -584,8 +902,7 @@
       copySvgBtn.hidden = !isSvgFile(file);
       copySvgBtn.setAttribute('data-file-id', previewFileId);
     }
-    el('sessionFilePreviewMeta').textContent =
-      '资料库文件 · ' + (KIND_LABEL[displayKind(file)] || '文件');
+    el('sessionFilePreviewMeta').textContent = previewMetaText(file);
     var stage = el('sessionFilePreviewStage');
     stage.innerHTML = previewStageHtml(file);
     var pnode = stage.querySelector('.sf-pdf-wrap');
@@ -964,6 +1281,10 @@
                (file.mime_type ? '（' + file.mime_type + '）' : '')],
       ['大小', fmtSize(file.size_bytes)],
       ['创建时间', fmtTime(file.created_at) || '—'],
+      ['最近访问', fmtTime(file.last_accessed_at) || '—'],
+      ['保留策略', retentionIdleDays
+        ? '连续 ' + retentionIdleDays + ' 天未使用时自动清理；打开、预览、下载或引用会重新计时'
+        : '长期未使用时自动清理；打开、预览、下载或引用会重新计时'],
       ['来源', file.origin === 'generated' ? 'Agent 生成（科研产物）' : '用户上传'],
       ['生成工具', file.producer_tool || '—'],
       ['来源会话', file.source_session_id || '—'],
@@ -1006,8 +1327,7 @@
         copySvgBtn.hidden = !isSvgFile(file);
         copySvgBtn.setAttribute('data-file-id', previewFileId);
       }
-      el('sessionFilePreviewMeta').textContent =
-        '资料库文件 · ' + (KIND_LABEL[displayKind(file)] || '文件');
+      el('sessionFilePreviewMeta').textContent = previewMetaText(file);
       el('sessionFilePreviewStage').innerHTML = fileInfoHtml(file);
       var closeBtn = overlay.querySelector('.overlay-close');
       if (closeBtn && typeof closeBtn.focus === 'function') {
@@ -1019,17 +1339,23 @@
   // 面板有 transform 动画（会成为 fixed 的包含块）、面板与文件项又都是
   // overflow:hidden，菜单挂进 item 里会被裁切/错位。打开时临时挂到 body，
   // 关闭时放回原位，保证下次渲染和 DOM 结构一致。
-  function closeMoreMenus(except) {
+  function closeMoreMenus(except, returnFocus) {
     document.querySelectorAll('.session-file-more').forEach(function (menu) {
       if (except && menu === except) return;
+      var opener = menu.__opener;
       menu.hidden = true;
+      menu.__opener = null;
       if (menu.__homeParent && menu.parentElement === document.body) {
         menu.__homeParent.appendChild(menu);
       }
       menu.__homeParent = null;
       var host = menu.parentElement;
-      var opener = host && host.querySelector('[data-file-act="more"]');
-      if (opener) opener.setAttribute('aria-expanded', 'false');
+      var trigger = host && host.querySelector('[data-file-act="more"]');
+      if (trigger) trigger.setAttribute('aria-expanded', 'false');
+      if (returnFocus && opener && document.contains(opener) &&
+          typeof opener.focus === 'function') {
+        try { opener.focus({ preventScroll: true }); } catch (err) { opener.focus(); }
+      }
     });
   }
 
@@ -1061,6 +1387,7 @@
     var willOpen = menu.hidden;
     closeMoreMenus(menu);
     menu.hidden = !willOpen;
+    menu.__opener = willOpen ? button : null;
     button.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
     if (willOpen) {
       placeMoreMenu(button, menu);
@@ -1201,6 +1528,18 @@
       closeMoreMenus(null);
       return;
     }
+    if (action === 'reference') {
+      event.preventDefault();
+      queueAccountFileReference(fileId);
+      closeMoreMenus(null);
+      return;
+    }
+    if (action === 'delete') {
+      event.preventDefault();
+      closeMoreMenus(null);
+      deleteSessionFile(fileId);
+      return;
+    }
     if (action === 'jump') {
       event.preventDefault();
       resolveFile(fileId).then(function (file) {
@@ -1227,6 +1566,30 @@
   function bindFileActions() {
     document.addEventListener('click', onFileActionClick, false);
     document.addEventListener('keydown', function (event) {
+      var target = event.target;
+      var menu = (target && typeof target.closest === 'function')
+        ? target.closest('.session-file-more') : null;
+      if (menu && !menu.hidden) {
+        var items = Array.prototype.slice.call(menu.querySelectorAll('[role="menuitem"]'));
+        var current = items.indexOf(document.activeElement);
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          closeMoreMenus(null, true);
+          return;
+        }
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp' ||
+            event.key === 'Home' || event.key === 'End') {
+          if (!items.length) return;
+          event.preventDefault();
+          var next = 0;
+          if (event.key === 'End') next = items.length - 1;
+          else if (event.key === 'ArrowDown') next = current < 0 ? 0 : (current + 1) % items.length;
+          else if (event.key === 'ArrowUp') next = current <= 0 ? items.length - 1 : current - 1;
+          try { items[next].focus({ preventScroll: true }); } catch (err) { items[next].focus(); }
+          return;
+        }
+        if (event.key === 'Tab') { closeMoreMenus(null); return; }
+      }
       if (event.key === 'Escape') closeMoreMenus(null);
     });
     // 菜单是 position:fixed，面板滚动/窗口尺寸变化后位置会失效，直接关掉。
@@ -1310,6 +1673,7 @@
   }
 
   window.loadSessionFiles = loadSessionFiles;
+  window.resetSessionFiles = resetSessionFiles;
   window.toggleSessionFiles = toggleSessionFiles;
   window.openSessionFilePreview = openAccountFilePreview;
   window.openAccountFilePreview = openAccountFilePreview;

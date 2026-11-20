@@ -10,12 +10,12 @@
 <script src="/assets/vendor/marked-4.3.0.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/app.css?v=37">
+<link rel="stylesheet" href="/assets/app.css?v=38">
 <link rel="stylesheet" href="/assets/skill-picker.css?v=3">
 <link rel="stylesheet" href="/assets/guide.css?v=3">
   <link rel="stylesheet" href="/assets/mascot.css?v=4">
 <link rel="stylesheet" href="/assets/loading-sprout.css?v=4">
-<link rel="stylesheet" href="/assets/session_files.css?v=3">
+<link rel="stylesheet" href="/assets/session_files.css?v=4">
 <link rel="stylesheet" href="/assets/corpus_reader.css?v=7">
 </head>
 <body>
@@ -24,7 +24,7 @@
   <img class="brand-mascot" src="/assets/citrusscholar-mascot.png" alt="">
   <h1>CitrusScholar</h1>
   <div class="header-actions">
-    <button class="ctx-circle-btn" id="ctxCircleBtn" onclick="toggleCtxDrawer()" title="上下文用量">
+    <button class="ctx-circle-btn" id="ctxCircleBtn" aria-controls="ctxDrawer" aria-expanded="false" onclick="toggleCtxDrawer()" title="上下文用量">
       <svg viewBox="0 0 36 36" width="22" height="22">
         <circle class="ctx-btn-bg" cx="18" cy="18" r="15" />
         <circle class="ctx-btn-fg" id="ctxBtnFg" cx="18" cy="18" r="15" />
@@ -517,7 +517,7 @@
 </div>
 
 <div class="ctx-drawer-backdrop" id="ctxBackdrop" onclick="toggleCtxDrawer()"></div>
-<div class="ctx-drawer" id="ctxDrawer">
+<aside class="ctx-drawer" id="ctxDrawer" aria-label="上下文概览" inert>
   <div class="ctx-drawer-header">
     <div class="ctx-drawer-heading">
       <span class="ctx-drawer-title">上下文概览</span>
@@ -528,12 +528,15 @@
   <div class="ctx-drawer-body">
     <div class="empty-sidebar" id="ctx-empty">等待首次查询…</div>
     <div id="ctx-body" style="display:none">
+      <div class="ctx-model" id="ctxModel">模型未知</div>
       <div class="ctx-overview-total">
         <strong class="ctx-drawer-pct" id="ctx-pct">—</strong>
         <span class="ctx-total-kind" id="ctxTotalKind">等待请求统计</span>
       </div>
       <div class="ctx-bar-label" id="ctxBarLabel">上下文估算暂不可用</div>
-      <div class="ctx-bar-outer" role="progressbar" aria-label="估算输入占模型窗口比例" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="ctx-bar-inner" id="ctxBar"></div></div>
+      <div class="ctx-bar-label" id="ctxInputLimit">工作输入限额：未提供</div>
+      <div class="ctx-grid" id="ctxBar" aria-hidden="true" hidden></div>
+      <p class="ctx-disclosure-note ctx-grid-note" id="ctxGridNote"></p>
       <div class="ctx-items" id="ctxItems" role="table" aria-label="上下文分类估算；百分比以模型窗口为分母"></div>
       <div class="ctx-summary" id="ctxSummary"></div>
       <details class="ctx-disclosure" id="ctxBudgetBlock" hidden>
@@ -542,7 +545,8 @@
         <p class="ctx-disclosure-note">工作输入限额控制单次发送；输出预留是生成上限。它们与任务累计用量分开计算。</p>
       </details>
       <details class="ctx-disclosure" id="ctxUsageBlock" hidden>
-        <summary>此调用尝试的实测用量</summary>
+        <summary>此调用尝试的服务商实测</summary>
+        <p class="ctx-disclosure-note">提示词缓存：<span id="ctxCacheNote">服务商未提供</span></p>
         <div class="ctx-tokens">
           <div class="ctx-token-card">
             <span class="ctx-token-label">服务商输入</span>
@@ -556,6 +560,10 @@
           </div>
         </div>
       </details>
+      <details class="ctx-disclosure" id="ctxAuditBlock" hidden>
+        <summary>本轮调用记录</summary>
+        <ol id="ctxAttempts" class="ctx-attempts"></ol>
+      </details>
       <div class="ctx-suggestions" id="ctxSuggestions"></div>
       <div id="ctxSentBlock">
         <div class="ctx-detail-label" id="ctxSentLabel">实际发送给模型 · 本轮</div>
@@ -568,7 +576,7 @@
       <div class="ctx-compressed" id="ctxCompressed" style="display:none"></div>
     </div>
   </div>
-</div>
+</aside>
 
 
 <template id="loadSproutTpl">
@@ -591,16 +599,16 @@
   </div>
 </template>
 <script src="/assets/guide.js?v=4"></script>
-<script src="/assets/task-state.js?v=8"></script>
+<script src="/assets/task-state.js?v=9"></script>
 <script src="/assets/task-transport.js?v=4"></script>
-<script src="/assets/task-cards.js?v=6"></script>
+<script src="/assets/task-cards.js?v=7"></script>
 <script src="/assets/task-controls.js?v=3"></script>
 <script src="/assets/skill-picker.js?v=4"></script>
-<script src="/assets/app.js?v=56"></script>
+<script src="/assets/app.js?v=57"></script>
 <script src="/assets/corpus_reader.js?v=7"></script>
 <script src="/assets/turn_rail.js?v=3"></script>
   <script src="/assets/mascot.js?v=4"></script>
 <script src="/assets/xlsx.full.min.js?v=1"></script>
-<script src="/assets/session_files.js?v=5"></script>
+<script src="/assets/session_files.js?v=6"></script>
 </body>
 </html>

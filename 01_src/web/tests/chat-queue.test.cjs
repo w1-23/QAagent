@@ -189,7 +189,8 @@ test('a queued turn reports its position and only follows the job after dispatch
   const body = JSON.parse(post.opts.body);
   b.respond(r => r.opts.method === 'POST', turnEntry({client_request_id: body.client_request_id, queue_position: 3}), 202);
   await flush();
-  assert.match(b.chatContainer.querySelector('.turn-queue-state').textContent, /前面还有 2 条/);
+  assert.match(b.chatContainer.querySelector('.turn-queue-state').textContent, /第 3 位/);
+  assert.notEqual(b.chatContainer.querySelector('.research-task-line').dataset.state, 'waiting');
   assert.equal(b.requests.filter(r => r.url.includes('/events?after=0')).length, 0);
 
   await b.runTimers();
@@ -205,7 +206,9 @@ test('a queued turn reports its position and only follows the job after dispatch
   await flush();
   b.respond(r => r.url === '/jobs/root-2', {job_id: 'root-2', status: 'running', event_cursor: 1});
   await flush();
-  assert.match(b.chatContainer.querySelector('.turn-queue-state').textContent, /执行中/);
+  assert.equal(b.chatContainer.querySelector('.turn-queue-state').hidden, true);
+  assert.equal(b.chatContainer.querySelector('.research-task-line').dataset.state, 'waiting');
+  assert.match(b.chatContainer.querySelector('.research-task-elapsed').textContent, /等待开始时间/);
   assert.equal(b.requests.filter(r => r.url.includes('/updates')).length, 0);
 });
 

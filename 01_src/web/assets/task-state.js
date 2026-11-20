@@ -86,6 +86,31 @@
     }
     return {entries: entries, note: note, action: action, plan: plan, resolution: resolution, currentPlan: function () { return currentPlan; }};
   }
+  // Presentation only: queue and job state remain authoritative. Time starts at
+  // the durable execution stamp, never at submission or observer attachment.
+  function waitingView(state, entry, ui) {
+    var status = state.status, phase = entry && entry.state;
+    var terminalStatus = state.display_status || (terminal.indexOf(status) >= 0 ? status : '');
+    var jobMatches = !entry || state.job_id === (entry.active_child_job_id || entry.job_id);
+    if (entry && !jobMatches) terminalStatus = '';
+    var start = jobMatches && state.started_at || (entry && !entry.active_child_job_id ? entry.started_at : 0);
+    var execution = jobMatches && (status === 'running' || status === 'detached') || phase === 'running' && Number(start) > 0;
+    var result = {kind: '', start: 0, finish: 0};
+    if (phase === 'queued' || phase === 'claimed' || phase === 'reconcile_required') return result;
+    if (terminalStatus || phase === 'terminal') {
+      result.kind = terminalStatus || (entry.clear_reason === 'cancelled' ? 'cancelled' : entry.clear_reason ? 'failed' : '');
+      result.start = Number(start) || 0;
+      result.finish = Number(jobMatches && state.finished_at || entry && entry.finished_at) || 0;
+    } else if (ui.stopping || jobMatches && status === 'cancel_requested') result.kind = 'stopping';
+    else if (ui.disconnected) result.kind = 'disconnected';
+    else if (phase === 'awaiting_input' || jobMatches && (status === 'awaiting_input' || state.question && state.question.status === 'pending' || list(state.approvals).some(function (item) { return item.status === 'pending'; }))) result.kind = 'awaiting_input';
+    else if (phase === 'settling' || jobMatches && status === 'settling') result.kind = 'settling';
+    else if (execution && !ui.hasAnswer) {
+      result.kind = ui.activeTool ? 'tool' : 'waiting';
+      result.start = Number(start) || 0;
+    }
+    return result;
+  }
   function newerQuestion(previous, incoming) {
     if (!incoming || !incoming.id) return previous;
     if (previous && previous.id === incoming.id) {
@@ -98,7 +123,22 @@
   // can attach only to the exact logical-call/attempt pair that produced it.
   function createContext(options) {
     options = options || {};
-    var records = new Map(), latest = '', latestSeq = 0, legacy = null, loadStatus = 'unknown';
+    var records = new Map(), latest = '', legacy = null, legacySeq = 0, loadStatus = 'unknown', loadSeq = 0, view = null;
+    function changed() { view = null; return current(); }
+    function selectLatest() {
+      var admitted = new Set(), selected;
+      latest = '';
+      records.forEach(function (record) {
+        if (record.snapshot && record.snapshot.attempt_id) admitted.add(record.snapshot.logical_call_id);
+      });
+      records.forEach(function (record, key) {
+        var snapshot = record.snapshot;
+        if (!snapshot || !snapshot.attempt_id && admitted.has(snapshot.logical_call_id)) return;
+        if (!selected || record.firstSeq >= selected.firstSeq) {
+          selected = record; latest = key;
+        }
+      });
+    }
     function trim() {
       if (records.size > 64) {
         var oldest = Array.from(records.keys()).find(function (id) { return id !== latest; });
@@ -116,74 +156,100 @@
       // later valid event must never reveal a previously rejected snapshot.
       if (options.request_id && data.request_id && data.request_id !== options.request_id ||
           options.session_id && data.session_id && data.session_id !== options.session_id) return current();
-      if (data.history_load_status) loadStatus = data.history_load_status;
+      if (data.history_load_status && (data.seq || 0) >= loadSeq) {
+        loadStatus = data.history_load_status; loadSeq = data.seq || 0;
+      }
       if (type === 'context_usage') {
         var usageKey = identity(data), record = records.get(usageKey);
         if (!usageKey || !data.attempt_id || !data.call || data.scope !== 'single_call') return current();
         // Do not select a call just because its response arrived last.
         if (!record) { record = {}; records.set(usageKey, record); }
-        var knownSeq = Math.max(record.usageSeq || 0, record.snapshot && record.snapshot.seq || 0);
-        // Hydration may already include a later settled observation. Replaying
-        // older usage must not replace it, even before the store catches up.
-        if (knownSeq && (!data.seq || data.seq <= knownSeq)) return current();
+        // A later snapshot without counters does not supersede reported usage.
+        if (record.usageSeq && (!data.seq || data.seq <= record.usageSeq)) return current();
         record.usageSeq = data.seq || 0;
         record.usage = Object.assign({}, data.call, {logical_call_id: data.logical_call_id, attempt_id: data.attempt_id, scope: 'single_call'});
         if (record.snapshot) record.snapshot = Object.assign({}, record.snapshot, {provider_usage: record.usage, usage_status: 'reported'});
         trim();
-        return current();
+        return changed();
       }
       if (['context_snapshot', 'context_budget', 'context_status'].indexOf(type) < 0) return current();
       var key = identity(data);
       if (!key) {
         // Old rows can be displayed as historical estimates, never relabelled
         // as the current complete model request or joined to unrelated usage.
+        if (legacySeq && (data.seq || 0) < legacySeq) return current();
+        legacySeq = data.seq || 0;
         legacy = Object.assign({}, data, {estimate_scope: 'historical_estimate',
           estimate_label: '历史估算（缺少调用身份）', provider_usage: {}, usage_status: 'unknown',
           estimated_tokens: data.estimated_input_tokens != null ? data.estimated_input_tokens : data.estimated_tokens,
           model_window: data.model_window || null, history_load_status: data.history_load_status || loadStatus});
-        return current();
+        return changed();
       }
       var previous = records.get(key);
-      if (previous && previous.snapshot && previous.snapshot.seq && (!data.seq || previous.snapshot.seq > data.seq)) return current();
+      if (previous && previous.snapshot && previous.snapshot.seq && (!data.seq || previous.snapshot.seq > data.seq)) {
+        if (data.seq && data.seq < previous.firstSeq) {
+          previous.firstSeq = data.seq; selectLatest(); return changed();
+        }
+        return current();
+      }
+      // Replayed starts cannot erase a settled snapshot hydrated from storage.
+      if (previous && previous.snapshot && ['complete', 'failed', 'cancelled'].indexOf(previous.snapshot.status) >= 0 &&
+          ['estimated', 'running', 'admitted'].indexOf(data.status) >= 0) return current();
       var snapshot = Object.assign({}, data, {
         estimated_tokens: data.estimated_input_tokens != null ? data.estimated_input_tokens : data.estimated_tokens,
         model_window: data.model_window || null, history_load_status: data.history_load_status || loadStatus
       });
       var usage = data.provider_usage || data.usage;
-      if (previous && previous.usageSeq > (data.seq || 0)) {
-        // A response can arrive before its older snapshot. The snapshot's
-        // embedded usage has that snapshot's seq, not the newer response's.
-        snapshot.provider_usage = previous.usage || {};
-        snapshot.usage_status = 'reported';
-      } else if (usage && usage.logical_call_id === data.logical_call_id && usage.attempt_id === data.attempt_id) {
+      var usageSeq = previous && previous.usageSeq || 0;
+      if (data.attempt_id && usage && usage.logical_call_id === data.logical_call_id && usage.attempt_id === data.attempt_id &&
+          (data.seq || 0) >= usageSeq) {
         snapshot.provider_usage = Object.assign({}, usage);
-      } else snapshot.provider_usage = previous && previous.usage || {};
-      // Replayed starts cannot erase a settled snapshot hydrated from storage.
-      if (previous && previous.snapshot && ['complete', 'failed', 'cancelled'].indexOf(previous.snapshot.status) >= 0 &&
-          ['estimated', 'running', 'admitted'].indexOf(snapshot.status) >= 0) return current();
-      records.set(key, {snapshot: snapshot, usage: snapshot.provider_usage,
-        usageSeq: Math.max(data.seq || 0, previous && previous.usageSeq || 0)});
-      // Selection follows authoritative snapshot order, matching the durable
-      // job projection; a usage-only response never changes the selected call.
-      if (!latestSeq || data.seq >= latestSeq) { latest = key; latestSeq = data.seq || 0; }
-      trim();
-      return current();
+        usageSeq = data.seq || 0;
+      } else {
+        snapshot.provider_usage = previous && previous.usage || {};
+        if (Object.keys(snapshot.provider_usage).length) snapshot.usage_status = 'reported';
+      }
+      var first = previous && previous.firstSeq;
+      records.set(key, {snapshot: snapshot, usage: snapshot.provider_usage, usageSeq: usageSeq,
+        firstSeq: first && data.seq ? Math.min(first, data.seq) : first || data.seq || 0});
+      selectLatest(); trim();
+      return changed();
     }
-    function current() { var record = records.get(latest); return record && record.snapshot || legacy; }
+    function current() {
+      if (view) return view;
+      var record = records.get(latest);
+      if (!record || !record.snapshot) return legacy;
+      var attempts = Array.from(records.values()).filter(function (row) { return row.snapshot && row.snapshot.attempt_id; })
+        .sort(function (a, b) { return a.firstSeq - b.firstSeq; }).map(function (row) {
+          var item = row.snapshot;
+          return {logical_call_id: item.logical_call_id, attempt_id: item.attempt_id, status: item.status,
+            model: item.model, change_reason: item.change_reason, estimated_tokens: item.estimated_tokens, seq: row.firstSeq};
+        });
+      view = Object.assign({}, record.snapshot, {observed_attempts: attempts});
+      return view;
+    }
     return {receive: receive, current: current};
   }
   function create(options) {
     options = options || {};
-    var state = {job_id: '', cursor: 0, task_version: 0, applied_version: 0, status: '',
+    var state = {job_id: '', cursor: 0, task_version: 0, applied_version: 0, status: '', started_at: 0, finished_at: 0,
       display_status: '', terminal_snapshot: null, question: null, pending_updates: [], not_applied_updates: [], operations: [], approvals: []};
     var pending = new Map(), subscribers = [], context = createContext(options);
     state.context_snapshot = null;
     function notify() { subscribers.slice().forEach(function (fn) { fn(state); }); }
+    function recordTimes(data) {
+      // The execution clock accepts epoch seconds. Legacy local ISO strings
+      // do not establish a timezone or an execution start.
+      ['started_at', 'finished_at'].forEach(function (key) {
+        if (Number.isFinite(data[key]) && data[key] > 0) state[key] = data[key];
+      });
+    }
     function hydrate(job) {
       if (!job || job.job_id && state.job_id && job.job_id !== state.job_id) return false;
       if (Number.isSafeInteger(job.event_cursor) && job.event_cursor < state.cursor) return false;
       if (Number.isSafeInteger(job.task_version) && job.task_version < state.task_version) return false;
       if (job.job_id) state.job_id = String(job.job_id);
+      recordTimes(job);
       ['task_version', 'applied_version'].forEach(function (key) {
         if (Number.isSafeInteger(job[key]) && job[key] >= state[key]) state[key] = job[key];
       });
@@ -213,6 +279,7 @@
       if (data.question) state.question = newerQuestion(state.question, data.question);
       if (data.turn_envelope && data.turn_envelope.display_status === 'awaiting_input' && !state.display_status) state.status = 'awaiting_input';
       if (data.job_id) state.job_id = String(data.job_id);
+      recordTimes(data);
       ['task_version', 'applied_version'].forEach(function (key) {
         if (Number.isSafeInteger(data[key])) state[key] = Math.max(state[key], data[key]);
       });
@@ -289,7 +356,7 @@
     }
     function reset(jobId) {
       pending.clear(); context = createContext(options); state.context_snapshot = null;
-      Object.assign(state, {job_id: jobId, cursor: 0, task_version: 0, applied_version: 0, status: '',
+      Object.assign(state, {job_id: jobId, cursor: 0, task_version: 0, applied_version: 0, status: '', started_at: 0, finished_at: 0,
         display_status: '', terminal_snapshot: null, question: null, approvals: [], operations: [], pending_updates: [], not_applied_updates: []});
     }
     return {state: state, receive: receive, hydrate: hydrate,
@@ -298,7 +365,7 @@
       resetJob: function (jobId) { reset(jobId); notify(); },
       clear: function () { subscribers.length = 0; reset(''); }};
   }
-  root.CitrusTaskState = {create: create, createProcess: createProcess, createContext: createContext, displayStatus: displayStatus,
+  root.CitrusTaskState = {create: create, createProcess: createProcess, createContext: createContext, waitingView: waitingView, displayStatus: displayStatus,
     snapshotStatus: snapshotStatus, isTerminal: function (state) { return terminal.indexOf(state.display_status) >= 0; },
     resumable: function (state) { return list(state.operations).filter(function (op) {
       return op.resumable === true && op.status === 'interrupted' && ['local_read', 'pure_computation'].indexOf(op.recovery_mode) >= 0;
