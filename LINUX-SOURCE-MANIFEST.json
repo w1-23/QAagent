@@ -328,12 +328,12 @@
       "sha256": "108c81aec23ad723ade3e423bd5ce33f5dfd33649ff3452c448e2bcafc286ec2"
     },
     "01_src/src/auth_invites.py": {
-      "bytes": 17673,
-      "sha256": "e6279435f8fed13dad085834b91107dea78fcd1e0aa7610307f806da9aaca3c9"
+      "bytes": 17839,
+      "sha256": "7866f421e0e17fe52449029c94b6b309d80dddc84f3e4dd5b1a72063b4124bff"
     },
     "01_src/src/auth_invites_test.py": {
-      "bytes": 43364,
-      "sha256": "cd3a31be59e77c23a3c2c06d10104b2a0b8f914ac65630fcf112fda7aae2b90f"
+      "bytes": 43944,
+      "sha256": "3f25d1e26809081ead88a73bfb49ad8753f063d9973db2f74d8b9213fcb234ac"
     },
     "01_src/src/auth_migrations.py": {
       "bytes": 5581,
@@ -1888,8 +1888,8 @@
       "sha256": "483c89b3d5cd0790f3636bdbc74d859b7c88efdb826ced19773cf8189da6e79b"
     },
     "docs/audits/invite-nature-acceptance.md": {
-      "bytes": 18199,
-      "sha256": "8c691c0099473cdf1601e0d7691b25b69e7b803b768701e3c85da005c801bdfe"
+      "bytes": 18265,
+      "sha256": "051cd4d8076a1e2cf849f3a0122db3966662824d3fa6e4f12be6ce89c5246270"
     },
     "docs/audits/nature-inventory.md": {
       "bytes": 29966,

@@ -17,7 +17,9 @@ import sqlite3
 from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping
 
-INVITE_CODE_RE = re.compile(r"[A-Za-z0-9_-]{32}")
+# A local operator may seed a six-letter code for a private trial. Issuance
+# through the normal admin API and CLI still generates 32 random characters.
+INVITE_CODE_RE = re.compile(r"(?:[A-Za-z0-9_-]{32}|[A-Z]{6})")
 
 _APPLICATION_FIELDS = (
     "application_id", "user_id", "username", "avatar_preset", "status",

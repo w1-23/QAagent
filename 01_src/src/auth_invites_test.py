@@ -364,6 +364,19 @@ def test_issue_invite_returns_high_entropy_code_and_stores_only_digest(db):
     assert issued["code"] not in json.dumps(metadata)
 
 
+def test_locally_seeded_six_letter_invite_is_single_use(db):
+    _insert_user(db.conn, "admin", role="admin")
+    issued = _issue(db.conn)
+    short_code = "ABCDEF"
+    db.conn.execute("UPDATE account_invites SET code_hash=? WHERE invite_id=?",
+                    (hashlib.sha256(short_code.encode()).hexdigest(), issued["invite_id"]))
+
+    assert _submit(db.conn, short_code)["status"] == "pending"
+    with pytest.raises(auth_invites.AccountInviteError) as second:
+        _submit(db.conn, short_code, username="second-user")
+    assert second.value.code == "invalid_invite"
+
+
 @pytest.mark.parametrize("days", [1, 30])
 def test_issue_invite_accepts_whole_day_bounds(db, days):
     _insert_user(db.conn, "admin", role="admin")
