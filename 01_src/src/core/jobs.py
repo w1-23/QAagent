@@ -195,6 +195,25 @@ def claim_job(session_id: str, request_id: str, job_type: str = "chat", *,
         return JobClaim(created=True, job=dict(row))
 
 
+def cancel_queued_job(conn, job_id: str, *, reason: str = "turn_queue_cancelled") -> bool:
+    """CAS a still-queued root job to cancelled inside the caller's transaction.
+
+    The durable turn queue owns the transaction (and therefore the SQLite write
+    lock). This helper must not open a connection or take ``_write_lock``; it
+    applies the same terminal semantics as ``update_job`` without calling any
+    stop or recovery path. Returns whether this call performed the transition.
+    """
+    if not job_id:
+        return False
+    now = datetime.now().isoformat()
+    cursor = conn.execute(
+        "UPDATE task_jobs SET status='cancelled', current_step='cancelled', "
+        "stop_reason=?, updated_at=?, finished_at=? "
+        "WHERE job_id=? AND status='queued'",
+        (str(reason or ""), now, now, job_id))
+    return bool(cursor.rowcount)
+
+
 def create_job(session_id: str, request_id: str, job_type: str = "chat") -> str:
     """创建 job（每个 expert 请求一个；write 类工具执行时升级 job_type='write'）。"""
     job_id = uuid.uuid4().hex[:12]

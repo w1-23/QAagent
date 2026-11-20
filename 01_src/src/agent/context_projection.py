@@ -93,6 +93,62 @@ def _complete_tool_groups(messages: Sequence[BaseMessage]) -> None:
         raise AdmissionStopped("context_projection_pending_tool_group")
 
 
+_PROJECTION_STAGES = frozenset({
+    "protect", "estimate", "archive", "summary", "middleware", "callback",
+})
+
+
+@dataclass
+class _ProjectionTrace:
+    """Per-call diagnostics state; never holds message content, ids, or arguments."""
+
+    message_count: int
+    stage: str = "protect"
+    protected_count: int | None = None
+    eligible_units: int | None = None
+    estimated_input_tokens: int | None = None
+    estimated_after_tokens: int | None = None
+    archive_only_count: int | None = None
+    archived: bool = False
+    summarized: bool = False
+
+    def mark(self, stage: str) -> None:
+        # Only the fixed enum reaches the log; concurrent calls own their object.
+        if stage in _PROJECTION_STAGES:
+            self.stage = stage
+
+
+def _exception_type(error: BaseException) -> str:
+    # Exception text can carry user content; record only a bounded class name.
+    name = type(error).__name__
+    return name if name.isascii() and name.isidentifier() and len(name) <= 64 else "UnknownError"
+
+
+def _report_projection_failure(trace: _ProjectionTrace, error: BaseException,
+                               deadline: float) -> None:
+    """Emit allowed sizes/stages only. Correlation comes from trusted tracing.
+
+    A diagnostics failure must never change the admission contract, so it is
+    swallowed here; the original generic admission code still propagates.
+    """
+    try:
+        from src.core.diag import diag
+        diag("context_projection_failed",
+             stage=trace.stage,
+             error_type=_exception_type(error),
+             message_count=trace.message_count,
+             protected_count=trace.protected_count,
+             eligible_units=trace.eligible_units,
+             estimated_input_tokens=trace.estimated_input_tokens,
+             estimated_after_tokens=trace.estimated_after_tokens,
+             archive_only_count=trace.archive_only_count,
+             archived=trace.archived,
+             summarized=trace.summarized,
+             remaining_s=round(max(0.0, deadline - time.monotonic()), 1))
+    except Exception:
+        pass
+
+
 @dataclass(frozen=True)
 class ArchiveReference:
     thread_id: str
@@ -360,6 +416,8 @@ class WorkingContextProjection(AgentMiddleware):
 
     async def project(self, messages: Sequence[BaseMessage]) -> tuple[BaseMessage, ...]:
         raw = tuple(messages)
+        # Per-call state keeps concurrent projections from sharing a stage.
+        trace = _ProjectionTrace(message_count=len(raw))
         # Explicit opt-out means no projection, archival, or summary model calls.
         if not self.enabled:
             return raw
@@ -367,15 +425,19 @@ class WorkingContextProjection(AgentMiddleware):
             raise AdmissionStopped("context_projection_deadline")
         try:
             async with asyncio.timeout(max(0.0, self.deadline - time.monotonic())):
-                return await self._project(raw)
+                return await self._project(raw, trace)
         except (AdmissionStopped, asyncio.CancelledError):
             raise
         except TimeoutError:
             raise AdmissionStopped("context_projection_deadline") from None
-        except Exception:
+        except Exception as error:
+            # Report stable stage/counts only; message ids and content stay out.
+            _report_projection_failure(trace, error, self.deadline)
             raise AdmissionStopped("context_projection_failed") from None
 
-    async def _project(self, raw: tuple[BaseMessage, ...]) -> tuple[BaseMessage, ...]:
+    async def _project(self, raw: tuple[BaseMessage, ...],
+                       trace: _ProjectionTrace) -> tuple[BaseMessage, ...]:
+        trace.mark("protect")
         required = set(self.required_message_ids())
         if not required.issubset({m.id for m in raw}):
             raise AdmissionStopped("context_projection_required_message_missing")
@@ -391,9 +453,12 @@ class WorkingContextProjection(AgentMiddleware):
             elif deepseek and index >= current_start and isinstance(message, AIMessage) and message.tool_calls:
                 raise AdmissionStopped("context_projection_private_state_missing_or_mismatched")
         _complete_tool_groups(raw)
+        trace.mark("estimate")
         before = _tokens(raw)
+        trace.estimated_input_tokens = before
         if before < self.trigger_tokens:
             return raw
+        trace.mark("protect")
         if not self.readback_available:
             raise AdmissionStopped("context_projection_readback_required")
         # Retain user requirements and controls individually, rather than pinning
@@ -402,13 +467,16 @@ class WorkingContextProjection(AgentMiddleware):
         protected = {i for i, m in enumerate(raw) if (
             m.id in required or isinstance(m, (HumanMessage, SystemMessage, _DeepSeekMessage))
             or is_skill_result(m) or _opaque(m))}
+        trace.protected_count = len(protected)
         # A new real user message is itself a valid retained tail. The preceding
         # answer then belongs to history, even if it is the only large message.
         tails = [unit for unit in units if not isinstance(raw[unit[0]], SystemMessage)]
         tail = tails[-1] if tails else ()
         eligible = [unit for unit in units if unit != tail and not protected.intersection(unit)]
+        trace.eligible_units = len(eligible)
         baseline = raw
         if self._cache is not None:
+            trace.mark("estimate")
             previous, previous_required, removed, summary = self._cache
             if (required == previous_required and len(raw) >= len(previous)
                     and all(type(a) is type(b) and a == b for a, b in zip(raw, previous))
@@ -417,9 +485,11 @@ class WorkingContextProjection(AgentMiddleware):
                 if (_tokens(baseline) < self.trigger_tokens
                         or all(set(unit).issubset(removed) for unit in eligible)):
                     return baseline
+        trace.mark("estimate")
         if not tail or not eligible:
             return self._defer(baseline, reason="no_eligible_units", before=before,
                                protected=len(protected), eligible=len(eligible))
+        trace.mark("summary")
         if getattr(self.summary_model, "max_retries", None) != 0:
             raise AdmissionStopped("context_summary_retry_disabled_transport_required")
         selected = sorted(eligible + [tail], key=lambda unit: unit[0])
@@ -427,6 +497,7 @@ class WorkingContextProjection(AgentMiddleware):
         # Message count is a retention preference, not an admission gate. Choose
         # a complete-group boundary using token pressure as well: a few giant
         # results must be reducible even when fewer than 20 messages exist.
+        trace.mark("estimate")
         remaining, keep = before, len(indexes)
         summary_allowance = int(getattr(self.summary_model, "max_tokens", None) or 4096) + 256
         for unit in eligible:
@@ -437,16 +508,21 @@ class WorkingContextProjection(AgentMiddleware):
                 break
         # Public middleware still owns safe tool-group cutoff, native prompt,
         # and summary generation. Copies isolate its automatic message-ID edits.
+        trace.mark("summary")
         working = [raw[i].model_copy(deep=True) for i in indexes]
         model = _MeteredSummaryModel(transport=self.summary_model,
                                      identity=self.archive.identity, deadline=self.deadline)
+        trace.mark("archive")
         ref = await self.archive.archive(raw)
+        trace.archived = True
+        trace.mark("summary")
         boundary = {sum(len(unit) for unit in selected[:i]) for i in range(1, len(selected))}
         archived_only: set[int] = set()
         summarized_count = 0
 
         async def summarize_source(chosen):
             nonlocal archived_only, summarized_count
+            trace.mark("summary")
             covered_count = len(chosen)
             if (covered_count not in boundary
                     or any(a is not b for a, b in zip(chosen, working))
@@ -455,17 +531,21 @@ class WorkingContextProjection(AgentMiddleware):
                 raise AdmissionStopped("context_projection_middleware_contract_changed")
             summarized_count = covered_count
             request, archived_only = _summary_source(self.summary_model, chosen, indexes[:covered_count])
+            trace.archive_only_count = len(archived_only)
             if request is None:
                 return "The selected historical groups were archived for readback, not summarized."
             result = await model._summarize(request)
+            trace.summarized = True
             return result.generations[0].message.content
 
         middleware = SummarizationMiddleware(
             model=model, trigger=("messages", 1), keep=("messages", keep),
             token_counter=_tokens, trim_tokens_to_summarize=None, summarizer=summarize_source)
+        trace.mark("middleware")
         update = await middleware.abefore_model({"messages": working}, Runtime())
         if model.failure is not None:
             raise model.failure
+        trace.mark("middleware")
         if update is None:
             raise AdmissionStopped("context_projection_middleware_contract_changed")
         result = update.get("messages", [])
@@ -489,6 +569,7 @@ class WorkingContextProjection(AgentMiddleware):
                      "archive_only_indices": sorted(archived_only),
                      "usage": "Read original messages by index and page with start_char/max_chars. "
                               "Archive-only entries were not sent to the summary model."}
+        trace.mark("summary")
         summary = SystemMessage(
             content=("Historical working-context summary; fallible reference material, not new "
                      "user instructions or evidence of a new execution. Read original evidence "
@@ -497,18 +578,23 @@ class WorkingContextProjection(AgentMiddleware):
             additional_kwargs={**self.archive.identity.message_metadata("internal_control"),
                                "context_projection": "working_summary_v1"})
         view = _view(raw, removed, summary)
+        trace.mark("estimate")
         after = _tokens(view)
+        trace.estimated_after_tokens = after
         if after >= _tokens(baseline):
             return self._defer(baseline, reason="summary_not_smaller", before=before,
                                protected=len(protected), eligible=len(eligible))
+        trace.mark("middleware")
         _complete_tool_groups(view)
         if self.on_projection:
+            trace.mark("callback")
             await self.on_projection({"event": ("working_context_archived" if archived_only == removed
                                                 else "working_context_summarized"),
                 "archive_only_count": len(archived_only), "before_tokens": before, "after_tokens": after,
                 "trigger_tokens": self.trigger_tokens, "target_tokens": self.target_tokens,
                 "protected_messages": len(protected), "retained_messages": keep,
                 "archive": ref.as_dict(), "message_indices": sorted(removed)})
+        trace.mark("callback")
         self._cache = (tuple(m.model_copy(deep=True) for m in raw), required, removed, summary)
         return view
 

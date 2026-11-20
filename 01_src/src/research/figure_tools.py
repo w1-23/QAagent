@@ -359,6 +359,9 @@ def _run_research_figure_script(
 
     首选的科研绘图路径，配合 figure-export 的 nature-figure 工作流。
     仅在服务端已配置隔离沙箱时可用；未配置时本工具不会出现。
+    三种隔离环境：Docker、WSL-Docker、Apptainer；脚本仍不联网、不建子进程。
+    工作簿请先只读探查：用 inspect_uploaded_table 查看工作表、列名、类型和少量样例，
+    不要把整本工作簿、全表或分页内容写进脚本字面量；预览截短不代表源数据截短。
     Matplotlib 和产生 Matplotlib Artist 的 Seaborn 均支持，不承诺其他后端。
     先按已加载的 figure-export/nature-figure 工作流确定问题、变量与单位；
     高唯一率编号不默认作处理组，不能默取第一数值列或截前 N 行。多指标按
@@ -669,7 +672,8 @@ def run_research_figure_script(
     # Repair options are inherited from a retained run by script_runtime and
     # checked again by the execution adapter before snapshotting or dispatch.
     from src.figures.spec import parse_qa_profile
-    from src.figures.script_outputs import normalize_output_contract
+    from src.figures.script_outputs import (RenderScriptEmitUnavailable,
+                                            normalize_output_contract)
     try:
         parse_qa_profile(_json_arg(qa_profile_json, "qa_profile_json"))
         normalize_output_contract(_json_arg(outputs_json, "outputs_json"))
@@ -678,8 +682,17 @@ def run_research_figure_script(
                 or any(not isinstance(fmt, str) or fmt.lower().strip() not in FIGURE_FORMATS for fmt in formats)):
             raise ToolArgumentError("formats_json 需要 svg、png、pdf 的 JSON 数组。")
     except (ValueError, TypeError) as exc:
-        payload = {"error": f"绘图参数未通过执行前校验：{exc}", "_tool_outcome": {
-            "status": "not_run", "reason_code": "script_execution_rejected", "artifacts": []}}
+        if isinstance(exc, RenderScriptEmitUnavailable):
+            # Pure, repeatable rejection: no script save, run reservation or
+            # worker dispatch. The execution ledger still records not_run.
+            payload = {"error": f"[RENDER_SCRIPT_EMIT_NOT_AVAILABLE] {exc}",
+                       "error_code": "render_script_emit_not_available",
+                       "_tool_outcome": {"status": "not_run",
+                                         "reason_code": "script_execution_rejected",
+                                         "artifacts": []}}
+        else:
+            payload = {"error": f"绘图参数未通过执行前校验：{exc}", "_tool_outcome": {
+                "status": "not_run", "reason_code": "script_execution_rejected", "artifacts": []}}
         from src.research.script_reconciliation import observe_preflight_rejection
         observe_preflight_rejection(payload)
         return json.dumps(payload, ensure_ascii=False), payload

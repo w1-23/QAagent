@@ -26,6 +26,7 @@ from src.figures.core import capture_outputs
 from src.figures.dataset_codec import decode_frame
 from src.figures.nature_receipts import validate_nature_receipt
 from src.figures.script_outputs import (normalize_output_contract, output_slots,
+                                        render_script_emit_line,
                                         strict_json, validate_receipt)
 from src.research.script_presets import get_preset, list_presets
 
@@ -88,6 +89,7 @@ class NaturePresetCatalogTests(unittest.TestCase):
             figure = contract["figures"][0]
             self.assertTrue(figure["render_script"].strip())
             self.assertNotIn("parameters", figure["render_script"])
+            self.assertIsNone(render_script_emit_line(figure["render_script"]))
             self.assertNotIn("load_dataset", figure["render_script"])
             self.assertTrue(set(figure["parents"]).issubset(table_names))
             self.assertEqual(figure["formats"], ["svg"])

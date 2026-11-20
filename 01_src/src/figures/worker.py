@@ -394,10 +394,12 @@ def _run_outputs(job, script_text, namespace, out_dir, core, exporter, manifest_
     """v2: execute to completion, then serialize each host-declared slot."""
     import hashlib
     if core.__name__.startswith("src."):
-        from src.figures.script_outputs import (normalize_output_contract, output_slots,
+        from src.figures.script_outputs import (RenderScriptEmitUnavailable,
+                                               normalize_output_contract, output_slots,
                                                validate_receipt, MAX_RECEIPT_BYTES)
     else:
-        from figures.script_outputs import (normalize_output_contract, output_slots,
+        from figures.script_outputs import (RenderScriptEmitUnavailable,
+                                           normalize_output_contract, output_slots,
                                            validate_receipt, MAX_RECEIPT_BYTES)
     try:
         contract = normalize_output_contract(job["output_contract"])
@@ -420,6 +422,8 @@ def _run_outputs(job, script_text, namespace, out_dir, core, exporter, manifest_
             load = _dataset_loader(tuple(namespace[name] for name in required))
             frozen_tables = {name: load(namespace[name]) for name in required}
     except (ValueError, TypeError, OSError) as exc:
+        if isinstance(exc, RenderScriptEmitUnavailable):
+            return _report(EXIT_SCRIPT_ERROR, f"[RENDER_SCRIPT_EMIT_NOT_AVAILABLE] {exc}")
         return _report(EXIT_FORBIDDEN, str(exc))
     result = core.capture_outputs(script_text, namespace=namespace,
                                   output_contract=contract, output_key=target,

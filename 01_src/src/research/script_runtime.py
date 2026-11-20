@@ -218,8 +218,12 @@ def execute_script_request(executor, *, script="", script_ref_json="", parameter
                 # pure validation cannot have reserved a run, executed code or
                 # published outputs; report that boundary, retaining the ref so
                 # the model can correct the contract without resaving the source.
-                return receipt(str(exc), {"error": assets._error(str(exc)), "_tool_outcome": {
-                    "status": "not_run", "reason_code": "script_execution_rejected", "artifacts": []}})
+                payload = {"error": assets._error(str(exc)), "_tool_outcome": {
+                    "status": "not_run", "reason_code": "script_execution_rejected", "artifacts": []}}
+                if getattr(exc, "reason_code", "") == "render_script_emit_not_available":
+                    payload["error"] = f"[RENDER_SCRIPT_EMIT_NOT_AVAILABLE] {exc}"
+                    payload["error_code"] = "render_script_emit_not_available"
+                return receipt(str(exc), payload)
             context = {"script_ref": saved["script_ref"], "parameters": parameters}
             if replay is not None:
                 context["replay_input_snapshots"] = replay["input_snapshots"]

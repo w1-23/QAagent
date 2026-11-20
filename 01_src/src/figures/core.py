@@ -129,7 +129,10 @@ def capture_outputs(script: str, *, output_contract: dict,
     import matplotlib
     matplotlib.use("Agg", force=True)
     import matplotlib.pyplot as plt
-    from src.figures.script_outputs import normalize_output_contract, output_slots
+    from src.figures.script_outputs import (RenderScriptEmitUnavailable,
+                                            classify_render_script_error,
+                                            normalize_output_contract, output_slots,
+                                            render_script_emit_runtime_message)
 
     contract = normalize_output_contract(output_contract)
     if not contract:
@@ -181,6 +184,12 @@ def capture_outputs(script: str, *, output_contract: dict,
                 with matplotlib.rc_context(rc=matplotlib.rcParamsDefault):
                     captured = capture_figure(source, namespace={"data": data}, check_layout=False)
                     stdout.write(captured.stdout)
+                    if captured.error and classify_render_script_error(captured.error):
+                        # Dynamic code (eval/exec/format) can hide an emit call
+                        # from the static precheck; classify the real missing
+                        # name instead of forwarding a bare NameError.
+                        raise RenderScriptEmitUnavailable(
+                            render_script_emit_runtime_message())
                     if captured.error or captured.figures_seen != 1:
                         raise ValueError(captured.error or "render_script must leave exactly one Figure.")
                     result.frozen_render_receipts[entry["name"]] = render_receipt(
@@ -192,8 +201,12 @@ def capture_outputs(script: str, *, output_contract: dict,
         result.frozen_render_receipts.clear()
         result.report = None
         result.report_emitted = False
-        result.error = f"{type(exc).__name__}: {exc}"
-        result.error_type = "script_error"
+        if isinstance(exc, RenderScriptEmitUnavailable):
+            result.error = f"[RENDER_SCRIPT_EMIT_NOT_AVAILABLE] {exc}"
+            result.error_type = exc.reason_code
+        else:
+            result.error = f"{type(exc).__name__}: {exc}"
+            result.error_type = "script_error"
     finally:
         sys.stdout = original_stdout
         plt.show = previous_show

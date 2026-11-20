@@ -66,7 +66,11 @@ def publish_script_outputs(*, runner, text: str, title: str, output_name: str,
     if not result.ok:
         from src.research.script_reconciliation import observe_failed_worker
         observe_failed_worker(result, source)
-        return _error("SCRIPT_ERROR", result.describe() or "脚本未完成；未接收本次残留输出。")
+        described = result.describe() or "脚本未完成；未接收本次残留输出。"
+        content, payload = _error("SCRIPT_ERROR", described)
+        if "RENDER_SCRIPT_EMIT_NOT_AVAILABLE" in described:
+            payload["error_code"] = "render_script_emit_not_available"
+        return content, payload
     try:
         receipt = validate_receipt(result.outputs["result"], contract, job_id=job.job_id)
     except (KeyError, TypeError, ValueError):

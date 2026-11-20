@@ -295,6 +295,10 @@ _PRESETS = {
 # source identity byte-for-byte.
 _VERSIONS = {"nature_volcano": 2, "nature_roc": 2, "nature_dotplot": 2,
              "nature_marginal": 2, "nature_paired": 2}
+_DISCOVERY_NOTE = (
+    "先只读探查工作簿（inspect_uploaded_table）；"
+    "三种隔离环境：Docker、WSL-Docker、Apptainer。"
+)
 
 
 def get_preset(ref: dict | str, *, include_source: bool = True) -> dict:
@@ -307,7 +311,9 @@ def get_preset(ref: dict | str, *, include_source: bool = True) -> dict:
                  "version": _VERSIONS.get(identity, 1), "sha256": digest}
     if isinstance(ref, dict) and (set(ref) != set(reference) or ref != reference):
         raise ValueError("Built-in version changed; read its current reference before running")
-    result = {"script_ref": reference, "name": identity + ".py", **deepcopy(_PRESETS[identity]),
+    entry = deepcopy(_PRESETS[identity])
+    entry["description"] = _DISCOVERY_NOTE + entry["description"]
+    result = {"script_ref": reference, "name": identity + ".py", **entry,
               "read_only": True, "retention": "service_version"}
     if include_source:
         result["source"] = source

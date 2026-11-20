@@ -15,6 +15,7 @@ from src.agent.context_tools import read_context_evidence
 from src.agent.identity import ExecutionIdentity
 from src.agent.runtime import AdmissionStopped
 from src.core import jobs, task_events, tracing
+from src.core.provider_protocol import _DeepSeekMessage, _ProtocolState
 from src.core.request_context import model_request
 from src.core.tool_result_view import INLINE_CHARS, first_delivery
 
@@ -163,8 +164,143 @@ class ProjectionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_cancel_is_not_reported_as_model_failure(self):
         self.budget()
+        events = self.capture_diag()
         self.model.replies.append(asyncio.CancelledError())
         with self.assertRaises(asyncio.CancelledError):
             await self.projector.project(self.raw([AIMessage(id="past", content="history " * 100)]))
         self.assertEqual(len(self.model.calls), 1)
         self.assertEqual(self.events, [])
+        self.assertEqual(events, [])
+
+    def capture_diag(self):
+        events = []
+
+        def record(event, **fields):
+            events.append((event, fields))
+
+        self.enterContext(patch("src.core.diag.diag", side_effect=record))
+        return events
+
+    async def test_program_error_diagnostic_is_bounded_and_sanitized(self):
+        self.budget()
+        sentinel = "SYNTHETIC-PRIVATE-SENTINEL user prose"
+        events = self.capture_diag()
+
+        async def fail(_messages):
+            raise RuntimeError(sentinel)
+
+        with patch.object(self.archive, "archive", fail):
+            with self.assertRaisesRegex(AdmissionStopped, "context_projection_failed"):
+                await self.projector.project(self.raw([AIMessage(id="past", content="history " * 100)]))
+        self.assertEqual(len(events), 1)
+        event, fields = events[0]
+        self.assertEqual(event, "context_projection_failed")
+        self.assertEqual(fields["stage"], "archive")
+        self.assertEqual(fields["error_type"], "RuntimeError")
+        self.assertEqual(fields["message_count"], 3)
+        self.assertEqual(fields["protected_count"], 2)
+        self.assertEqual(fields["eligible_units"], 1)
+        self.assertIsInstance(fields["estimated_input_tokens"], int)
+        self.assertFalse(fields["archived"])
+        self.assertFalse(fields["summarized"])
+        self.assertGreaterEqual(fields["remaining_s"], 0.0)
+        rendered = repr(fields)
+        for private in (sentinel, "history", "latest user request", "fixture-turn"):
+            self.assertNotIn(private, rendered)
+
+    async def test_middleware_failure_reports_middleware_stage(self):
+        self.budget()
+        sentinel = "MIDDLEWARE-PRIVATE-SENTINEL"
+        events = self.capture_diag()
+
+        class FailingMiddleware:
+            def __init__(self, **_kwargs):
+                pass
+
+            async def abefore_model(self, _state, _runtime):
+                raise RuntimeError(sentinel)
+
+        with patch("src.agent.context_projection.SummarizationMiddleware", FailingMiddleware):
+            with self.assertRaisesRegex(AdmissionStopped, "context_projection_failed"):
+                await self.projector.project(self.raw([AIMessage(id="past", content="history " * 100)]))
+        self.assertEqual(len(events), 1)
+        _, fields = events[0]
+        self.assertEqual(fields["stage"], "middleware")
+        self.assertTrue(fields["archived"])
+        self.assertFalse(fields["summarized"])
+        self.assertNotIn(sentinel, repr(fields))
+
+    async def test_summary_failure_reports_summary_stage(self):
+        self.budget()
+        sentinel = "SUMMARY-PRIVATE-SENTINEL"
+        events = self.capture_diag()
+
+        def fail(*_args, **_kwargs):
+            raise RuntimeError(sentinel)
+
+        with patch("src.agent.context_projection._summary_source", fail):
+            with self.assertRaisesRegex(AdmissionStopped, "context_projection_failed"):
+                await self.projector.project(self.raw([AIMessage(id="past", content="history " * 100)]))
+        self.assertEqual(len(events), 1)
+        _, fields = events[0]
+        self.assertEqual(fields["stage"], "summary")
+        self.assertTrue(fields["archived"])
+        self.assertFalse(fields["summarized"])
+        self.assertNotIn(sentinel, repr(fields))
+
+    async def test_classified_budget_and_protocol_failures_are_not_program_errors(self):
+        events = self.capture_diag()
+        with self.assertRaisesRegex(AdmissionStopped, "context_projection_budget_required"):
+            await self.projector.project(self.raw([AIMessage(id="past", content="history " * 100)]))
+
+        archive = EncryptedContextArchive(self.root / "state-deepseek", self.identity,
+                                          ("https://api.deepseek.com/v1", "deepseek-chat"))
+        projector = WorkingContextProjection(archive=archive, summary_model=self.model,
+            enabled=True, deadline=time.monotonic() + 35, trigger_tokens=128, target_tokens=100,
+            readback_available=True)
+        raw = [SystemMessage(content="control", id="sys"),
+               _DeepSeekMessage(content="thought", id="deep",
+                   provider_protocol=_ProtocolState(("https://other.example/v1", "deepseek-chat"), "r")),
+               HumanMessage(content="latest", id="tail")]
+        with self.assertRaisesRegex(AdmissionStopped, "context_projection_private_state_missing_or_mismatched"):
+            await projector.project(raw)
+        self.assertEqual(events, [])
+
+    async def test_timeout_is_deadline_not_program_error(self):
+        self.budget()
+        events = self.capture_diag()
+
+        async def timeout(_messages):
+            raise TimeoutError
+
+        with patch.object(self.archive, "archive", timeout):
+            with self.assertRaisesRegex(AdmissionStopped, "context_projection_deadline"):
+                await self.projector.project(self.raw([AIMessage(id="past", content="history " * 100)]))
+        self.assertEqual(events, [])
+
+    async def test_middleware_contract_change_is_not_program_error(self):
+        self.budget()
+        events = self.capture_diag()
+
+        class NoUpdateMiddleware:
+            def __init__(self, **_kwargs):
+                pass
+
+            async def abefore_model(self, _state, _runtime):
+                return None
+
+        with patch("src.agent.context_projection.SummarizationMiddleware", NoUpdateMiddleware):
+            with self.assertRaisesRegex(AdmissionStopped, "context_projection_middleware_contract_changed"):
+                await self.projector.project(self.raw([AIMessage(id="past", content="history " * 100)]))
+        self.assertEqual(events, [])
+
+    async def test_diagnostic_failure_does_not_change_admission(self):
+        self.budget()
+        self.enterContext(patch("src.core.diag.diag", side_effect=RuntimeError("sink failure")))
+
+        async def fail(_messages):
+            raise RuntimeError("archive failure")
+
+        with patch.object(self.archive, "archive", fail):
+            with self.assertRaisesRegex(AdmissionStopped, "context_projection_failed"):
+                await self.projector.project(self.raw([AIMessage(id="past", content="history " * 100)]))
