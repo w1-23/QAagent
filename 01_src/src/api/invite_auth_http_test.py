@@ -134,6 +134,43 @@ def test_locally_seeded_trial_invite_reaches_registration(api):
     assert replay.json()["code"] == "invalid_invite"
 
 
+def test_fixed_invite_reissue_preserves_each_application(api):
+    admin_id, token = _make_admin()
+    fixed_code = "ABCDEF"
+    auth.DB_PATH.with_name("fixed_invite_code").write_text(fixed_code, encoding="utf-8")
+
+    def issue(days):
+        return api.client.post("/api/v2/admin/invites", json={"expires_in_days": days},
+                               cookies=_cookies(token), headers=_write())
+
+    def register(username):
+        return api.client.post("/api/v2/auth/register",
+                               json=_register_body(username, APPLICANT_PASSWORD, fixed_code))
+
+    response = issue(7)
+    assert response.status_code == 201
+    first = response.json()["invite"]
+    assert first["code"] == fixed_code and first["fixed"]
+    repeated = issue(30)
+    assert repeated.status_code == 200
+    assert repeated.json()["invite"] == {**first, "reused": True}
+    assert auth.issue_invite(actor_user_id=admin_id, expires_in_days=1) == {**first, "reused": True}
+    assert register("first-applicant").status_code == 202
+    assert register("early-applicant").status_code == 400
+
+    response = issue(3)
+    assert response.status_code == 201
+    second = response.json()["invite"]
+    assert second["code"] == fixed_code and second["invite_id"] != first["invite_id"]
+    assert register("second-applicant").status_code == 202
+    with auth._connect() as conn:
+        rows = conn.execute("SELECT u.username, a.invite_id FROM account_applications a JOIN users u USING(user_id) ORDER BY u.username").fetchall()
+        assert [tuple(row) for row in rows] == [
+            ("first-applicant", first["invite_id"]), ("second-applicant", second["invite_id"]),
+        ]
+    assert {row["status"] for row in auth.list_invites()} == {"claimed"}
+
+
 def test_auth08_anonymous_paths_reachable_without_session(api):
     client = api.client
     assert client.post("/api/v2/auth/logout").status_code == 200

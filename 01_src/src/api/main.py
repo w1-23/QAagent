@@ -1178,7 +1178,7 @@ async def admin_create_invite(req: InviteCreateRequest, request: Request):
         issue_invite, actor_user_id=int(admin["user_id"]),
         actor_token=request.cookies.get("citrus_auth", ""),
         expires_in_days=req.expires_in_days, source_hash=_source_hash(request))
-    return _no_store({"invite": invite}, status_code=201)
+    return _no_store({"invite": invite}, status_code=200 if invite.get("reused") else 201)
 
 
 @app.post("/api/v2/admin/invites/{invite_id}/revoke")

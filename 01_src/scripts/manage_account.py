@@ -161,8 +161,8 @@ def cmd_issue_invite(args: argparse.Namespace) -> int:
     except AccountInviteError as exc:
         print(_safe_error(exc))
         return 2
-    # The raw code exists only in this response; show it exactly once.
-    print(f"邀请码（仅显示一次）：{invite['code']}")
+    label = "固定邀请码（每次签发可使用一次）" if invite.get("fixed") else "邀请码（仅显示一次）"
+    print(f"{label}：{invite['code']}")
     print(f"有效期至：{invite['expires_at']}")
     return 0
 

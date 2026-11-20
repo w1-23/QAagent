@@ -413,8 +413,11 @@
         await loadInvites();
         return;
       }
+      el('inviteDisplayHint').textContent = invite.fixed
+        ? '固定邀请码每次签发可使用一次。现有邀请码有效时，重复签发不会更改有效期。'
+        : '新邀请码只显示一次，请现在复制并通过安全渠道发送。';
       showOneTimeInvite(invite.code);
-      notify('邀请码已生成，只显示一次，请立即复制。');
+      notify(invite.reused ? '当前邀请码仍有效。' : '邀请码已签发。');
       await loadInvites();
     } catch (error) { notify(error.message); }
     finally { button.disabled = false; }

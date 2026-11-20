@@ -17,8 +17,7 @@ import sqlite3
 from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping
 
-# A local operator may seed a six-letter code for a private trial. Issuance
-# through the normal admin API and CLI still generates 32 random characters.
+FIXED_INVITE_CODE_RE = re.compile(r"[A-Z]{6}")
 INVITE_CODE_RE = re.compile(r"(?:[A-Za-z0-9_-]{32}|[A-Z]{6})")
 
 _APPLICATION_FIELDS = (
@@ -185,8 +184,9 @@ def record_security_event(conn: sqlite3.Connection, *, event_type: str,
 
 
 def issue_invite(conn: sqlite3.Connection, *, actor_user_id: int | None,
-                 expires_in_days: int = 7, source_hash: str | None = None) -> dict:
-    """Create a high-entropy one-time invite; the raw code is returned once."""
+                 expires_in_days: int = 7, source_hash: str | None = None,
+                 fixed_code: str | None = None) -> dict:
+    """Create a one-use invitation, optionally reusing a configured short code."""
     if isinstance(expires_in_days, bool) or not isinstance(expires_in_days, int):
         raise ValueError("expires_in_days must be an integer from 1 to 30")
     if not 1 <= expires_in_days <= 30:
@@ -194,13 +194,28 @@ def issue_invite(conn: sqlite3.Connection, *, actor_user_id: int | None,
     now = _now()
     created_at = _iso(now)
     expires_at = _iso(now + timedelta(days=expires_in_days))
-    code = secrets.token_urlsafe(24)
+    if fixed_code is not None and not FIXED_INVITE_CODE_RE.fullmatch(fixed_code):
+        raise ValueError("The configured fixed invitation must contain six uppercase letters")
+    code = secrets.token_urlsafe(24) if fixed_code is None else fixed_code
+    digest = _hash_code(code)
+    if fixed_code is not None:
+        previous = _fetch_one(conn,
+            "SELECT invite_id, created_at, expires_at, status FROM account_invites WHERE code_hash=?",
+            (digest,))
+        if previous and _invite_status(previous["status"], previous["expires_at"], now) == "issued":
+            return {**previous, "code": code, "fixed": True, "reused": True}
+        if previous:
+            # Preserve the expired or spent invitation and its links. Only the
+            # new invitation can be resolved by the supplied code's digest.
+            retired_digest = _hash_code(f"retired-invite:{previous['invite_id']}:{digest}")
+            conn.execute("UPDATE account_invites SET code_hash=? WHERE invite_id=?",
+                         (retired_digest, previous["invite_id"]))
     invite_id = secrets.token_urlsafe(18)
     conn.execute(
         "INSERT INTO account_invites("
         "invite_id,code_hash,created_by,created_at,expires_at,status) "
         "VALUES(?,?,?,?,?,'issued')",
-        (invite_id, _hash_code(code),
+        (invite_id, digest,
          None if actor_user_id is None else int(actor_user_id),
          created_at, expires_at),
     )
@@ -209,8 +224,11 @@ def issue_invite(conn: sqlite3.Connection, *, actor_user_id: int | None,
         actor_user_id=actor_user_id, source_hash=source_hash,
         metadata={"invite_id": invite_id, "expires_at": expires_at},
     )
-    return {"invite_id": invite_id, "code": code, "status": "issued",
-            "created_at": created_at, "expires_at": expires_at}
+    receipt = {"invite_id": invite_id, "code": code, "status": "issued",
+               "created_at": created_at, "expires_at": expires_at}
+    if fixed_code is not None:
+        receipt["fixed"] = True
+    return receipt
 
 
 def list_invites(conn: sqlite3.Connection, *, limit: int = 50, offset: int = 0) -> list[dict]:

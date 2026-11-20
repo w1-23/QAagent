@@ -561,8 +561,13 @@ def issue_invite(*, actor_user_id: int, expires_in_days: int = 7, actor_token: s
                 raise AccountInviteError("admin_required")
         else:
             _require_admin_actor(conn, actor_user_id, actor_token)
+        try:
+            fixed_code = DB_PATH.with_name("fixed_invite_code").read_text(encoding="utf-8").strip()
+        except FileNotFoundError:
+            fixed_code = None
         return auth_invites.issue_invite(conn, actor_user_id=actor_user_id,
-                                        expires_in_days=expires_in_days, source_hash=source_hash)
+                                        expires_in_days=expires_in_days, source_hash=source_hash,
+                                        fixed_code=fixed_code)
 
 
 def list_invites(*, limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:

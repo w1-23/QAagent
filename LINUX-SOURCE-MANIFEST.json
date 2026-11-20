@@ -116,8 +116,8 @@
       "sha256": "86a978b7eaac9fff7d59368c9653abc303c80f16e0244df1d014c190ab13e6fa"
     },
     "01_src/scripts/manage_account.py": {
-      "bytes": 8825,
-      "sha256": "c542fcdca8f852d12247e0a399fc71284ef4a5031fa3b299574250a7523ee659"
+      "bytes": 8855,
+      "sha256": "9bbab60ace2fe13d0ef79dfe40baee491cffaad153d41b02dc61c5bd38be05b2"
     },
     "01_src/scripts/manage_account_test.py": {
       "bytes": 8522,
@@ -304,12 +304,12 @@
       "sha256": "0c661f43119cce28ce57b69b987724b1582eab78aa59dea13db147f0c153ed31"
     },
     "01_src/src/api/invite_auth_http_test.py": {
-      "bytes": 30292,
-      "sha256": "4b5119b6649c85099870a87f8f7c10c048957c0a7b0cd5def8b4405dd984a921"
+      "bytes": 32037,
+      "sha256": "8489af1743fe0e1abe821a749f49f744e2d5a5f027b3ab0f981a1dbbef653910"
     },
     "01_src/src/api/main.py": {
-      "bytes": 289797,
-      "sha256": "7a29b37aa679c7893803ee78c433be4e9ef921a69259812dd8b022e791486788"
+      "bytes": 289830,
+      "sha256": "780e514f8c1f007926d15bec68c04c95d6683297a67387a0b855574b7806b94a"
     },
     "01_src/src/api/navigation_task_rediscovery_test.py": {
       "bytes": 10384,
@@ -324,12 +324,12 @@
       "sha256": "5461104db22a2ec07a64464269c7e4c56ed93e9ec422ceee595185da77c21ca5"
     },
     "01_src/src/auth.py": {
-      "bytes": 46511,
-      "sha256": "d85e0411b3bf80a4598a63391b4ea75f10e3faa12a4de370d936bbdb13ec60ab"
+      "bytes": 46756,
+      "sha256": "fa8c1bdbb3e734063d4783fdab5b417c801123f6388b751029f3e967bd051ebf"
     },
     "01_src/src/auth_invites.py": {
-      "bytes": 17839,
-      "sha256": "7866f421e0e17fe52449029c94b6b309d80dddc84f3e4dd5b1a72063b4124bff"
+      "bytes": 18897,
+      "sha256": "b35e2445b7c036c47f3f04540acb0d5215930203295c88f527d497eee11e30e9"
     },
     "01_src/src/auth_invites_test.py": {
       "bytes": 43944,
@@ -1540,16 +1540,16 @@
       "sha256": "4d86649944ff25789b23db62cb43ce027d8457f101d880ec0099818c328caa48"
     },
     "01_src/web/admin.html": {
-      "bytes": 9116,
-      "sha256": "036df05293520cc30b3fde951ad09ab252251faf0027c0096ec4403f2eca77c2"
+      "bytes": 9065,
+      "sha256": "20a60687e1cf48569770d3a27c3df2f095483ee9e30d006f7fe85f82adb7a5dc"
     },
     "01_src/web/assets/admin.css": {
       "bytes": 10544,
       "sha256": "e50b9e762e9d69347f632df276a345bb38d4785ab0acf06990454b727e42e39a"
     },
     "01_src/web/assets/admin.js": {
-      "bytes": 32469,
-      "sha256": "c16350f0dde6672309c644038eb7243911c69224fe74382133981483e2ede4b1"
+      "bytes": 32751,
+      "sha256": "439f8c93ea7e420aa5a2c93e25b831e41682db953110da04c5f2fcd6982d5293"
     },
     "01_src/web/assets/app.css": {
       "bytes": 129539,
@@ -1888,8 +1888,8 @@
       "sha256": "483c89b3d5cd0790f3636bdbc74d859b7c88efdb826ced19773cf8189da6e79b"
     },
     "docs/audits/invite-nature-acceptance.md": {
-      "bytes": 18302,
-      "sha256": "e27d908ba446319ab9ab5ef9bec507b7436b8eeadb3c1e993c28900b9df126c5"
+      "bytes": 19128,
+      "sha256": "a798046e18e4061ddfe237cf3379358a3e7d4b683a16807f5e71f53f1bb1662d"
     },
     "docs/audits/nature-inventory.md": {
       "bytes": 29966,
