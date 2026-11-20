@@ -10,7 +10,7 @@
 <script src="/assets/vendor/marked-4.3.0.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/app.css?v=35">
+<link rel="stylesheet" href="/assets/app.css?v=36">
 <link rel="stylesheet" href="/assets/skill-picker.css?v=3">
 <link rel="stylesheet" href="/assets/guide.css?v=3">
   <link rel="stylesheet" href="/assets/mascot.css?v=4">
@@ -34,11 +34,12 @@
 </header>
 
 <div class="auth-gate" id="authGate">
-  <form class="auth-card" onsubmit="event.preventDefault();authenticate(document.getElementById('authMode').value)">
+  <form class="auth-card" id="authLoginCard" onsubmit="event.preventDefault();authenticate(document.getElementById('authMode').value)">
     <div class="auth-brand"><img src="/assets/citrusscholar-mascot.png" alt=""> CitrusScholar</div>
     <div class="auth-title">登录或注册</div>
     <input id="authUsername" required minlength="3" maxlength="32" autocomplete="username" placeholder="用户名（3–32 位）">
     <input id="authPassword" required minlength="10" maxlength="256" type="password" autocomplete="current-password" placeholder="密码（至少 10 位）">
+    <input id="authInviteCode" class="auth-invite" maxlength="128" autocomplete="off" spellcheck="false" placeholder="邀请码（注册必填，由管理员发放）" hidden>
     <select id="authMode" onchange="syncAuthAvatarPicker()"><option value="login">登录</option><option value="register">创建账号</option></select>
     <div class="auth-avatar-picker" id="authAvatarPicker" hidden>
       <div class="avatar-picker-heading"><span>选一个小头像</span><span class="avatar-picker-note">默认 01</span></div>
@@ -48,12 +49,27 @@
         <span class="avatar-preview-label" id="authAvatarLabel">已选 01</span>
         <label class="avatar-upload-button">上传头像<input id="authAvatarFile" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" hidden onchange="previewSignupAvatar(this)"></label>
       </div>
-      <div class="avatar-picker-error" id="authAvatarError" aria-live="polite"></div>
+      <div class="avatar-picker-error" id="authAvatarError" aria-live="polite">注册阶段使用预设头像；审核通过后可在账户菜单更换自定义头像。</div>
     </div>
-    <div class="auth-error" id="authError"></div>
+    <div class="auth-error" id="authError" role="alert" aria-live="polite"></div>
+    <div class="auth-notice" id="authNotice" role="status" aria-live="polite" hidden></div>
     <button class="api-save" type="submit">继续</button>
+    <button class="auth-forgot" type="button" onclick="openRecoverPane()">忘记密码？使用恢复码重置</button>
     <p>对话与附件可能发送至所配置的模型和联网服务。</p>
     <details class="auth-data-note"><summary>数据与隐私</summary><p>账号数据彼此隔离。问题、回答和工具执行摘要供管理员排障，保留一年。上传文件保存在账号资料库，默认 30 天未使用后清理，不进入共享语料库。公开访问时，连接还会经过 Cloudflare 转发。</p></details>
+  </form>
+  <form class="auth-card" id="authRecoverCard" hidden onsubmit="event.preventDefault();submitPasswordRecovery()">
+    <div class="auth-brand"><img src="/assets/citrusscholar-mascot.png" alt=""> CitrusScholar</div>
+    <div class="auth-title">使用恢复码重置密码</div>
+    <input id="recoverUsername" required minlength="3" maxlength="32" autocomplete="username" placeholder="用户名（3–32 位）">
+    <input id="recoverCode" maxlength="128" autocomplete="one-time-code" spellcheck="false" placeholder="恢复码">
+    <input id="recoverNewPassword" required minlength="10" maxlength="256" type="password" autocomplete="new-password" placeholder="新密码（至少 10 位）">
+    <input id="recoverConfirmPassword" required minlength="10" maxlength="256" type="password" autocomplete="new-password" placeholder="再次输入新密码">
+    <div class="auth-error" id="recoverError" role="alert" aria-live="polite"></div>
+    <div class="auth-notice" id="recoverNotice" role="status" aria-live="polite" hidden></div>
+    <button class="api-save" type="submit">重置密码</button>
+    <button class="auth-forgot" type="button" onclick="closeRecoverPane()">返回登录</button>
+    <p>恢复码在账户菜单中生成，每个只能使用一次。没有恢复码时，请联系管理员协助重置；管理员无法查看你的原密码。</p>
   </form>
 </div>
 
@@ -219,6 +235,8 @@
         <button id="modelSettingsBtn" class="account-menu-item" onclick="setAccountMenuOpen(false); openSettingsModal()" hidden><span aria-hidden="true">⚙</span> 模型与服务设置</button>
         <button class="account-menu-item" onclick="setAccountMenuOpen(false); openMemorySettings('preferences')"><span aria-hidden="true">☷</span> 个人偏好</button>
         <button class="account-menu-item" onclick="setAccountMenuOpen(false); openAvatarSettings()"><span aria-hidden="true">☺</span> 更换头像</button>
+        <button class="account-menu-item" onclick="setAccountMenuOpen(false); openSecuritySettings('password')"><span aria-hidden="true">✎</span> 修改密码</button>
+        <button class="account-menu-item" onclick="setAccountMenuOpen(false); openSecuritySettings('recovery')"><span aria-hidden="true">❖</span> 恢复码</button>
         <button id="reviewConsentBtn" class="account-menu-item" onclick="setAccountMenuOpen(false); toggleReviewConsent()"><span aria-hidden="true">⇪</span> 文献共享授权：未授权</button>
         <div class="account-menu-divider"></div>
         <button id="logoutBtn" class="account-menu-item danger" onclick="logoutAccount()"><span aria-hidden="true">↪</span> 退出登录</button>
@@ -453,6 +471,51 @@
   </section>
 </div>
 
+<div class="memory-settings-overlay" id="securitySettingsOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="securitySettingsTitle" onclick="if(event.target===this)closeSecuritySettings()">
+  <section class="memory-settings-card preferences-settings-card">
+    <button class="overlay-close" type="button" onclick="closeSecuritySettings()" aria-label="关闭">×</button>
+    <div class="overlay-eyebrow">CitrusScholar 账户</div>
+    <h2 id="securitySettingsTitle">账户安全</h2>
+    <p class="overlay-subtitle">修改密码或生成一次性恢复码。两项操作都需要重新输入当前密码。修改密码后，所有设备都会退出登录。</p>
+    <div class="preference-tabs" role="tablist" aria-label="账户安全">
+      <button type="button" id="passwordTab" class="preference-tab is-active" role="tab" aria-selected="true" aria-controls="passwordPane" onclick="switchSecurityTab('password')">修改密码</button>
+      <button type="button" id="recoveryTab" class="preference-tab" role="tab" aria-selected="false" aria-controls="recoveryPane" onclick="switchSecurityTab('recovery')">恢复码</button>
+    </div>
+    <div id="passwordPane" class="preference-pane" role="tabpanel" aria-labelledby="passwordTab">
+      <form id="passwordChangeForm" onsubmit="event.preventDefault();submitPasswordChange()">
+        <div class="preference-grid">
+          <label class="preference-field"><span>当前密码</span><input id="passwordCurrent" type="password" autocomplete="current-password" minlength="10" maxlength="256" required></label>
+          <label class="preference-field"><span>新密码</span><input id="passwordNew" type="password" autocomplete="new-password" minlength="10" maxlength="256" required></label>
+          <label class="preference-field"><span>确认新密码</span><input id="passwordConfirm" type="password" autocomplete="new-password" minlength="10" maxlength="256" required></label>
+        </div>
+        <div class="memory-settings-actions">
+          <span id="passwordChangeStatus" role="status" aria-live="polite"></span>
+          <button class="api-save" type="submit" id="passwordChangeSubmit">修改密码并退出登录</button>
+        </div>
+      </form>
+    </div>
+    <div id="recoveryPane" class="preference-pane" role="tabpanel" aria-labelledby="recoveryTab" hidden>
+      <p class="overlay-subtitle">每批生成 8 个恢复码，全部只显示一次；同一时间只有最新一批有效。请保存到安全的离线位置。</p>
+      <form id="recoveryCodesForm" onsubmit="event.preventDefault();submitRecoveryCodes()">
+        <label class="preference-field"><span>当前密码</span><input id="recoveryCurrent" type="password" autocomplete="current-password" minlength="10" maxlength="256" required></label>
+        <div class="memory-settings-actions">
+          <span id="recoveryStatus" role="status" aria-live="polite"></span>
+          <button class="api-save" type="submit" id="recoveryCodesButton">生成恢复码</button>
+        </div>
+      </form>
+      <div id="recoveryCodesResult" hidden>
+        <p class="overlay-subtitle">恢复码只显示这一次；关闭窗口后页面会立即清除。</p>
+        <pre class="recovery-code-list" id="recoveryCodesList" tabindex="0" aria-label="一次性恢复码"></pre>
+        <div class="memory-settings-actions">
+          <button class="api-secondary" type="button" onclick="copyRecoveryCodes()">复制全部</button>
+          <button class="api-save" type="button" onclick="clearRecoveryCodes(true)">我已保存，清除</button>
+        </div>
+      </div>
+      <p class="overlay-subtitle">忘记密码且没有恢复码时，请联系管理员协助重置。</p>
+    </div>
+  </section>
+</div>
+
 <div class="ctx-drawer-backdrop" id="ctxBackdrop" onclick="toggleCtxDrawer()"></div>
 <div class="ctx-drawer" id="ctxDrawer">
   <div class="ctx-drawer-header">
@@ -533,7 +596,7 @@
 <script src="/assets/task-cards.js?v=6"></script>
 <script src="/assets/task-controls.js?v=2"></script>
 <script src="/assets/skill-picker.js?v=4"></script>
-<script src="/assets/app.js?v=54"></script>
+<script src="/assets/app.js?v=55"></script>
 <script src="/assets/corpus_reader.js?v=7"></script>
 <script src="/assets/turn_rail.js?v=3"></script>
   <script src="/assets/mascot.js?v=4"></script>

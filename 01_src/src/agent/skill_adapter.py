@@ -169,7 +169,7 @@ class SkillSession:
                 or type(max_chars) is not int or not 1 <= max_chars <= 20000):
             raise ValueError("invalid_skill_pagination")
         dependencies = []
-        if research_catalog.PINNED.get(skill_id) == (version, sha256):
+        if research_catalog.has_identity(skill_id, version, sha256):
             info, page = research_catalog.read_resource(skill_id, version, sha256, resource,
                                                        start_char=start_char, max_chars=max_chars)
         else:

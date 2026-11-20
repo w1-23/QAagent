@@ -203,6 +203,27 @@ def write_bundle(session, output, *, vendor_root, formats=("pdf", "svg", "png"),
     return {"path": str(output), "manifest": manifest, "receipt": receipt}
 
 
+def _verified_members(root, manifest):
+    """Verify declared member paths, containment, sizes and SHA-256 digests."""
+    if not isinstance(manifest, dict) or manifest.get("schema_version") != 2:
+        raise ValueError("bundle manifest schema mismatch")
+    verified = {}
+    for member in manifest.get("members") or ():
+        if not isinstance(member, dict):
+            raise ValueError("bundle member entry invalid")
+        name = member.get("path")
+        if not isinstance(name, str) or not name or name in verified:
+            raise ValueError("bundle member path mismatch")
+        target = (root / name).resolve(strict=True)
+        if not target.is_relative_to(root):
+            raise ValueError("bundle member path mismatch")
+        blob = target.read_bytes()
+        if sha256(blob) != member.get("sha256") or len(blob) != member.get("size"):
+            raise ValueError("bundle member hash mismatch")
+        verified[name] = blob
+    return verified
+
+
 def load_spec_bundle(path):
     """Rebuild from frozen resolved values; never recompute grouped statistics.
 
@@ -211,16 +232,7 @@ def load_spec_bundle(path):
     """
     root = Path(path).resolve(strict=True)
     manifest = json.loads((root / "figure.bundle.json").read_bytes())
-    verified = {}
-    for member in manifest["members"]:
-        name = member["path"]
-        target = (root / name).resolve(strict=True)
-        if not target.is_relative_to(root) or name in verified:
-            raise ValueError("bundle member path mismatch")
-        blob = target.read_bytes()
-        if sha256(blob) != member["sha256"] or len(blob) != member["size"]:
-            raise ValueError("bundle member hash mismatch")
-        verified[name] = blob
+    verified = _verified_members(root, manifest)
     def read_json(name):
         if name not in verified:
             raise ValueError("bundle member not declared: " + str(name))
@@ -246,3 +258,73 @@ def load_spec_bundle(path):
         revise_figure(session, overrides=manifest["overrides"])
         session.revision = saved_revision
     return session
+
+
+def verify_saved_bundle(path, *, mode="reaudit", supersedes=None, source=None,
+                        vendor_root=None, checks=None, policy=None):
+    """Audit a saved bundle's stored bytes; never render, re-export or run source.
+
+    ``qa/layout.json`` is trusted only when it is a declared, hash-verified
+    member and its ``artifact_sha256`` equals the stored ``figure.pdf`` digest.
+    Bundles written before layout capture keep ``panel_alignment`` as an
+    explicit not_run entry instead of gaining evidence from a rerender. A
+    superseding receipt must name the real prior receipt identity, as required
+    by the reaudit contract.
+    """
+    root = Path(path).resolve(strict=True)
+    manifest_bytes = (root / "figure.bundle.json").read_bytes()
+    manifest = json.loads(manifest_bytes)
+    verified = _verified_members(root, manifest)
+    artifacts = [{"role": "figure", "format": fmt, "bytes": verified["figure." + fmt]}
+                 for fmt in ("pdf", "svg", "png", "tiff")
+                 if "figure." + fmt in verified]
+    if not artifacts:
+        raise ValueError("bundle contains no auditable figure artifact")
+    formats = {row["format"] for row in artifacts}
+    pdf = verified.get("figure.pdf")
+    stored = None
+    if "qa/layout.json" in verified:
+        try:
+            candidate = json.loads(verified["qa/layout.json"])
+        except ValueError:
+            candidate = None
+        if (isinstance(candidate, dict) and isinstance(candidate.get("layout"), dict)
+                and isinstance(candidate.get("artifact_sha256"), str)):
+            stored = candidate
+    layout_manifest = None
+    captured_sha256 = stored.get("artifact_sha256") if stored else None
+    pdf_sha256 = sha256(pdf) if pdf is not None else None
+    if stored is not None and pdf_sha256 is not None and captured_sha256 == pdf_sha256:
+        layout_manifest = {"artifact_sha256": pdf_sha256, "layout": stored["layout"]}
+        binding = "bound_to_current_pdf"
+    else:
+        binding = "unbound" if stored is not None else "absent"
+    if source is None and "source.py" in verified:
+        source = verified["source.py"].decode("utf-8")
+    if checks is None:
+        checks = ["format_integrity", "source_preflight", "panel_alignment"]
+        if "pdf" in formats:
+            checks.extend(("pdf_text", "pdf_collisions"))
+        if "svg" in formats:
+            checks.append("svg_schematic")
+        checks.append("visual")
+    from .verification import verify_current_figure
+    receipt = verify_current_figure(artifacts=artifacts, source=source,
+                                    layout_manifest=layout_manifest, mode=mode,
+                                    checks=checks, policy=policy,
+                                    vendor_root=vendor_root, supersedes=supersedes)
+    receipt["bundle"] = {
+        "manifest_sha256": sha256(manifest_bytes),
+        "bundle_kind": str(manifest.get("bundle_kind") or "frozen_session"),
+        "member_count": len(verified),
+        "layout_binding": binding,
+        "source_origin": "bundle_member:source.py" if source is not None else None}
+    receipt["layout"] = {
+        "binding": binding, "artifact_sha256": pdf_sha256,
+        "captured_artifact_sha256": captured_sha256,
+        "capture": stored.get("capture") if stored else None, "rerendered": False,
+        "layout": layout_manifest["layout"] if layout_manifest else None}
+    receipt["receipt_id"] = sha256(json.dumps(
+        {key: value for key, value in receipt.items() if key != "receipt_id"},
+        sort_keys=True, ensure_ascii=False, default=str).encode())
+    return receipt

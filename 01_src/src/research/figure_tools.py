@@ -40,6 +40,7 @@ from typing import Any
 from langchain_core.tools import tool
 
 from src.core.tool_errors import ToolArgumentError
+from src.figures.nature_receipts import current_qa_summary
 
 # The formats a figure project carries. SVG is the primary one because its
 # text stays real text; PNG and PDF are what a journal asks for.
@@ -307,6 +308,7 @@ def create_research_figure(
         "objects": len(manifest.get("objects", [])),
         "qa_receipt": manifest.get("qa_receipt", {}),
         "nature_skill_receipt": manifest.get("nature_skill_receipt", {}),
+        "current_qa": current_qa_summary(manifest),
         "exports": published,
         "figure_placeholder": placeholder,
         "data_provenance": source_info,
@@ -535,8 +537,10 @@ def _run_research_figure_script(
         manifest = json.loads(manifest_bytes.decode("utf-8"))
         if not isinstance(manifest, dict) or not isinstance(manifest.get("objects"), list):
             raise ValueError("invalid manifest")
-        from src.figures.nature_receipts import validate_nature_receipt
+        from src.figures.nature_receipts import accept_current_render_qa, validate_nature_receipt
         validate_nature_receipt(manifest, pdf=result.outputs.get("pdf"))
+        accept_current_render_qa(manifest, {fmt: result.outputs[fmt] for fmt in formats
+                                           if fmt in result.outputs}, "initial")
         receipt = manifest.get("qa_receipt") or {}
         if receipt.get("version") != 1 or receipt.get("profile") != parse_qa_profile(profile):
             raise ValueError("worker did not acknowledge profile QA")
@@ -583,6 +587,7 @@ def _run_research_figure_script(
         "objects": len(manifest.get("objects", [])),
         "qa_receipt": manifest.get("qa_receipt", {}),
         "nature_skill_receipt": manifest.get("nature_skill_receipt", {}),
+        "current_qa": current_qa_summary(manifest),
         "exports": published,
         "figure_placeholder": placeholder,
         "backend": result.backend,

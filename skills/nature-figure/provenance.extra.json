@@ -26,5 +26,11 @@
       "sha256": "0b8a9ac399be326fa1b575e800f5d7541516a7f1d0d7696dcc81096a3f4edb4b",
       "git_blob_sha1": "834f5c3e77003340a17034c3ac53d62362fdc8fa"
     }
-  ]
+  ],
+  "adapter_version": "2.1.0",
+  "execution": {
+    "python": "citrus_figures library + scripts/citrus/*.py adapters",
+    "r": "disabled",
+    "openrouter_image_generation": "disabled"
+  }
 }

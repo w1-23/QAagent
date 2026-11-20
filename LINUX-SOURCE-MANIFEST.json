@@ -1,7 +1,48 @@
 {
-  "deployment": "linux-apptainer-v20261118",
-  "git_head": "494b7dd068e7aec3d3dfa9b309b180d0354801f7",
+  "baseline_commit": "efeb7edc74606d1b6f62ac52e0b6e6187ec0792f",
+  "baseline_tree": "25b954d1d4020432c55d12623050b8b7dcfcbb51",
+  "candidate_branch": "feat/invite-auth-nature-figure",
+  "deployment": "isolated-linux-apptainer-development-candidate-not-deployed",
+  "historic_manifest_metadata": {
+    "deployment": "linux-apptainer-v20261118",
+    "git_head": "494b7dd068e7aec3d3dfa9b309b180d0354801f7",
+    "manifest_at_baseline_sha256": "1149f0c3bda0654ccbc0b135e79eb40bbff6f9065d8f055bbf9b78cdd9dc65f4",
+    "member_count": 572,
+    "publication": {
+      "deployment_documentation_redactions": {
+        "01_src/apptainer/README.md": {
+          "original": {
+            "bytes": 11040,
+            "sha256": "6014ec1d7c8d888db5cbf75e127868ab5cfce8591fd79b0c208933f8ec24300e"
+          },
+          "reason": "Removed internal test job identifiers and a host-specific home directory from the deployment documentation."
+        }
+      },
+      "repository_metadata_from_parent": [
+        ".dockerignore",
+        ".gitattributes",
+        ".gitignore",
+        "LICENSE"
+      ]
+    },
+    "remote_validation": "byte hashes captured from running release source; no service restart",
+    "schema": "citrusscholar.linux-source/1",
+    "source": "Linux release v20261118, live Web 8031, read-only snapshot 2026-11-18"
+  },
+  "inventory_scope": "All Git index source tree blobs excluding this self-describing file; hashes are SHA-256 over exact Git blob bytes.",
   "members": {
+    ".dockerignore": {
+      "bytes": 569,
+      "sha256": "f0298b6a495104ed779f394756279df718580b22c924ec2ff79b02db521968d6"
+    },
+    ".gitattributes": {
+      "bytes": 69,
+      "sha256": "615b52aa5ba7cce67cec32fe493f29605cfed7b38a9ee41b41700492d6865b15"
+    },
+    ".gitignore": {
+      "bytes": 3864,
+      "sha256": "4a3d35bde8190a2f38f33358a940babcbf7afa765c4e6489f6bcdfc46b4cca04"
+    },
     "01_src/apptainer/README.md": {
       "bytes": 11028,
       "sha256": "b209a7255108d0e95bf77103fc69ab586624a10ecdf646e0b65139df45fceecf"
@@ -75,8 +116,12 @@
       "sha256": "86a978b7eaac9fff7d59368c9653abc303c80f16e0244df1d014c190ab13e6fa"
     },
     "01_src/scripts/manage_account.py": {
-      "bytes": 6104,
-      "sha256": "d80b6344b395beafff56eecfbf3f4151cc3925417c2709d8476d9b96814cbde9"
+      "bytes": 8825,
+      "sha256": "c542fcdca8f852d12247e0a399fc71284ef4a5031fa3b299574250a7523ee659"
+    },
+    "01_src/scripts/manage_account_test.py": {
+      "bytes": 8522,
+      "sha256": "debe1892e6e8dee6203da168e5b7840c4df6c5df13e8055f6de2787da7b22403"
     },
     "01_src/scripts/run_server.sh": {
       "bytes": 1704,
@@ -171,8 +216,8 @@
       "sha256": "3eef9aebe57e36b46d4911dc8d5dcf94133e3d96403597b8ba9dbb7bdd3208f2"
     },
     "01_src/src/agent/host_policy.py": {
-      "bytes": 7708,
-      "sha256": "6e3a06c4cc08367b4ef396331b2153e2a29137a51993afd668207f3b6500859f"
+      "bytes": 8915,
+      "sha256": "d15846334902f393a437e993f7b7ed2a6edd5b67fbed60ddc7adb782a8425c73"
     },
     "01_src/src/agent/host_tool_identity_test.py": {
       "bytes": 4819,
@@ -189,6 +234,10 @@
     "01_src/src/agent/model.py": {
       "bytes": 3133,
       "sha256": "62813cf937478a7b8b8bdca1195e1f920993e3298d8b7d03e7050c4bffc8fdc4"
+    },
+    "01_src/src/agent/nature_skill_resources_test.py": {
+      "bytes": 11497,
+      "sha256": "8928e52560877cbbc8c291926c2eeec56f740ece88cef7fce2352f9d6ca31b9a"
     },
     "01_src/src/agent/plan_tools.py": {
       "bytes": 3921,
@@ -211,16 +260,16 @@
       "sha256": "0ada1ebdfb1fa239227a1c3722cee0cd68d492d408bf534df5846ba8e09b3f65"
     },
     "01_src/src/agent/research_skill_catalog.py": {
-      "bytes": 7709,
-      "sha256": "004006576c8643f8352c6adf1eb0879fb583eac2345bd0f059b839b6e4213dec"
+      "bytes": 8880,
+      "sha256": "6c6d790ec5c0856bd08a81804b42c8736cbbdeda0e2d89f21ebe5af0983dbe02"
     },
     "01_src/src/agent/runtime.py": {
       "bytes": 15225,
       "sha256": "61777ab56849cc5828a93cd49e79b4852630b70208e2e88f61db2bd9b69bcce9"
     },
     "01_src/src/agent/skill_adapter.py": {
-      "bytes": 18193,
-      "sha256": "f42b9b072f44895dbcaa2812c94bd5405bcdf65141a0a7edce85d6c44e08f390"
+      "bytes": 18191,
+      "sha256": "81e7d53a40c638082cf989e45dcddd5a77fc8fab99fb7550502a6208a7ef472b"
     },
     "01_src/src/agent/skill_tools.py": {
       "bytes": 4398,
@@ -247,16 +296,20 @@
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     "01_src/src/api/figure_router.py": {
-      "bytes": 18695,
-      "sha256": "d4ce1b5ee5b3a0e80eba731657e26246b9fbe3d22cd81a162da50721cae9f358"
+      "bytes": 20574,
+      "sha256": "000dc64625b1b03454722de332f644bd6077519eeeece1c334794640fc72a14d"
     },
     "01_src/src/api/integrity_router.py": {
       "bytes": 8084,
       "sha256": "0c661f43119cce28ce57b69b987724b1582eab78aa59dea13db147f0c153ed31"
     },
+    "01_src/src/api/invite_auth_http_test.py": {
+      "bytes": 29377,
+      "sha256": "ff3cba3460827953046c585e59dcba105835fe2ffff19e282129aad0cd28474f"
+    },
     "01_src/src/api/main.py": {
-      "bytes": 274440,
-      "sha256": "cd6f2113f09c8eac0254bb22c81dd21ac83e5553c70ba57ea8febb964798838d"
+      "bytes": 289797,
+      "sha256": "7a29b37aa679c7893803ee78c433be4e9ef921a69259812dd8b022e791486788"
     },
     "01_src/src/api/navigation_task_rediscovery_test.py": {
       "bytes": 10384,
@@ -271,8 +324,24 @@
       "sha256": "5461104db22a2ec07a64464269c7e4c56ed93e9ec422ceee595185da77c21ca5"
     },
     "01_src/src/auth.py": {
-      "bytes": 34400,
-      "sha256": "88ee4012ad318c07cc238d05f23748470435048fab8044a6a86f691d2c243519"
+      "bytes": 46508,
+      "sha256": "108c81aec23ad723ade3e423bd5ce33f5dfd33649ff3452c448e2bcafc286ec2"
+    },
+    "01_src/src/auth_invites.py": {
+      "bytes": 17673,
+      "sha256": "e6279435f8fed13dad085834b91107dea78fcd1e0aa7610307f806da9aaca3c9"
+    },
+    "01_src/src/auth_invites_test.py": {
+      "bytes": 43364,
+      "sha256": "cd3a31be59e77c23a3c2c06d10104b2a0b8f914ac65630fcf112fda7aae2b90f"
+    },
+    "01_src/src/auth_migrations.py": {
+      "bytes": 5581,
+      "sha256": "8d1da6adde85923511f371a9c68618a9b4389197810646dd0278380c986c8ee4"
+    },
+    "01_src/src/auth_session_fence_test.py": {
+      "bytes": 2234,
+      "sha256": "a4d7b6cbab0b74be4f3bc7a341909681264e4c87c363017698d282102a7c9e88"
     },
     "01_src/src/browse/__init__.py": {
       "bytes": 70,
@@ -483,8 +552,8 @@
       "sha256": "358403d65e22156bb4fb6ac100a0ed1266b30eb8c12f64b300f8357a0d6d22c8"
     },
     "01_src/src/core/figures.py": {
-      "bytes": 4023,
-      "sha256": "4ba417a5b2685dcb7a0178eabc0fd9faf761fad65ce1ec5418b7c7f2d8f6644b"
+      "bytes": 4643,
+      "sha256": "5052d2e47db2a832dcbd19294cea8ffdd74ac19d4352f193fb21205c7c23d443"
     },
     "01_src/src/core/file_safety.py": {
       "bytes": 1227,
@@ -679,8 +748,8 @@
       "sha256": "7bbc9739f377823786fdb382c3ba9fd792d1967c216ae94fd9f3d82cdeb817f4"
     },
     "01_src/src/figures/current_artifact_api.py": {
-      "bytes": 20336,
-      "sha256": "4303c7ad6f387d4ccb95f9a72a6a4b466bfd066a7a0fb6a1388b523b24a516e0"
+      "bytes": 24455,
+      "sha256": "245fff57abb07ba6105f7c7e656700fe81fcdbdda7b481f98e858ecb8f611268"
     },
     "01_src/src/figures/dataset_codec.py": {
       "bytes": 369,
@@ -710,13 +779,17 @@
       "bytes": 1621,
       "sha256": "a7feb33f7366811c248525c53b1f00ea067141e9365e339bf29de70b5c3b744d"
     },
+    "01_src/src/figures/nature_current_qa_test.py": {
+      "bytes": 28002,
+      "sha256": "9621c4b03bf5bd94821ccf6540dce30ac78140687e21b02e6917a8aefaf7bb85"
+    },
     "01_src/src/figures/nature_receipts.py": {
-      "bytes": 1628,
-      "sha256": "5a24c359e45fecda7ab67b70a9a045fe0e60bc5970a70f3c179bcff2f73f5f7c"
+      "bytes": 6182,
+      "sha256": "5c1bea9cad11094a8f6a3e272bc6dd2466185e9448e2e1b46aa4bb4b20123bf6"
     },
     "01_src/src/figures/nature_runtime.py": {
-      "bytes": 9819,
-      "sha256": "c7d5e316168f8edf314197166bf6d26f1d94be530dcb8f20ac1bb29575fa36fb"
+      "bytes": 16646,
+      "sha256": "458225cfc7f8520ac6946cf95c5cf81fdbba04358c5a756a60d049b63f927e90"
     },
     "01_src/src/figures/overrides.py": {
       "bytes": 1304,
@@ -727,16 +800,16 @@
       "sha256": "49586fb9dd879db174ae04759ea78cc65c3467010e0e1ef9f036bbc319eda15a"
     },
     "01_src/src/figures/projects.py": {
-      "bytes": 61405,
-      "sha256": "339368bf1b159158bcc91b1c219f5f669fb714ea7a3a1924ab8fff20d70c82f3"
+      "bytes": 62448,
+      "sha256": "6e77114d4e9c13f349482e145b6090bf5a13b0e3646fad44647ebf2296ee2c16"
     },
     "01_src/src/figures/readiness.py": {
       "bytes": 12931,
       "sha256": "3742b63558773b0bff6bf3484f74a5016b0c63ab62d6759d12ff7fb3fdc4dae6"
     },
     "01_src/src/figures/render_policy.py": {
-      "bytes": 2742,
-      "sha256": "ecca79bd100449befc30b87c94e55f849b29d26622598059e76ddc491ab8c5ce"
+      "bytes": 4843,
+      "sha256": "4db845be4144043512c4434fbc26705ce5521f84648485ddd15dd1be97ded83a"
     },
     "01_src/src/figures/resolve.py": {
       "bytes": 6234,
@@ -770,17 +843,25 @@
       "bytes": 254,
       "sha256": "d16dcbac563a7ed0342167cc1e269f5ec1adfe9ef91e84783b2e4fe33038ba2e"
     },
+    "01_src/src/figures/svg_projects.py": {
+      "bytes": 34886,
+      "sha256": "257790c3c6391bdd0a4b28737dd5e4839b07b8c799476b6d6d69fb54b0ced72f"
+    },
+    "01_src/src/figures/svg_projects_test.py": {
+      "bytes": 17303,
+      "sha256": "65b56f004f03f573967d5bb8174ea860eba0584821ae1c67ced3b934fc24d10d"
+    },
     "01_src/src/figures/trusted_render.py": {
-      "bytes": 15396,
-      "sha256": "9f93b1909ee39d44cfa468751b73a0f1a14922928b4783376a057cc44bfbcb82"
+      "bytes": 15807,
+      "sha256": "effb218564bd3c9cc36d9fe31e5a562a9b12afb4dd417b91f7bbf61263f0dffd"
     },
     "01_src/src/figures/trusted_worker.py": {
       "bytes": 12505,
       "sha256": "829ce2ed5ea934b525af4edcf3f6d3cb77dffd956c2507e48a5d684a715e2316"
     },
     "01_src/src/figures/worker.py": {
-      "bytes": 27699,
-      "sha256": "d1ad0770ad4fd548a81d42765cca15aea32a6e769971ad69f80f578db298bc9d"
+      "bytes": 29067,
+      "sha256": "8cda1c9c9f440a2ce13846d5f2bdf569c3db60148fcb46333e31a50b76fdc573"
     },
     "01_src/src/figures/wsl_docker.py": {
       "bytes": 13611,
@@ -1167,8 +1248,8 @@
       "sha256": "c5cf033361cc5184339830e39198346961b2436b8b850e66ceb7e25ae2af71ab"
     },
     "01_src/src/research/figure_tools.py": {
-      "bytes": 38516,
-      "sha256": "ecf94fe630137c10a0758d1cffe20f574fb741fff30f1949227c64d6afd85262"
+      "bytes": 38879,
+      "sha256": "dffed9ed8d84b76dd02c32c44202f5186871882065372d00826ecf04fe217d0f"
     },
     "01_src/src/research/image_integrity.py": {
       "bytes": 47626,
@@ -1190,6 +1271,14 @@
       "bytes": 26672,
       "sha256": "0dac2dc748f60ba8d7b21caf74e85dd55850ee7da430e7d007c9865dd97cdfe6"
     },
+    "01_src/src/research/nature_composition_test.py": {
+      "bytes": 21589,
+      "sha256": "882305d59b497d8ad35b9628a93143bc9350848ed32825012dee3edb1b9939b0"
+    },
+    "01_src/src/research/nature_presets_test.py": {
+      "bytes": 28268,
+      "sha256": "4b41ef81d2d571683fa77b4bbd2bcc4693080cf2f649403f44c84b646178d1df"
+    },
     "01_src/src/research/p0c_regression_test.py": {
       "bytes": 9982,
       "sha256": "cc5bdb285cf2034fdc330f5673136bb8bc77399948aea61a7f3138b7cd95ee2b"
@@ -1197,6 +1286,26 @@
     "01_src/src/research/pdf_citations.py": {
       "bytes": 10323,
       "sha256": "590b5eb036559adf46c3a5163019c79b9543d3999eb3bed3ba32c32071658b85"
+    },
+    "01_src/src/research/presets/nature_dotplot.py": {
+      "bytes": 5450,
+      "sha256": "23674ea01602c6f63c10067a5928cdef833283ff3fca93d876782f9cfaa5fd0f"
+    },
+    "01_src/src/research/presets/nature_marginal.py": {
+      "bytes": 4021,
+      "sha256": "d7eb17a5a09f4e2d8727d421c3ef8a0b73cb98ed0a2ea5a41d73e69d8777dda2"
+    },
+    "01_src/src/research/presets/nature_paired.py": {
+      "bytes": 7684,
+      "sha256": "79f63234df161e2480dfa0558166294f95b798c721ca01547c98c228f9267b54"
+    },
+    "01_src/src/research/presets/nature_roc.py": {
+      "bytes": 3807,
+      "sha256": "edfa49a398f9ad09b089ff59c5a0d14730ca8de8a070192cb26e9a234a6d4341"
+    },
+    "01_src/src/research/presets/nature_volcano.py": {
+      "bytes": 5494,
+      "sha256": "66eff344dfca18d5c54987127798f084101f308f0999adb0782ecf2d55aab45a"
     },
     "01_src/src/research/presets/relationship_panels.py": {
       "bytes": 1801,
@@ -1227,12 +1336,12 @@
       "sha256": "dd7b0987611e6f16de4e8357a3844c469b994541f171d27b543936af2a87cc1d"
     },
     "01_src/src/research/script_execution.py": {
-      "bytes": 15109,
-      "sha256": "7257af6e07aba3e93e0ed041833a1b897d0eb802c9774fcf1d4b5aad29a355bf"
+      "bytes": 15477,
+      "sha256": "011ffc1e223d3cce67bcedaaa014e3e648ab3e5e3b0c415aad2f630e158df226"
     },
     "01_src/src/research/script_presets.py": {
-      "bytes": 4410,
-      "sha256": "502e65ad9c61b0c4c584cf23c7fda3ddb1eaab43da4c777ad29c30fb607a55ce"
+      "bytes": 17603,
+      "sha256": "24894d32a67c385d2854ada5961f9922021504d6dda966a6c8d39dcacf52be4b"
     },
     "01_src/src/research/script_reconciliation.py": {
       "bytes": 5971,
@@ -1371,8 +1480,8 @@
       "sha256": "f787bc341ab2d71f103e90f5fc4454b7581f824344841d09637aafdf541fa6e9"
     },
     "01_src/src/tools/draw_svg.py": {
-      "bytes": 4643,
-      "sha256": "b191986f1deb422cb2b7e47cfa71a66d10780a943edbebac0c32dfdf3602a175"
+      "bytes": 4013,
+      "sha256": "c28850b624aa8a519e2a4b6a514df82619775a5c897b6fb4d3292f904ce72dc0"
     },
     "01_src/src/tools/errors.py": {
       "bytes": 156,
@@ -1431,24 +1540,24 @@
       "sha256": "4d86649944ff25789b23db62cb43ce027d8457f101d880ec0099818c328caa48"
     },
     "01_src/web/admin.html": {
-      "bytes": 4696,
-      "sha256": "666f63aabb2993016eaffd096754bdc72bb2237d7d7364e264af59145b8bf236"
+      "bytes": 9116,
+      "sha256": "036df05293520cc30b3fde951ad09ab252251faf0027c0096ec4403f2eca77c2"
     },
     "01_src/web/assets/admin.css": {
-      "bytes": 7209,
-      "sha256": "63c0f4a0f0f73a70842a5b277387d63c8dd9ea2a0abdeb8700fc119843a35b9a"
+      "bytes": 10544,
+      "sha256": "e50b9e762e9d69347f632df276a345bb38d4785ab0acf06990454b727e42e39a"
     },
     "01_src/web/assets/admin.js": {
-      "bytes": 14406,
-      "sha256": "60f17ef88786f728a0ceb2fb67c43fd5526d1bf39b0ab3c045381e9c49e30b99"
+      "bytes": 32469,
+      "sha256": "c16350f0dde6672309c644038eb7243911c69224fe74382133981483e2ede4b1"
     },
     "01_src/web/assets/app.css": {
-      "bytes": 127994,
-      "sha256": "ad6e608dbc2000560519857395f8e0162c5152803989b845bab53bda5adcaae0"
+      "bytes": 129539,
+      "sha256": "8f688bdc50a5fad915ebf8b91bd678474affa442fe0767e2db0c15e5da1c65bc"
     },
     "01_src/web/assets/app.js": {
-      "bytes": 286218,
-      "sha256": "3b602523b98a2fc79a90808e05d171f37ff02579f4eda13deab852bbab4293ea"
+      "bytes": 302945,
+      "sha256": "7ce64ffd60b543ae12b2c75381ddb1c1c4ad93847e5e0fb928eb5f9782f0143a"
     },
     "01_src/web/assets/avatars/01.webp": {
       "bytes": 9024,
@@ -1551,8 +1660,8 @@
       "sha256": "7092ff1657dd87533ab1adea49e9f7c9d5edf9caffeb4f6cd07141acb89133b6"
     },
     "01_src/web/assets/figures.js": {
-      "bytes": 104296,
-      "sha256": "e2ffe53f19f7e343cccaf7eff4f481e0d5f87e207f2b42d4ed488a7488d500d0"
+      "bytes": 110514,
+      "sha256": "fed8f494a9b8c0cf0277c7fbb8ce0cf6db695f89ff427bb61e1ac5bd58de57a4"
     },
     "01_src/web/assets/figures/edit_model.js": {
       "bytes": 1917,
@@ -1703,8 +1812,8 @@
       "sha256": "7f71897f33ef691512c15a67beeeae489d41b88e5d9fbede113f1b5c52bf7d18"
     },
     "01_src/web/index.html": {
-      "bytes": 36638,
-      "sha256": "54ceb2f267ff84d1fbffe9c6f160f43f083c71ae9071cabfb89944ecb9723756"
+      "bytes": 42689,
+      "sha256": "4f7f542532c8998c8f61add828c122b38117b638acba49c406589894b2e86f38"
     },
     "01_src/web/integrity-review.html": {
       "bytes": 2165,
@@ -1713,6 +1822,10 @@
     "01_src/web/tests/clipboard-attachments.test.cjs": {
       "bytes": 5263,
       "sha256": "d5cb070d7ec293d9e0315cbed511acb0ed120f7c9243dd4788d3f3d73bf31239"
+    },
+    "01_src/web/tests/invite-auth.test.cjs": {
+      "bytes": 10098,
+      "sha256": "6cc5f642fe1c08811d8cfb1ec593fca4369feca32f5580177eaf475a6ee44287"
     },
     "01_src/web/tests/navigation-task-recovery.test.cjs": {
       "bytes": 6687,
@@ -1730,17 +1843,61 @@
       "bytes": 11511,
       "sha256": "b7321fa72ecb0410304ae02fa41678aacfbf55dc431c7f543f5a07ed16f6ac33"
     },
+    "02_config/skill-history/nature-figure/2.0.0/SKILL.md": {
+      "bytes": 4670,
+      "sha256": "878010ec09e4c3a65c18249cb2babc41e64ce48b93881a921dd3ff0fc4e9f23d"
+    },
+    "02_config/skill-history/nature-figure/2.0.0/manifest.json": {
+      "bytes": 11346,
+      "sha256": "c363408c8437df8fb692f0b99ebcb360c4007f5f338221920162bbc81d9dace4"
+    },
+    "02_config/skill-history/nature-figure/2.0.0/provenance.extra.json": {
+      "bytes": 1301,
+      "sha256": "d009a7c9e34fef2627d01fd940bed35a6a71115bee3a7b4130c1f4c1ae55bcf4"
+    },
+    "02_config/skill-history/nature-figure/2.0.0/provenance.json": {
+      "bytes": 11937,
+      "sha256": "6f2c4b4f6921fa2d029341a5992917658f48875ac140433e2d35dc3ce5a4ea6d"
+    },
+    "02_config/skill-history/nature-figure/2.0.0/references/bridge.md": {
+      "bytes": 3455,
+      "sha256": "84d1263b12d64b02787c5fa11c57d1dfa8ca7618247aeadef8ca6050ff615d63"
+    },
     "02_config/skills.catalog.json": {
-      "bytes": 19707,
-      "sha256": "62154998c23053efd70a5ba611c76aede0c7d7732a8729c4ff1ed7de93d4ad1e"
+      "bytes": 20007,
+      "sha256": "9f2403a834360f03839781e838896d63563714276f4acebcfde547ed4a49445d"
     },
     "04_scripts/build_worker_bundle.py": {
       "bytes": 1259,
       "sha256": "09ff45bc094784bb582b461eb0660f90fb0d4f6b53c7f1f3f0e88137768e9b0d"
     },
+    "LICENSE": {
+      "bytes": 1085,
+      "sha256": "92f8d4c3a3ff286ccbcb83085eb81afb9b293fc3aca0b8a292e65c61641930dc"
+    },
     "README.md": {
       "bytes": 10608,
       "sha256": "0c66a312ef6b298c93c73b4b6920e586857ad516b9c87a56f19b5c00fdf6b6c6"
+    },
+    "docs/audits/auth-current.md": {
+      "bytes": 20593,
+      "sha256": "2b129a80cf5d62dc9e7668440b300d78715a3efb989388065c08b54af54b8395"
+    },
+    "docs/audits/figure-runtime-callchain.md": {
+      "bytes": 48487,
+      "sha256": "483c89b3d5cd0790f3636bdbc74d859b7c88efdb826ced19773cf8189da6e79b"
+    },
+    "docs/audits/invite-nature-acceptance.md": {
+      "bytes": 18199,
+      "sha256": "8c691c0099473cdf1601e0d7691b25b69e7b803b768701e3c85da005c801bdfe"
+    },
+    "docs/audits/nature-inventory.md": {
+      "bytes": 29966,
+      "sha256": "63fc0084e53e83403e4518e5ff4f34674bf40d82d447d052b3b5512a4d0e28d0"
+    },
+    "docs/plans/invite-and-nature-integration.md": {
+      "bytes": 16851,
+      "sha256": "7a92f23231b3a54804eb0b167db8ad7ec324e096bf12dbe982e8d54940649707"
     },
     "packages/citrus_audit/__init__.py": {
       "bytes": 596,
@@ -1803,8 +1960,8 @@
       "sha256": "307299fda7b77d22c64cb51430ec75e5f59d78e9c948786afb3b2544fe45e4b7"
     },
     "packages/citrus_figures/bundle.py": {
-      "bytes": 13844,
-      "sha256": "2ad3866df51d22b9386d9ea54dac751db2e2ac0f2f431a4642228b4c509fedb0"
+      "bytes": 18025,
+      "sha256": "12fb8214ce19081a3d3d13a5abb6aec26bed6075929664c00d450457aacf0714"
     },
     "packages/citrus_figures/cli.py": {
       "bytes": 5715,
@@ -1847,8 +2004,8 @@
       "sha256": "f41588e047f3b7f3a870b491a59bd5e191403313cdf4bfe59fb911bcd59bcb2c"
     },
     "packages/citrus_figures/render_policy.py": {
-      "bytes": 4188,
-      "sha256": "f42045bfd7bfa50d5faf5cf04e206cfb28b3bc863222885075badd7695a1b08e"
+      "bytes": 4432,
+      "sha256": "46b8ba30225cae326c2944bd98d530ce79adcd4d0834bda638b7e23d21364cd8"
     },
     "packages/citrus_figures/resolve.py": {
       "bytes": 20562,
@@ -1871,8 +2028,8 @@
       "sha256": "a010d3b50c8e3c59830a0da8ffa02b706fc1e8e1691d5113be881b7ada289d6e"
     },
     "packages/citrus_figures/verification.py": {
-      "bytes": 12221,
-      "sha256": "53de23d7ef384efb699cd6e59f49bc021b8b19a0c67bd4235057c9e181c950d7"
+      "bytes": 12748,
+      "sha256": "e4914097f26bf98819c22f5c532157aae30a5d864f4393be411350f4cc179cfa"
     },
     "packages/citrus_refcheck/__init__.py": {
       "bytes": 634,
@@ -2019,20 +2176,24 @@
       "sha256": "6bf7ae55b78f1aa22a3d44f36999a51f27e16d32d828475faadd24e5bc83bdb8"
     },
     "skills/nature-figure/SKILL.md": {
-      "bytes": 4670,
-      "sha256": "878010ec09e4c3a65c18249cb2babc41e64ce48b93881a921dd3ff0fc4e9f23d"
+      "bytes": 5177,
+      "sha256": "9cb7b20f075d4178afcfb35b5e10862c2f794f2b72be15d5a187849b59e9a9e0"
     },
     "skills/nature-figure/provenance.extra.json": {
-      "bytes": 1301,
-      "sha256": "d009a7c9e34fef2627d01fd940bed35a6a71115bee3a7b4130c1f4c1ae55bcf4"
+      "bytes": 1491,
+      "sha256": "6308decbc8b820e48ff47d923f75868a9169c232538e7dbef58e5a42c8017f81"
     },
     "skills/nature-figure/provenance.json": {
-      "bytes": 11937,
-      "sha256": "6f2c4b4f6921fa2d029341a5992917658f48875ac140433e2d35dc3ce5a4ea6d"
+      "bytes": 12408,
+      "sha256": "67def594c3024d54e402344b8762bcd53dfdd6fe19bd1316286ada19f35ca8b5"
     },
     "skills/nature-figure/references/bridge.md": {
-      "bytes": 3455,
-      "sha256": "84d1263b12d64b02787c5fa11c57d1dfa8ca7618247aeadef8ca6050ff615d63"
+      "bytes": 6948,
+      "sha256": "20d9aa14ab17374315d3002d8b599ff20919522abce7a6658465326f2c00a1a9"
+    },
+    "skills/nature-figure/references/figure-methods.md": {
+      "bytes": 7038,
+      "sha256": "df985b96cfbac9f04d6931c536cb70f42993d930e91309d8749da309c6a2b8b6"
     },
     "skills/nature-figure/scripts/citrus/bundle_figure.py": {
       "bytes": 430,
@@ -2291,24 +2452,14 @@
       "sha256": "babf1a2e2784d116337bc9539d806e5fff291f096832812603683ef9509236d5"
     }
   },
-  "publication": {
-    "deployment_documentation_redactions": {
-      "01_src/apptainer/README.md": {
-        "original": {
-          "bytes": 11040,
-          "sha256": "6014ec1d7c8d888db5cbf75e127868ab5cfce8591fd79b0c208933f8ec24300e"
-        },
-        "reason": "Removed internal test job identifiers and a host-specific home directory from the deployment documentation."
-      }
-    },
-    "repository_metadata_from_parent": [
-      ".dockerignore",
-      ".gitattributes",
-      ".gitignore",
-      "LICENSE"
-    ]
+  "remote_validation": {
+    "application_sif_sha256": "e7ae08db8557e755d50e44e4e5821345cdb41cdb8a245fabfbc44db6776448aa",
+    "figure_sandbox_sif_sha256": "251e26855bb8d65c4c600f777605a694c5505795fff43631e126e829003996fa",
+    "live_model_autonomy": "not_run",
+    "production_deployment": "not_run",
+    "report": "docs/audits/invite-nature-acceptance.md",
+    "tested_support_wheel_sha256": "1d9397f49dbd5264e0d2026f202884c5d382a85f6a738b7cd51128847842539a"
   },
-  "remote_validation": "byte hashes captured from running release source; no service restart",
   "schema": "citrusscholar.linux-source/1",
-  "source": "Linux release v20261118, live Web 8031, read-only snapshot 2026-11-18"
+  "source": "CitrusScholar invite/auth and Nature Figure Linux development candidate, 2026-11-20"
 }

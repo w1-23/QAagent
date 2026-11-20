@@ -176,8 +176,8 @@
         '" title="' + esc(when) + '" aria-current="' + (current ? 'true' : 'false') + '">' +
         '<span class="project-thumb" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M3 4v16h18M6 15l4-5 4 2 6-7"/><circle cx="6" cy="15" r="1"/><circle cx="10" cy="10" r="1"/><circle cx="14" cy="12" r="1"/><circle cx="20" cy="5" r="1"/></svg></span>' +
         '<span class="project-main"><strong>' + esc(project.title || '未命名图件') + '</strong>' +
-        '<small>' + esc(project.source_kind === 'script' ? '脚本图件' : '数据图件') +
-        ' · ' + esc(project.objects || 0) + ' 个对象</small></span></button></li>';
+        '<small>' + esc(project.source_kind === 'svg' ? 'SVG 示意图' : project.source_kind === 'script' ? '脚本图件' : '数据图件') +
+        (project.source_kind === 'svg' ? '' : ' · ' + esc(project.objects || 0) + ' 个对象') + '</small></span></button></li>';
     }).join('');
   }
 
@@ -250,8 +250,15 @@
     status.textContent = state.qaError || (state.qaFlight ? '正在检查已保存文件…' : current ? '尚未运行当前文件检查。' : '未打开图件');
     if (!current) return;
     var manifest = current.manifest || {};
-    var receipts = state.qa ? [['当前文件检查', state.qa.receipt]] : [
-      ['初始图件检查', manifest.initial_qa_receipt || manifest.qa_receipt],
+    var initialQa = manifest.initial_qa_receipt || manifest.qa_receipt;
+    var savedQa = manifest.current_qa_receipt;
+    if (initialQa && savedQa && (initialQa === savedQa ||
+        (initialQa.receipt_id && initialQa.receipt_id === savedQa.receipt_id))) initialQa = null;
+    var receipts = [
+      ['当前文件重审', state.qa && state.qa.receipt],
+      ['保存时检查', manifest.current_qa_receipt],
+      ['初始文件检查', manifest.initial_current_qa_receipt],
+      ['初始图件检查', initialQa],
       ['初始绘图检查', manifest.initial_nature_skill_receipt || manifest.nature_skill_receipt],
       ['编辑后检查', manifest.manual_edit_qa_receipt]];
     var labels = {pass:'通过', warn:'提示', fail:'失败', error:'错误', incomplete:'未完成',
@@ -277,16 +284,19 @@
           (check.reason_code || check.reason ? '；' + String(check.reason_code || check.reason) : '');
         if (check.artifact && typeof check.artifact === 'object') {
           var artifact = check.artifact;
-          row.textContent += ' · 文件：' + String(artifact.format || artifact.role || '未标注') +
+          row.textContent += ' · 文件：' + (artifact.role === 'internal_qa' ? '内部审计 PDF' : String(artifact.format || artifact.role || '未标注')) +
             (typeof artifact.sha256 === 'string' ? ' · SHA256 ' + artifact.sha256.slice(0, 12) : '');
         }
         section.appendChild(row);
       });
       checks.appendChild(section);
     });
+    var latest = state.qa ? state.qa.receipt : manifest.current_qa_receipt;
+    if (latest && !state.qaError && !state.qaFlight) {
+      status.textContent = (state.qa ? '当前文件' : '保存时检查') + '：' +
+        label(latest.overall.execution) + ' · 结论：' + label(latest.overall.conclusion);
+    }
     if (state.qa) {
-      var overall = state.qa.receipt.overall || {};
-      if (!state.qaError && !state.qaFlight) status.textContent = '当前文件：' + label(overall.execution) + ' · 结论：' + label(overall.conclusion);
       [['下载检查回执', state.qa.receipt_file], ['下载证据包', state.qa.bundle]].forEach(function(pair) {
         var file = pair[1], url = file && file.download_url;
         // Never guess a download from an id, nor accept script/external URLs.
@@ -323,6 +333,11 @@
   function renderProjectMeta() {
     var detail = state.current;
     var formats = Object.keys(detail.exports || {}).map(function (format) { return format.toUpperCase(); });
+    if (detail.source_kind === 'svg') {
+      el('projectMeta').textContent = 'SVG 示意图 · ' + (detail.svg_targets || []).length + ' 个可编辑对象';
+      el('prepareEditButton').hidden = true;
+      return;
+    }
     el('projectMeta').textContent = (detail.source_kind === 'script' ? '脚本图件' : '数据图件') + ' · ' +
       (detail.editable === false ? formats.join(' / ') || '无已保存格式' : manifestObjects().length + ' 个图内对象');
     el('prepareEditButton').hidden = !detail.edit_requires_preparation;
@@ -866,9 +881,99 @@
     return savedMarkerFollowsLine(gid, prop) && !(state.edits[gid] && state.edits[gid][prop] !== undefined);
   }
 
+  var svgPropertyNames = {
+    text: '文字', fill: '填充色', stroke: '描边色', 'stop-color': '渐变色',
+    'stroke-width': '描边宽度', 'stroke-dasharray': '虚线间距', 'stroke-linecap': '线端',
+    'stroke-linejoin': '线角', 'font-size': '字号', 'font-weight': '字重',
+    'font-style': '字体样式', 'font-family': '字体', 'text-anchor': '文字对齐',
+    'dominant-baseline': '文字基线'
+  };
+
+  function renderSchematicProperties(panel, selectedId) {
+    panel.replaceChildren();
+    var project = state.current, targets = project.svg_targets || [];
+    el('objectName').textContent = '示意图对象';
+    if (!targets.length) {
+      panel.textContent = '没有带唯一 ID 的可编辑对象。可以预览和下载此图。';
+      return;
+    }
+    var fields = document.createElement('fieldset');
+    var target = document.createElement('select');
+    var property = document.createElement('select');
+    var value = document.createElement('textarea');
+    var save = document.createElement('button');
+    target.id = 'svgTarget'; property.id = 'svgProperty'; value.id = 'svgValue';
+    value.rows = 3;
+    save.id = 'svgSave'; save.type = 'button'; save.className = 'button primary'; save.textContent = '保存属性';
+    [[target, '对象'], [property, '属性'], [value, '新值']].forEach(function (pair) {
+      var row = document.createElement('div'), label = document.createElement('label');
+      row.className = 'property-row'; label.htmlFor = pair[0].id; label.textContent = pair[1];
+      row.append(label, pair[0]); fields.appendChild(row);
+    });
+    fields.appendChild(save);
+    panel.appendChild(fields);
+    targets.forEach(function (entry) { target.add(new Option(entry.id + ' (' + entry.tag + ')', entry.id)); });
+    if (targets.some(function (entry) { return entry.id === selectedId; })) target.value = selectedId;
+    function selected() { return targets[target.selectedIndex]; }
+    function storedValue() {
+      var object = selected();
+      return property.value === 'text' ? object.text : object.attributes[property.value] || '';
+    }
+    function loadValue() {
+      value.maxLength = property.value === 'text' ? 2000 : 200;
+      value.value = storedValue(); save.disabled = true;
+    }
+    function loadProperties() {
+      var entry = selected();
+      property.replaceChildren();
+      if (entry.text !== null) property.add(new Option(svgPropertyNames.text, 'text'));
+      Object.keys(entry.attributes).forEach(function (name) {
+        property.add(new Option(svgPropertyNames[name] || name, name));
+      });
+      loadValue();
+    }
+    target.addEventListener('change', loadProperties);
+    property.addEventListener('change', loadValue);
+    value.addEventListener('input', function () { save.disabled = value.value === storedValue(); });
+    loadProperties();
+    save.addEventListener('click', function () {
+      if (state.saving || state.deleting || state.qaFlight || value.value === storedValue()) return;
+      var id = project.figure_id, epoch = state.epoch, revision = project.render_version;
+      var edit = {op: 'set_text', target: target.value, value: value.value};
+      if (property.value !== 'text') { edit.op = 'set_attribute'; edit.attribute = property.value; }
+      var flight = {figureId: id, epoch: epoch};
+      state.saving = flight; fields.disabled = true; renderEditState();
+      jsonRequest(API + '/projects/' + encodeURIComponent(id) + '/svg-edits', {
+        method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({expected_revision: revision, edits: [edit]})
+      }, function () { return ownsProject(id, epoch); }).then(function (result) {
+        if (!ownsProject(id, epoch) || state.saving !== flight) return;
+        if (result.figure_id !== id || result.render_version !== revision + 1 ||
+            !result.exports || !result.exports.svg || !Array.isArray(result.svg_targets) || !result.receipt) {
+          throw new Error('保存回执不完整，请重新打开图件核对。');
+        }
+        Object.assign(project, {render_version: result.render_version, exports: result.exports,
+          svg_targets: result.svg_targets, overrides: result.accepted_edits});
+        project.manifest = Object.assign({}, project.manifest, {current_qa_receipt: result.receipt});
+        loadSavedScene(); renderProjectMeta(); renderDownloads();
+        renderSchematicProperties(panel, edit.target);
+        notify('已保存 SVG 修改。');
+      }).catch(function (error) {
+        if (ownsProject(id, epoch)) notify(error.message, true);
+      }).finally(function () {
+        if (!ownsProject(id, epoch) || state.saving !== flight) return;
+        state.saving = null; fields.disabled = false; renderEditState();
+      });
+    });
+  }
+
   function renderProperties() {
     renderPropertyScope(); renderPropertyResets();
     var panel = el('propertyPanel');
+    if (state.current && state.current.source_kind === 'svg') {
+      renderSchematicProperties(panel);
+      return;
+    }
     var selected = selectedObject();
     el('objectName').textContent = state.selectedGroup ? '批量编辑 · ' + selectedMembers().length + ' 个对象' : selected ? objectLabel(selected) : '未选择对象';
     if (state.current && state.current.editable === false) {
@@ -1038,7 +1143,8 @@
         if (typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value)) field.value = value;
       }
     });
-    var editable = state.current && state.current.editable !== false;
+    var schematic = state.current && state.current.source_kind === 'svg';
+    var editable = state.current && state.current.editable !== false && !schematic;
     var blocked = !editable || state.saving || state.deleting || state.drag;
     el('undoButton').disabled = !!blocked || !state.undo.length;
     el('redoButton').disabled = !!blocked || !state.redo.length;
@@ -1046,7 +1152,9 @@
     var status = el('editStatus');
     status.classList.toggle('is-dirty', hasEdits());
     el('checkPreviewButton').disabled = !editable || !!state.saving || !!state.deleting || !!state.drag;
-    status.textContent = !state.current ? '未打开图件' : state.savedPreviewStatus || (!editable ? '只读图件' : state.saving
+    status.textContent = !state.current ? '未打开图件' : state.savedPreviewStatus || (schematic
+      ? (state.saving ? '正在保存 SVG…' : state.current.editable ? '在属性面板修改示意图' : '只读图件')
+      : !editable ? '只读图件' : state.saving
       ? '正在保存；期间的新修改会保留。' : state.saveError && hasEdits() ? state.saveError
       : state.previewError ? '预览未更新 · ' + state.previewError
       : state.previewFlight || state.previewWanted ? '未保存 · 等待服务端校正（本地可映射部分已显示）'
@@ -1211,6 +1319,10 @@
     if (format !== 'svg') {
       staticOnly(format === 'png' ? '当前显示已保存的 PNG；项目没有 SVG。' :
         exports.pdf ? '此项目没有画布预览；可下载已保存的 PDF 查看。' : '此项目没有可在画布预览的文件。');
+      return;
+    }
+    if (project.source_kind === 'svg') {
+      showImage(url, null);
       return;
     }
     if (Number(exports.svg.size_bytes) > maxSceneBytes) {

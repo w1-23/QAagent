@@ -2444,3 +2444,15 @@ body .session-files-panel .session-file-sub {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* 邀请注册与账户安全（A3） */
+.auth-card .auth-invite[hidden] { display:none; }
+.auth-card .auth-notice { margin:10px 0 0; padding:9px 11px; border:1px solid color-mix(in srgb,var(--accent) 34%,transparent); border-radius:10px; background:color-mix(in srgb,var(--accent) 9%,transparent); color:var(--text-secondary); font-size:12px; line-height:1.55; }
+.auth-card .auth-notice[hidden] { display:none; }
+.auth-forgot { display:block; width:100%; margin:6px 0 0; padding:4px 0; border:0; background:none; color:var(--accent); font:inherit; font-size:12px; cursor:pointer; text-align:center; }
+.auth-forgot:hover { text-decoration:underline; }
+.preference-field input { min-height:37px; padding:8px 10px; border:1px solid var(--border-hairline); border-radius:10px; background:var(--bg-elevated); color:var(--text-primary); font:inherit; font-size:12px; }
+.preference-field input:focus-visible { outline:2px solid color-mix(in srgb,var(--success) 62%,white); outline-offset:2px; }
+.recovery-code-list { margin:8px 0 0; padding:12px 14px; border:1px solid var(--border-hairline); border-radius:10px; background:var(--bg-elevated); color:var(--text-primary); font-family:"JetBrains Mono",ui-monospace,monospace; font-size:12px; line-height:1.8; white-space:pre-wrap; overflow-wrap:anywhere; }
+.recovery-code-list:focus-visible, .auth-forgot:focus-visible { outline:2px solid color-mix(in srgb,var(--accent) 62%,white); outline-offset:2px; }
+@media(prefers-reduced-motion:reduce) { .auth-card .api-save { transition:none; } }

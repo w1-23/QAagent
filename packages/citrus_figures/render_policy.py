@@ -53,7 +53,12 @@ def export_with_layout(rendered, *, exporter, dpi=300):
         pdf = exporter.export_all(rendered, formats=("pdf",), dpi=dpi)["pdf"]
     finally:
         fig.canvas.mpl_disconnect(token)
-    layout = None if dynamic or len(snapshots) != 1 else {"artifact_sha256": sha256(pdf), "layout": snapshots[0], "capture": "pdf_draw_event", "rerendered": False}
+    # Matplotlib may draw once to measure layout and again to paint the PDF.
+    # Certify geometry only when every observation from this export agrees.
+    layout = None
+    if not dynamic and snapshots and all(snapshot == snapshots[0] for snapshot in snapshots):
+        layout = {"artifact_sha256": sha256(pdf), "layout": snapshots[-1],
+                  "capture": "pdf_draw_event", "rerendered": False}
     return pdf, layout
 
 

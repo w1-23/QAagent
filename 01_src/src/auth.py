@@ -2,7 +2,7 @@
 
 Passwords are PBKDF2-HMAC-SHA256 hashed and browser sessions are opaque random
 tokens stored only as SHA-256 digests. Public registration always creates a
-regular account; the first administrator is created through a private CLI.
+pending application; the first administrator is created through a private CLI.
 """
 from __future__ import annotations
 
@@ -20,6 +20,9 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+from src import auth_invites
+from src.auth_invites import AccountInviteError
+from src.auth_migrations import migrate
 from src.config import PROJECT_ROOT
 from src.core.account_leases import AccountDeletionPending
 
@@ -121,11 +124,12 @@ def init_store() -> None:
         );
         CREATE INDEX IF NOT EXISTS idx_workspace_files_owner ON workspace_files(user_id, session_id);
         """)
-        _ensure_user_profile_columns(conn)
         from src.core.account_admission import init_schema
         conn.execute("BEGIN IMMEDIATE")
+        _ensure_user_profile_columns(conn)
         init_schema(conn)
         conn.commit()
+        migrate(conn)
         conn.execute("DELETE FROM browser_sessions WHERE expires_at < ?", (_stamp(),))
         _ensure_session_owner_column()
 
@@ -174,6 +178,7 @@ def _public_user(row: sqlite3.Row) -> dict[str, Any]:
         "username": str(row["username"]),
         "role": str(row["role"]),
         "active": bool(row["active"]),
+        "approval_status": str(row["approval_status"]),
         "daily_limit": int(row["daily_limit"]),
         "created_at": str(row["created_at"]),
         "avatar_preset": preset,
@@ -184,67 +189,100 @@ def _public_user(row: sqlite3.Row) -> dict[str, Any]:
     }
 
 
+def _valid_password_encoding(password: str) -> bool:
+    try:
+        password.encode("utf-8")
+    except UnicodeEncodeError:
+        return False
+    return True
+
+
 def validate_credentials(username: str, password: str) -> str | None:
     username = str(username or "").strip()
     if not _USERNAME_RE.fullmatch(username):
         return "用户名需为 3–32 位字母、数字、点、下划线或短横线。"
-    if len(password or "") < 10 or len(password or "") > 256:
+    if not isinstance(password, str) or not 10 <= len(password) <= 256 or not _valid_password_encoding(password):
         return "密码长度需为 10–256 个字符。"
     return None
 
 
-def _create_account(username: str, password: str, *, bootstrap_admin: bool, avatar_preset: str = "01"
-                    ) -> tuple[dict[str, Any] | None, str | None, str | None]:
+def create_first_admin(username: str, password: str
+                       ) -> tuple[dict[str, Any] | None, str | None, str | None]:
+    """Create the first administrator from a trusted local CLI."""
     username = str(username or "").strip()
     error = validate_credentials(username, password)
     if error:
         return None, None, error
-    avatar_preset = str(avatar_preset or "01").strip()
-    if not re.fullmatch(r"(?:0[1-9]|1[0-9]|20)", avatar_preset):
-        return None, None, "请选择 01–20 号头像。"
     salt = secrets.token_bytes(16)
     digest = _password_hash(password, salt)
-    with _lock, _connect() as conn:
+    with _connect() as conn:
         conn.execute("BEGIN IMMEDIATE")
+        if conn.execute("SELECT 1 FROM users WHERE role='admin' LIMIT 1").fetchone():
+            return None, None, "管理员账号已存在；拒绝再次初始化。"
+        stamp = _stamp()
         try:
-            if bootstrap_admin and conn.execute(
-                    "SELECT 1 FROM users WHERE role='admin' LIMIT 1").fetchone():
-                conn.rollback()
-                return None, None, "管理员账号已存在；拒绝再次初始化。"
-            role = "admin" if bootstrap_admin else "user"
-            try:
-                cur = conn.execute(
-                    "INSERT INTO users(username,salt,password_hash,role,active,daily_limit,created_at,avatar_preset) "
-                    "VALUES(?,?,?,?,1,30,?,?)",
-                    (username, salt, digest, role, _stamp(), avatar_preset))
-            except sqlite3.IntegrityError:
-                conn.rollback()
-                return None, None, "该用户名已被使用。"
-            user_id = int(cur.lastrowid)
-            token = secrets.token_urlsafe(36)
-            conn.execute("INSERT INTO browser_sessions VALUES(?,?,?,?)",
-                         (hashlib.sha256(token.encode()).hexdigest(), user_id,
-                          _stamp(), _stamp(_now() + timedelta(seconds=COOKIE_TTL_SECONDS))))
-            row = conn.execute("SELECT * FROM users WHERE user_id=?", (user_id,)).fetchone()
-            conn.commit()
-        except Exception:
-            conn.rollback()
-            raise
-    if role == "admin":
-        assign_legacy_sessions_to_admin(user_id)
+            cur = conn.execute(
+                "INSERT INTO users(username,salt,password_hash,role,active,created_at,"
+                "approval_status,approved_at) VALUES(?,?,?,'admin',1,?,'approved',?)",
+                (username, salt, digest, stamp, stamp))
+        except sqlite3.IntegrityError as exc:
+            if exc.sqlite_errorname != "SQLITE_CONSTRAINT_UNIQUE":
+                raise
+            return None, None, "该用户名已被使用。"
+        user_id = int(cur.lastrowid)
+        token = _insert_session(conn, user_id)
+        auth_invites.record_security_event(conn, event_type="account_created_local", target_user_id=user_id)
+        row = conn.execute("SELECT * FROM users WHERE user_id=?", (user_id,)).fetchone()
+    assign_legacy_sessions_to_admin(user_id)
     return _public_user(row), token, None
 
 
-def register(username: str, password: str, avatar_preset: str = "01"
-             ) -> tuple[dict[str, Any] | None, str | None, str | None]:
-    """Public self-service registration; never grants administrator rights."""
-    return _create_account(username, password, bootstrap_admin=False, avatar_preset=avatar_preset)
+def register(username: str, password: str, avatar_preset: str = "01", *,
+             invite_code: str, source_hash: str | None = None) -> dict[str, Any]:
+    """Consume an invite and create a pending application without a session."""
+    username = str(username or "").strip()
+    if validate_credentials(username, password):
+        raise AccountInviteError("invalid_credentials")
+    avatar_preset = str(avatar_preset or "01").strip()
+    if not re.fullmatch(r"(?:0[1-9]|1[0-9]|20)", avatar_preset):
+        raise AccountInviteError("invalid_avatar")
+    if not isinstance(invite_code, str) or not re.fullmatch(r"[A-Za-z0-9_-]{32}", invite_code):
+        raise AccountInviteError("invalid_invite")
+    salt = secrets.token_bytes(16)
+    digest = _password_hash(password, salt)
+    with _connect() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        return auth_invites.submit_application(
+            conn, username=username, salt=salt, password_hash=digest, avatar_preset=avatar_preset,
+            invite_code=invite_code, source_hash=source_hash)
 
 
-def create_first_admin(username: str, password: str
-                       ) -> tuple[dict[str, Any] | None, str | None, str | None]:
-    """Create an administrator from a private local CLI, never from HTTP."""
-    return _create_account(username, password, bootstrap_admin=True)
+def create_local_account(username: str, password: str, *, role: str = "user",
+                         daily_limit: int = 30) -> int:
+    """Create an approved account through the trusted maintenance CLI, without a session."""
+    username = str(username or "").strip()
+    if validate_credentials(username, password):
+        raise AccountInviteError("invalid_credentials")
+    if role not in {"user", "admin"} or type(daily_limit) is not int or daily_limit < 0:
+        raise AccountInviteError("invalid_account_options")
+    salt, digest = _new_password_material(password)
+    stamp = _stamp()
+    with _connect() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        try:
+            row = conn.execute(
+                "INSERT INTO users(username,salt,password_hash,role,active,daily_limit,created_at,"
+                "approval_status,approved_at) VALUES(?,?,?,?,1,?,?,'approved',?)",
+                (username, salt, digest, role, daily_limit, stamp, stamp))
+        except sqlite3.IntegrityError as exc:
+            if exc.sqlite_errorname != "SQLITE_CONSTRAINT_UNIQUE":
+                raise
+            raise AccountInviteError("username_unavailable") from None
+        user_id = int(row.lastrowid)
+        auth_invites.record_security_event(conn, event_type="account_created_local", target_user_id=user_id)
+    if role == "admin":
+        assign_legacy_sessions_to_admin(user_id)
+    return user_id
 
 
 def promote_existing_first_admin(username: str, password: str
@@ -265,7 +303,7 @@ def promote_existing_first_admin(username: str, password: str
         if not row:
             conn.rollback()
             return None, "没有找到该账号。"
-        if not row["active"]:
+        if not _eligible(row):
             conn.rollback()
             return None, "该账号已停用，不能升级。"
         candidate = _password_hash(str(password or ""), bytes(row["salt"]))
@@ -273,6 +311,8 @@ def promote_existing_first_admin(username: str, password: str
             conn.rollback()
             return None, "当前密码不正确。"
         conn.execute("UPDATE users SET role='admin' WHERE user_id=?", (int(row["user_id"]),))
+        auth_invites.record_security_event(conn, event_type="account_promoted_local",
+                                           target_user_id=int(row["user_id"]))
         promoted = conn.execute("SELECT * FROM users WHERE user_id=?", (int(row["user_id"]),)).fetchone()
         conn.commit()
     assign_legacy_sessions_to_admin(int(promoted["user_id"]))
@@ -318,30 +358,55 @@ def complete_onboarding(user_id: int) -> bool:
     return cur.rowcount > 0
 
 
-def login(username: str, password: str) -> tuple[dict[str, Any] | None, str | None]:
-    with _connect() as conn:
-        row = conn.execute("SELECT * FROM users WHERE username=? COLLATE NOCASE", (str(username or "").strip(),)).fetchone()
-    if not row or not row["active"]:
-        return None, None
-    candidate = _password_hash(str(password or ""), bytes(row["salt"]))
-    if not hmac.compare_digest(candidate, bytes(row["password_hash"])):
-        return None, None
+def _eligible(row: sqlite3.Row | None) -> bool:
+    return bool(row and row["active"] and row["approval_status"] == "approved")
+
+
+def _matches_password(row: sqlite3.Row | None, password: str) -> bool:
+    # Use comparable PBKDF2 work for unknown and ineligible accounts.
+    if not _valid_password_encoding(password):
+        return False
+    salt = bytes(row["salt"]) if row else bytes(16)
+    digest = bytes(row["password_hash"]) if row else bytes(32)
+    return hmac.compare_digest(_password_hash(password, salt), digest) and row is not None
+
+
+def _insert_session(conn: sqlite3.Connection, user_id: int) -> str:
     token = secrets.token_urlsafe(36)
+    now = _now()
+    conn.execute("INSERT INTO browser_sessions VALUES(?,?,?,?)",
+                 (hashlib.sha256(token.encode()).hexdigest(), user_id,
+                  _stamp(now), _stamp(now + timedelta(seconds=COOKIE_TTL_SECONDS))))
+    return token
+
+
+def login(username: str, password: str) -> tuple[dict[str, Any] | None, str | None]:
+    if not isinstance(password, str) or not 0 < len(password) <= 256:
+        return None, None
+    username = str(username or "").strip()
+    if not _USERNAME_RE.fullmatch(username):
+        return None, None
+    query = ("SELECT u.*,a.epoch FROM users u JOIN account_admission a ON a.owner=u.user_id "
+             "WHERE u.username=? AND a.deleting=0")
     with _connect() as conn:
-        conn.execute("INSERT INTO browser_sessions VALUES(?,?,?,?)",
-                     (hashlib.sha256(token.encode()).hexdigest(), row["user_id"],
-                      _stamp(), _stamp(_now() + timedelta(seconds=COOKIE_TTL_SECONDS))))
+        original = conn.execute(query, (username,)).fetchone()
+    if not _matches_password(original, password) or not _eligible(original):
+        return None, None
+    with _connect() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute(query, (username,)).fetchone()
+        fence = ("user_id", "epoch", "salt", "password_hash")
+        if not _eligible(row) or any(row[key] != original[key] for key in fence):
+            return None, None
+        token = _insert_session(conn, row["user_id"])
     return _public_user(row), token
 
 
 def verify_password(user_id: int, password: str, *, allow_disabled: bool = False) -> bool:
     with _connect() as conn:
-        row = conn.execute("SELECT salt,password_hash,active FROM users WHERE user_id=?",
-                           (int(user_id),)).fetchone()
-    if not row or (not row["active"] and not allow_disabled):
-        return False
-    candidate = _password_hash(str(password or ""), bytes(row["salt"]))
-    return hmac.compare_digest(candidate, bytes(row["password_hash"]))
+        row = conn.execute("SELECT * FROM users WHERE user_id=?", (int(user_id),)).fetchone()
+    return bool(row and row["approval_status"] == "approved" and (row["active"] or allow_disabled)
+                and _matches_password(row, str(password or "")))
 
 
 def logout(token: str) -> None:
@@ -353,15 +418,22 @@ def logout(token: str) -> None:
         conn.execute("DELETE FROM account_deletion_retries WHERE token_hash=?", (digest,))
 
 
-def user_for_token(token: str) -> dict[str, Any] | None:
+def _session_user(conn: sqlite3.Connection, token: str) -> sqlite3.Row | None:
     if not token:
         return None
     digest = hashlib.sha256(token.encode()).hexdigest()
+    return conn.execute(
+        "SELECT u.* FROM users u JOIN browser_sessions s ON s.user_id=u.user_id "
+        "JOIN account_admission a ON a.owner=u.user_id "
+        "WHERE s.token_hash=? AND s.expires_at>? AND u.active=1 "
+        "AND u.approval_status='approved' AND a.deleting=0", (digest, _stamp())).fetchone()
+
+
+def user_for_token(token: str) -> dict[str, Any] | None:
+    if not token:
+        return None
     with _connect() as conn:
-        row = conn.execute(
-            "SELECT u.* FROM users u JOIN browser_sessions s ON s.user_id=u.user_id "
-            "WHERE s.token_hash=? AND s.expires_at>? AND u.active=1",
-            (digest, _stamp())).fetchone()
+        row = _session_user(conn, token)
     return _public_user(row) if row else None
 
 
@@ -398,7 +470,8 @@ def user_by_id(user_id: int) -> dict[str, Any] | None:
 
 
 def require_admin(user: dict[str, Any] | None) -> bool:
-    return bool(user and user.get("role") == "admin" and user.get("active"))
+    return bool(user and user.get("role") == "admin" and user.get("active")
+                and user.get("approval_status", "approved") == "approved")
 
 
 def check_rate_limit(action: str, source: str, limit: int, window_seconds: int) -> bool:
@@ -464,19 +537,89 @@ def list_users() -> list[dict[str, Any]]:
     return [{**_public_user(row), "requests_today": int(row["requests_today"])} for row in rows]
 
 
-def set_user_status(user_id: int, active: bool) -> bool:
+def _require_current_session(conn: sqlite3.Connection, user_id: int, token: str) -> sqlite3.Row:
+    row = _session_user(conn, token)
+    if row is None or row["user_id"] != int(user_id):
+        raise AccountInviteError("reauthentication_required")
+    return row
+
+
+def _require_admin_actor(conn: sqlite3.Connection, actor_user_id: int, actor_token: str) -> sqlite3.Row:
+    row = _require_current_session(conn, actor_user_id, actor_token)
+    if row["role"] != "admin":
+        raise AccountInviteError("admin_required")
+    return row
+
+
+def issue_invite(*, actor_user_id: int, expires_in_days: int = 7, actor_token: str | None = None,
+                 source_hash: str | None = None) -> dict[str, Any]:
     with _connect() as conn:
         conn.execute("BEGIN IMMEDIATE")
-        # Administrator disable is reversible; deletion close never is. The DB
-        # trigger also fences direct SQL reactivation in other processes.
-        cur = conn.execute(
-            "UPDATE users SET active=? WHERE user_id=? AND (?=0 OR NOT EXISTS ("
-            "SELECT 1 FROM account_admission WHERE owner=? AND deleting=1))",
-            (int(active), int(user_id), int(active), int(user_id)))
+        if actor_token is None:
+            actor = conn.execute("SELECT * FROM users WHERE user_id=?", (actor_user_id,)).fetchone()
+            if not _eligible(actor) or actor["role"] != "admin":
+                raise AccountInviteError("admin_required")
+        else:
+            _require_admin_actor(conn, actor_user_id, actor_token)
+        return auth_invites.issue_invite(conn, actor_user_id=actor_user_id,
+                                        expires_in_days=expires_in_days, source_hash=source_hash)
+
+
+def list_invites(*, limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
+    with _connect() as conn:
+        return auth_invites.list_invites(conn, limit=limit, offset=offset)
+
+
+def list_applications(*, status: str, limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
+    with _connect() as conn:
+        return auth_invites.list_applications(conn, status=status, limit=limit, offset=offset)
+
+
+def revoke_invite(invite_id: str, *, actor_user_id: int, actor_token: str,
+                  source_hash: str | None = None) -> dict[str, Any]:
+    with _connect() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        _require_admin_actor(conn, actor_user_id, actor_token)
+        return auth_invites.revoke_invite(conn, invite_id, actor_user_id=actor_user_id, source_hash=source_hash)
+
+
+def review_application(application_id: str, *, actor_user_id: int, actor_token: str, decision: str,
+                       rejection_reason: str | None = None, source_hash: str | None = None) -> dict[str, Any]:
+    with _connect() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        _require_admin_actor(conn, actor_user_id, actor_token)
+        return auth_invites.review_application(
+            conn, application_id, actor_user_id=actor_user_id, decision=decision,
+            rejection_reason=rejection_reason, source_hash=source_hash)
+
+
+def set_user_status(user_id: int, active: bool, *, actor_user_id: int | None = None,
+                    actor_token: str | None = None, source_hash: str | None = None) -> bool:
+    with _connect() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        if actor_user_id is not None:
+            _require_admin_actor(conn, actor_user_id, actor_token or "")
+            if user_id == actor_user_id and not active:
+                raise AccountInviteError("cannot_disable_self")
+        row = conn.execute(
+            "SELECT u.active,u.approval_status,a.deleting FROM users u "
+            "LEFT JOIN account_admission a ON a.owner=u.user_id WHERE u.user_id=?", (int(user_id),)).fetchone()
+        if row is None:
+            return False
+        if active and row["deleting"]:
+            if actor_user_id is None:
+                return False
+            raise AccountInviteError("account_deletion_pending")
+        if active and row["approval_status"] != "approved":
+            raise AccountInviteError("account_not_approved")
+        if bool(row["active"]) != active:
+            conn.execute("UPDATE users SET active=? WHERE user_id=?", (int(active), int(user_id)))
+            auth_invites.record_security_event(
+                conn, event_type="account_enabled" if active else "account_disabled",
+                actor_user_id=actor_user_id, target_user_id=user_id, source_hash=source_hash)
         if not active:
             conn.execute("DELETE FROM browser_sessions WHERE user_id=?", (int(user_id),))
-        conn.commit()
-    return cur.rowcount > 0
+    return True
 
 
 def set_user_daily_limit(user_id: int, limit: int) -> bool:
@@ -497,16 +640,102 @@ def register_workspace_file(user_id: int, session_id: str, relative_path: str) -
                      (int(user_id), session_id, relative_path, _stamp()))
 
 
-def reset_password(user_id: int) -> tuple[str | None, bool]:
-    temporary = secrets.token_urlsafe(15)
+def _new_password_material(password: str) -> tuple[bytes, bytes]:
+    if not isinstance(password, str) or not 10 <= len(password) <= 256 or not _valid_password_encoding(password):
+        raise AccountInviteError("invalid_password")
     salt = secrets.token_bytes(16)
-    digest = _password_hash(temporary, salt)
+    return salt, _password_hash(password, salt)
+
+
+def _verify_reauthentication(row: sqlite3.Row, password: str | None) -> None:
+    if not isinstance(password, str) or not 0 < len(password) <= 256 or not _matches_password(row, password):
+        raise AccountInviteError("reauthentication_required")
+
+
+def _write_password(conn: sqlite3.Connection, user_id: int, salt: bytes, digest: bytes,
+                    *, event_type: str, actor_user_id: int | None, source_hash: str | None) -> None:
+    conn.execute("UPDATE users SET salt=?,password_hash=?,password_changed_at=? WHERE user_id=?",
+                 (salt, digest, _stamp(), int(user_id)))
+    conn.execute("DELETE FROM browser_sessions WHERE user_id=?", (int(user_id),))
+    conn.execute("DELETE FROM account_deletion_retries WHERE user_id=?", (int(user_id),))
+    conn.execute("DELETE FROM account_recovery_codes WHERE user_id=?", (int(user_id),))
+    auth_invites.record_security_event(conn, event_type=event_type, actor_user_id=actor_user_id,
+                                       target_user_id=user_id, source_hash=source_hash)
+
+
+def reset_password(user_id: int, new_password: str | None = None, *, actor_user_id: int | None = None,
+                   actor_token: str | None = None, current_password: str | None = None,
+                   source_hash: str | None = None) -> tuple[str | None, bool]:
+    """Reset through a reauthenticated administrator or the trusted local CLI."""
+    temporary = secrets.token_urlsafe(24) if new_password is None else None
+    salt, digest = _new_password_material(temporary if temporary is not None else new_password)
     with _connect() as conn:
-        cur = conn.execute("UPDATE users SET salt=?,password_hash=? WHERE user_id=?",
-                           (salt, digest, int(user_id)))
-        if cur.rowcount:
-            conn.execute("DELETE FROM browser_sessions WHERE user_id=?", (int(user_id),))
-    return (temporary, cur.rowcount > 0)
+        conn.execute("BEGIN IMMEDIATE")
+        if actor_user_id is not None:
+            actor = _require_admin_actor(conn, actor_user_id, actor_token or "")
+            _verify_reauthentication(actor, current_password)
+        target = conn.execute(
+            "SELECT u.role,a.deleting FROM users u JOIN account_admission a ON a.owner=u.user_id "
+            "WHERE u.user_id=?", (int(user_id),)).fetchone()
+        if target is None:
+            return None, False
+        if target["deleting"]:
+            raise AccountInviteError("account_deletion_pending")
+        if actor_user_id is not None and target["role"] == "admin":
+            raise AccountInviteError("admin_target_forbidden")
+        _write_password(conn, user_id, salt, digest, event_type="password_reset_admin" if actor_user_id
+                        is not None else "password_reset_local", actor_user_id=actor_user_id,
+                        source_hash=source_hash)
+    return temporary, True
+
+
+def change_password(user_id: int, current_password: str, new_password: str, *, token: str,
+                    source_hash: str | None = None) -> None:
+    salt, digest = _new_password_material(new_password)
+    with _connect() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        user = _require_current_session(conn, user_id, token)
+        _verify_reauthentication(user, current_password)
+        _write_password(conn, user_id, salt, digest, event_type="password_changed", actor_user_id=user_id,
+                        source_hash=source_hash)
+
+
+def replace_recovery_codes(user_id: int, current_password: str, *, token: str,
+                           source_hash: str | None = None) -> list[str]:
+    codes = ["r_" + secrets.token_urlsafe(24) for _ in range(8)]
+    with _connect() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        user = _require_current_session(conn, user_id, token)
+        _verify_reauthentication(user, current_password)
+        conn.execute("DELETE FROM account_recovery_codes WHERE user_id=?", (int(user_id),))
+        stamp = _stamp()
+        conn.executemany("INSERT INTO account_recovery_codes(code_hash,user_id,created_at) VALUES(?,?,?)",
+                         [(hashlib.sha256(code.encode()).hexdigest(), int(user_id), stamp) for code in codes])
+        auth_invites.record_security_event(conn, event_type="recovery_codes_replaced", actor_user_id=user_id,
+                                           target_user_id=user_id, source_hash=source_hash)
+    return codes
+
+
+def recover_password(username: str, recovery_code: str, new_password: str, *,
+                     source_hash: str | None = None) -> None:
+    if not isinstance(recovery_code, str) or not re.fullmatch(r"r_[A-Za-z0-9_-]{32}", recovery_code):
+        raise AccountInviteError("invalid_recovery")
+    username = str(username or "").strip()
+    if not _USERNAME_RE.fullmatch(username):
+        raise AccountInviteError("invalid_recovery")
+    salt, digest = _new_password_material(new_password)
+    code_hash = hashlib.sha256(recovery_code.encode()).hexdigest()
+    with _connect() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute(
+            "SELECT u.user_id FROM account_recovery_codes c JOIN users u ON c.user_id=u.user_id "
+            "JOIN account_admission a ON u.user_id=a.owner "
+            "WHERE u.username=? AND c.code_hash=? AND c.used_at IS NULL AND u.active=1 "
+            "AND u.approval_status='approved' AND a.deleting=0", (username, code_hash)).fetchone()
+        if row is None:
+            raise AccountInviteError("invalid_recovery")
+        _write_password(conn, row["user_id"], salt, digest, event_type="password_recovered",
+                        actor_user_id=row["user_id"], source_hash=source_hash)
 
 
 def assign_legacy_sessions_to_admin(user_id: int) -> None:

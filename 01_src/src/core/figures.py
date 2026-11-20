@@ -72,12 +72,14 @@ def bump_attempts() -> int:
         return registry.attempts
 
 
-def register(svg: str, alt_text: str = "") -> tuple[int, str]:
+def register(svg: str, alt_text: str = "", *, download_url: str = "",
+             workbench_url: str = "") -> tuple[int, str]:
     """Store a validated SVG and return ``(index, text_for_model)``."""
     registry = _registry()
     with registry.lock:
         index = len(registry.figures) + 1
-        registry.figures[index] = {"svg": svg, "alt": alt_text or "图示"}
+        registry.figures[index] = {"svg": svg, "alt": alt_text or "图示",
+                                   "download_url": download_url, "workbench_url": workbench_url}
     return index, _TOOL_TEXT.format(idx=index)
 
 
@@ -105,7 +107,16 @@ def expand(text: str) -> str:
         figure = store.get(int(match.group(1)))
         if not figure:
             return match.group(0)
-        return f"```svg\n{figure['svg']}\n```"
+        links = []
+        for key, label, pattern in (
+            ("download_url", "下载 SVG", r"/api/v2/[A-Za-z0-9_./?=&%+-]+"),
+            ("workbench_url", "在图件工作台打开", r"/figures\?project=[a-f0-9]{32}"),
+        ):
+            url = figure[key]
+            if url and re.fullmatch(pattern, url):
+                links.append(f"[{label}]({url})")
+        markdown = f"```svg\n{figure['svg']}\n```"
+        return markdown + ("\n\n" + " · ".join(links) if links else "")
 
     return PLACEHOLDER_RE.sub(_sub, text)
 

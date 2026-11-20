@@ -17,8 +17,13 @@ PINNED = {
     "candidate-search": ("2.0.0", "0c216b5803a20b50290a72b44d4e019f3f5cf4c256fd3b3549fd844465ae4d50"),
     "reference-verification": ("2.0.0", "1d2f55aaec2531b178d79dd005a44a11d3d04c0cc50e54f72f75c3813fbf3a62"),
     "data-audit": ("2.0.0", "87247d295c5fcb2bd97ac833361afb0f9376c69bc35de309f5a0e09839b60339"),
-    "nature-figure": ("2.0.0", "00779e01d2c8756245c3553adb8abf451c4eb1dcd15c46ce7192ce3892d7f127"),
+    "nature-figure": ("2.1.0", "ed8c4840844904f7ccf7be7845382db58b7127534b9b4c1792de35570af30e7b"),
 }
+_ARCHIVED_NATURE_IDENTITY = ("2.0.0", "00779e01d2c8756245c3553adb8abf451c4eb1dcd15c46ce7192ce3892d7f127")
+_ARCHIVED_NATURE_ROOT = "02_config/skill-history/nature-figure/2.0.0"
+_ARCHIVED_NATURE_RESOURCES = frozenset({
+    "SKILL.md", "provenance.json", "provenance.extra.json", "references/bridge.md",
+})
 _MAX_CATALOG_BYTES = 256_000
 _MAX_RESOURCE_BYTES = 1_000_000
 _MAX_FILES = 512
@@ -67,9 +72,9 @@ def _catalog():
     return rows
 
 
-def _manifest(row):
+def _manifest(row, identity):
     sid = row["id"]
-    if ((row.get("version"), row.get("sha256")) != PINNED[sid]
+    if ((row.get("version"), row.get("sha256")) != identity
             or row.get("path") != "skills/" + sid or row.get("entry") != "SKILL.md"):
         raise ValueError("research_skill_identity_mismatch")
     files = row.get("files")
@@ -99,7 +104,10 @@ def _text(row, records, resource):
     if resource not in records:
         raise ValueError("skill_resource_not_in_manifest")
     record = records[resource]
-    content = _bytes(_path(_path(ROOT, row["path"]), resource), record["size"])
+    archived = (row["id"] == "nature-figure"
+                and (row["version"], row["sha256"]) == _ARCHIVED_NATURE_IDENTITY)
+    source = _ARCHIVED_NATURE_ROOT if archived and resource in _ARCHIVED_NATURE_RESOURCES else row["path"]
+    content = _bytes(_path(_path(ROOT, source), resource), record["size"])
     if len(content) != record["size"] or hashlib.sha256(content).hexdigest() != record["sha256"]:
         raise ValueError("skill_resource_integrity_mismatch")
     return content.decode("utf-8")
@@ -134,21 +142,33 @@ def list_skills():
     result = []
     for row in rows:
         try:
-            result.append(_info(row, _manifest(row)))
+            result.append(_info(row, _manifest(row, PINNED[row["id"]])))
         except (OSError, ValueError, KeyError, TypeError):
             continue
     return result
 
 
+def has_identity(skill_id, version, sha256):
+    identity = (version, sha256)
+    return (PINNED.get(skill_id) == identity
+            or (skill_id == "nature-figure" and identity == _ARCHIVED_NATURE_IDENTITY))
+
+
 def resolve(skill_id, version, sha256):
-    """Return this release only for the full pinned identity, never an id alias."""
-    if PINNED.get(skill_id) != (version, sha256):
+    """Resolve current and archived guidance by full, pinned identity."""
+    identity = (version, sha256)
+    if not has_identity(skill_id, version, sha256):
         raise ValueError("research_skill_identity_mismatch")
-    for row in _catalog():
-        if row["id"] == skill_id:
-            records = _manifest(row)
-            return row, records, _info(row, records)
-    raise ValueError("research_skill_unavailable")
+    if skill_id == "nature-figure" and identity == _ARCHIVED_NATURE_IDENTITY:
+        row = json.loads(_bytes(_path(ROOT, _ARCHIVED_NATURE_ROOT + "/manifest.json"), _MAX_CATALOG_BYTES))
+        if type(row) is not dict or row.get("id") != skill_id:
+            raise ValueError("research_skill_identity_mismatch")
+    else:
+        row = next((entry for entry in _catalog() if entry["id"] == skill_id), None)
+        if row is None:
+            raise ValueError("research_skill_unavailable")
+    records = _manifest(row, identity)
+    return row, records, _info(row, records)
 
 
 def read_resource(skill_id, version, sha256, resource="", *, start_char=0, max_chars=3000):

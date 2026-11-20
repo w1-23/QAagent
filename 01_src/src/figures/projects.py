@@ -572,7 +572,7 @@ def _is_script(project: dict[str, Any]) -> bool:
 
 def _can_edit(project: dict[str, Any]) -> bool:
     if not _is_script(project):
-        return project.get("source_kind", "spec") == "spec"
+        return project.get("source_kind", "spec") in {"spec", "svg"}
     source = project.get("source_json") or {}
     try:
         _frozen_render_state(source)
@@ -640,7 +640,13 @@ def detail_for_owner(figure_id: str, owner: int, *, upgrade_manifest: bool = Fal
     manifest = _normalise_manifest(project.get("manifest_json"))
     public = _public(project)
     from src.figures.manifest import MANIFEST_VERSION
-    legacy_edit = (public["editable"] and "svg" in public["exports"]
+    svg_detail = {}
+    if public["source_kind"] == "svg":
+        from src.figures.svg_projects import editable_svg_targets
+        source = project.get("source_json") or {}
+        targets = editable_svg_targets(source["svg"]) if "svg" in source else []
+        svg_detail = {"svg_targets": targets, "editable": bool(targets and "svg" in public["exports"])}
+    legacy_edit = (public["source_kind"] != "svg" and public["editable"] and "svg" in public["exports"]
                    and manifest.get("version", 1) < MANIFEST_VERSION)
     if upgrade_manifest and legacy_edit:
         try:
@@ -651,6 +657,7 @@ def detail_for_owner(figure_id: str, owner: int, *, upgrade_manifest: bool = Fal
     return {
         **edit_context(project),
         **public,
+        **svg_detail,
         "manifest": manifest,
         # A disposable legacy-inventory upgrade has not been accepted by the
         # project CAS; do not attach bindings for the stored manifest to it.
@@ -804,6 +811,13 @@ def _validate_render_receipt(manifest: dict, blobs: dict[str, bytes], mode: str)
                 or check.get("sha256") != hashlib.sha256(blob).hexdigest()):
             raise ProjectError("worker_protocol_invalid", "图件输出与工作器完整性回执不一致。")
 
+    if mode != "preview":
+        from src.figures.nature_receipts import accept_current_render_qa
+        try:
+            accept_current_render_qa(manifest, blobs, mode)
+        except ValueError as exc:
+            raise ProjectError("worker_protocol_invalid", str(exc)) from exc
+
 
 def _preserve_initial_receipt(project: dict, manifest: dict, mode: str, edited: bool) -> None:
     from copy import deepcopy
@@ -817,6 +831,10 @@ def _preserve_initial_receipt(project: dict, manifest: dict, mode: str, edited: 
     original_qa = previous.get("initial_qa_receipt", previous.get("qa_receipt"))
     if original_qa is not None:
         manifest["initial_qa_receipt"] = deepcopy(original_qa)
+    if "initial_current_qa_receipt" in previous:
+        manifest["initial_current_qa_receipt"] = deepcopy(previous["initial_current_qa_receipt"])
+    elif (previous.get("current_qa_receipt") or {}).get("mode") == "initial":
+        manifest["initial_current_qa_receipt"] = deepcopy(previous["current_qa_receipt"])
     if mode != "preview" and manifest.get("qa_receipt"):
         manifest["manual_edit_qa_receipt"] = manifest.pop("qa_receipt")
     manifest["edit_provenance"] = {

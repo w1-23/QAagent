@@ -6,6 +6,86 @@ var authAbortController = new AbortController();
 var accountFileReaders = new Set();
 var authInFlight = false;
 var accountDocumentRetired = false;
+// BEGIN INVITE AUTH CONTRACT（纯函数；注册、登录与找回密码共用，不读写 DOM）
+var CitrusAuthContract = (function () {
+  function clean(value) { return String(value == null ? '' : value).trim(); }
+  function buildRegisterPayload(input) {
+    return {
+      username: clean(input.username),
+      password: String(input.password || ''),
+      avatar_preset: input.avatar_preset || '01',
+      invite_code: clean(input.invite_code)
+    };
+  }
+  function buildLoginPayload(input) {
+    return {username: clean(input.username), password: String(input.password || '')};
+  }
+  function buildRecoverPayload(input) {
+    return {
+      username: clean(input.username),
+      recovery_code: clean(input.recovery_code),
+      new_password: String(input.new_password || '')
+    };
+  }
+  function buildPasswordChangePayload(input) {
+    return {
+      current_password: String(input.current_password || ''),
+      new_password: String(input.new_password || '')
+    };
+  }
+  function classifyAuthResponse(mode, status, data) {
+    data = data || {};
+    if (mode === 'register' && status === 202) {
+      return {kind: 'pending', applicationId: data.application_id || '', message: '申请已提交，等待管理员审核。'};
+    }
+    if (status >= 200 && status < 300) {
+      if (!data.user) return {kind: 'error', message: '服务器响应不完整，请稍后重试。'};
+      return {kind: 'success', user: data.user};
+    }
+    if (status === 401) return {kind: 'error', message: '用户名或密码不正确；若刚提交申请，请等待管理员审核后再登录。'};
+    if (status === 403) return {kind: 'error', message: '当前登录已失效，请重新登录。'};
+    if (status === 409) return {kind: 'error', message: mode === 'register' ? '用户名已被使用，请更换。' : '请求与当前账号状态冲突，请刷新后重试。'};
+    if (status === 400) return {kind: 'error', message: mode === 'register' ? '邀请码无效或注册信息不完整，请检查后重试。' : '请求未通过校验，请检查填写内容。'};
+    if (status === 422) return {kind: 'error', message: '请检查填写内容后重试。'};
+    if (status === 429) return {kind: 'error', message: '操作过于频繁，请稍后再试。'};
+    return {kind: 'error', message: '请求失败，请稍后重试。'};
+  }
+  function validatePasswordChange(input) {
+    var current = String(input.current_password || '');
+    var next = String(input.new_password || '');
+    var confirm = String(input.confirm_password == null ? next : input.confirm_password);
+    if (!current) return '请输入当前密码。';
+    if (Array.from(next).length < 10) return '新密码至少 10 位。';
+    if (next !== confirm) return '两次输入的新密码不一致。';
+    return '';
+  }
+  function validateRecovery(input) {
+    if (!clean(input.username)) return '请输入用户名。';
+    if (!clean(input.recovery_code)) return '请输入恢复码。';
+    var next = String(input.new_password || '');
+    var confirm = String(input.confirm_password == null ? next : input.confirm_password);
+    if (Array.from(next).length < 10) return '新密码至少 10 位。';
+    if (next !== confirm) return '两次输入的新密码不一致。';
+    return '';
+  }
+  function normalizeRecoveryCodes(data) {
+    var codes = data && Array.isArray(data.codes) ? data.codes : [];
+    return codes.filter(function (code) { return typeof code === 'string' && code; }).slice(0, 8);
+  }
+  return {
+    buildRegisterPayload: buildRegisterPayload,
+    buildLoginPayload: buildLoginPayload,
+    buildRecoverPayload: buildRecoverPayload,
+    buildPasswordChangePayload: buildPasswordChangePayload,
+    classifyAuthResponse: classifyAuthResponse,
+    validatePasswordChange: validatePasswordChange,
+    validateRecovery: validateRecovery,
+    normalizeRecoveryCodes: normalizeRecoveryCodes
+  };
+}());
+if (typeof window !== 'undefined') window.CitrusAuthContract = CitrusAuthContract;
+// END INVITE AUTH CONTRACT
+
 function staleAccountError() { return new DOMException('Account changed', 'AbortError'); }
 function accountFetch(url, options) {
   var epoch = authEpoch;
@@ -44,6 +124,7 @@ function advanceAuthEpoch() {
   accountFileReaders.clear();
 }
 function resetAccountState() {
+  if (currentAccount) accountDocumentRetired = true;
   advanceAuthEpoch();
   disposeTaskView();
   if (currentAbortController) currentAbortController.abort();
@@ -84,16 +165,19 @@ function resetAccountState() {
     'ctxInTokens', 'ctxInNote', 'ctxOutTokens', 'ctxOutNote', 'ctxBarLabel', 'ctx-pct', 'ctxCompressed',
     'accountMemoryContent', 'accountMemoryStatus', 'accountPreferenceStatus',
     'settingsAvatarError', 'settingsAvatarLabel', 'authAvatarError', 'authAvatarLabel',
+    'authNotice', 'authError', 'recoverError', 'recoverNotice', 'passwordChangeStatus', 'recoveryStatus', 'recoveryCodesList',
     'accountMenuName', 'accountMenuRole', 'sessionFilesUploaded', 'sessionFilesGenerated',
     'sessionFilePreviewStage', 'sessionFilePreviewTitle', 'sessionFilePreviewMeta',
     'configuredProvidersList'].forEach(function(id) {
     var node = document.getElementById(id); if (node) node.replaceChildren();
   });
-  ['attachment-input', 'authUsername', 'authPassword', 'authAvatarFile', 'settingsAvatarFile',
+  ['attachment-input', 'authUsername', 'authPassword', 'authInviteCode', 'authAvatarFile', 'settingsAvatarFile',
+    'recoverUsername', 'recoverCode', 'recoverNewPassword', 'recoverConfirmPassword',
+    'passwordCurrent', 'passwordNew', 'passwordConfirm', 'recoveryCurrent',
     'apiKeyInput', 'webSearchApiKeyInput', 'webFetchApiKeyInput', 'mainModelSelect', 'mainApiBaseUrlInput'].forEach(function(id) {
     var node = document.getElementById(id); if (node) node.value = '';
   });
-  ['avatarSettingsOverlay', 'memorySettingsOverlay', 'onboardingOverlay',
+  ['avatarSettingsOverlay', 'memorySettingsOverlay', 'securitySettingsOverlay', 'onboardingOverlay',
     'sessionFilePreviewOverlay', 'sessionFilesPanel'].forEach(function(id) {
     var node = document.getElementById(id); if (node) node.hidden = true;
   });
@@ -111,6 +195,13 @@ function resetAccountState() {
   if (citationCount) citationCount.textContent = '0';
   var count = document.getElementById('session-count'); if (count) count.textContent = '0';
   renderAttachmentSelection(); renderReviewConsent(); setSendDisabled(false);
+  clearRecoveryCodes(false);
+  ['passwordChangeSubmit', 'recoveryCodesButton'].forEach(function(id) {
+    var button = document.getElementById(id); if (button) button.disabled = false;
+  });
+  var recoverCard = document.getElementById('authRecoverCard'); if (recoverCard) recoverCard.hidden = true;
+  var loginCard = document.getElementById('authLoginCard'); if (loginCard) loginCard.hidden = false;
+  var noticeCard = document.getElementById('authNotice'); if (noticeCard) noticeCard.hidden = true;
   showAuthGate(true);
 }
 // Drawing is available through natural-language requests; no composer opt-in.
@@ -479,26 +570,18 @@ function setSignupAvatar(preset) {
 function syncAuthAvatarPicker() {
   var picker = document.getElementById('authAvatarPicker');
   var mode = document.getElementById('authMode');
+  var invite = document.getElementById('authInviteCode');
   if (!picker || !mode) return;
-  picker.hidden = mode.value !== 'register';
-  if (mode.value === 'register' && !document.getElementById('authAvatarGrid').childElementCount) setSignupAvatar('01');
+  var registering = mode.value === 'register';
+  picker.hidden = !registering;
+  if (invite) invite.hidden = !registering;
+  if (registering && !document.getElementById('authAvatarGrid').childElementCount) setSignupAvatar('01');
 }
 function previewSignupAvatar(input) {
-  var epoch = authEpoch;
-  var file = input && input.files && input.files[0];
-  var error = document.getElementById('authAvatarError'); if (error) error.textContent = '';
-  if (!file) return;
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
-    if (error) error.textContent = file.size > 5 * 1024 * 1024 ? '图片不能超过 5 MB。' : '请选择 JPG、PNG 或 WebP 图片。';
-    input.value = ''; return;
-  }
-  fileAsDataUrl(file).then(function(dataUrl) {
-    if (epoch !== authEpoch) return;
-    signupAvatarDataUrl = dataUrl;
-    var preview = document.getElementById('authAvatarPreview'); if (preview) preview.src = signupAvatarDataUrl;
-    var label = document.getElementById('authAvatarLabel'); if (label) label.textContent = '自定义头像';
-    renderAvatarGrid(document.getElementById('authAvatarGrid'), '', setSignupAvatar);
-  }).catch(function() { if (epoch === authEpoch && error) error.textContent = '读取图片失败，请重试。'; });
+  if (input) input.value = '';
+  signupAvatarDataUrl = '';
+  var error = document.getElementById('authAvatarError');
+  if (error) error.textContent = '注册阶段使用预设头像；审核通过后可在账户菜单更换自定义头像。';
 }
 function openAvatarSettings() {
   var overlay = document.getElementById('avatarSettingsOverlay'); if (!overlay) return;
@@ -734,12 +817,13 @@ document.addEventListener('submit', function (event) {
   saveAccountPreferences();
 });
 document.addEventListener('keydown', function (event) {
+  if (event.key !== 'Escape') return;
+  var security = document.getElementById('securitySettingsOverlay');
+  if (security && !security.hidden) { event.preventDefault(); closeSecuritySettings(); return; }
   var overlay = document.getElementById('memorySettingsOverlay');
   if (!overlay || overlay.hidden) return;
-  if (event.key === 'Escape') {
-    event.preventDefault();
-    closeMemorySettings();
-  }
+  event.preventDefault();
+  closeMemorySettings();
 });
 async function completeOnboarding() {
   var epoch = authEpoch;
@@ -758,45 +842,55 @@ async function completeOnboarding() {
 }
 async function authenticate(mode) {
   if (authInFlight) return;
+  var username = (document.getElementById('authUsername').value || '').trim();
+  var password = document.getElementById('authPassword').value || '';
+  var inviteInput = document.getElementById('authInviteCode');
+  var inviteCode = inviteInput ? (inviteInput.value || '').trim() : '';
+  var error = document.getElementById('authError');
+  if (error) error.textContent = '';
+  setAuthNotice('');
+  if (mode === 'register' && !inviteCode) {
+    if (error) error.textContent = '请输入邀请码。邀请码由管理员发放。';
+    return;
+  }
   advanceAuthEpoch();
   authInFlight = true;
   var epoch = authEpoch;
-  var username = (document.getElementById('authUsername').value || '').trim();
-  var password = document.getElementById('authPassword').value || '';
-  var error = document.getElementById('authError');
-  error.textContent = '';
   try {
-    var payload = {username:username,password:password};
-    if (mode === 'register') payload.avatar_preset = signupAvatarPreset;
-    var response = await accountFetch('/api/v2/auth/' + mode, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-    var data = await response.json();
+    var payload = mode === 'register'
+      ? CitrusAuthContract.buildRegisterPayload({username: username, password: password, avatar_preset: signupAvatarPreset, invite_code: inviteCode})
+      : CitrusAuthContract.buildLoginPayload({username: username, password: password});
+    var response = await accountFetch('/api/v2/auth/' + mode, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload),
+      credentials: 'same-origin',
+      cache: 'no-store'
+    });
+    var data = await response.json().catch(function () { return {}; });
     if (epoch !== authEpoch) return;
-    if (!response.ok) throw new Error(data.detail || '登录失败');
+    var outcome = CitrusAuthContract.classifyAuthResponse(mode, response.status, data);
+    if (outcome.kind === 'pending') {
+      // 202 只表示申请已受理：仍停留在登录界面，清除秘密输入，绝不进入登录成功路径。
+      clearAuthSecrets();
+      setAuthMode('login');
+      setAuthNotice(outcome.message + '审核通过后，请使用同一账号登录。');
+      return;
+    }
+    if (outcome.kind !== 'success') throw new Error(outcome.message);
     // Other page modules own private caches. A retired document may never host
     // another account: navigation releases those closures and their File refs.
     if (accountDocumentRetired) { location.replace('/'); return; }
-    currentAccount = data.user;
+    currentAccount = outcome.user;
+    clearAuthSecrets();
     localStorage.removeItem('citrus_session_id');
     var next = new URLSearchParams(location.search).get('next');
     if (next === '/admin') {
       if (currentAccount.role !== 'admin') throw new Error('此页面仅管理员可访问。');
       location.replace('/admin'); return;
     }
-    var signupAvatarError = '';
-    if (mode === 'register' && signupAvatarDataUrl) {
-      try {
-        var avatarResponse = await accountFetch('/api/v2/auth/avatar/upload', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data_url:signupAvatarDataUrl})});
-        var avatarResult = await avatarResponse.json();
-        if (epoch !== authEpoch) return;
-        if (!avatarResponse.ok) throw new Error(avatarResult.detail || '头像上传失败。');
-        currentAccount = avatarResult.user;
-      } catch (avatarErr) { if (epoch !== authEpoch) return; signupAvatarError = '账号已创建，自定义头像未保存；你可以稍后在账户菜单中更换。'; }
-    }
-    signupAvatarDataUrl = '';
     await startAuthenticatedApp();
-    if (epoch !== authEpoch) return;
-    if (signupAvatarError) updateStatus('warn', signupAvatarError);
-  } catch (e) { if (epoch === authEpoch) error.textContent = e.message || '请求失败'; }
+  } catch (e) { if (epoch === authEpoch) { if (error) error.textContent = e.message || '请求失败'; } }
   finally { if (epoch === authEpoch) authInFlight = false; }
 }
 async function logoutAccount() {
@@ -815,6 +909,242 @@ async function logoutAccount() {
     document.getElementById('authError').textContent = error.message || '退出未完成，请重试登录。';
   } finally { if (epoch === authEpoch) authInFlight = false; }
 }
+function setAuthNotice(message, kind, id) {
+  var box = document.getElementById(id || 'authNotice');
+  if (!box) return;
+  box.textContent = message || '';
+  box.hidden = !message;
+  if (kind) box.setAttribute('data-kind', kind); else box.removeAttribute('data-kind');
+}
+function setAuthMode(mode) {
+  var select = document.getElementById('authMode');
+  if (select) select.value = mode === 'register' ? 'register' : 'login';
+  syncAuthAvatarPicker();
+}
+function clearAuthSecrets() {
+  ['authPassword', 'authInviteCode', 'authAvatarFile'].forEach(function (id) {
+    var node = document.getElementById(id); if (node) node.value = '';
+  });
+  signupAvatarDataUrl = '';
+  var avatarError = document.getElementById('authAvatarError'); if (avatarError) avatarError.textContent = '';
+}
+function openRecoverPane() {
+  var login = document.getElementById('authLoginCard');
+  var recover = document.getElementById('authRecoverCard');
+  clearAuthSecrets();
+  clearRecoveryInputs();
+  if (login) login.hidden = true;
+  if (recover) recover.hidden = false;
+  var first = document.getElementById('recoverUsername'); if (first) first.focus();
+}
+function closeRecoverPane() {
+  var login = document.getElementById('authLoginCard');
+  var recover = document.getElementById('authRecoverCard');
+  if (recover) recover.hidden = true;
+  if (login) login.hidden = false;
+  clearRecoveryInputs();
+  var first = document.getElementById('authUsername'); if (first) first.focus();
+}
+function clearRecoveryInputs() {
+  ['recoverUsername', 'recoverCode', 'recoverNewPassword', 'recoverConfirmPassword'].forEach(function (id) {
+    var node = document.getElementById(id); if (node) node.value = '';
+  });
+  var error = document.getElementById('recoverError'); if (error) error.textContent = '';
+  setAuthNotice('', '', 'recoverNotice');
+}
+async function submitPasswordRecovery() {
+  if (authInFlight) return;
+  var username = (document.getElementById('recoverUsername').value || '').trim();
+  var code = (document.getElementById('recoverCode').value || '').trim();
+  var next = document.getElementById('recoverNewPassword').value || '';
+  var confirmValue = document.getElementById('recoverConfirmPassword').value || '';
+  var error = document.getElementById('recoverError');
+  if (error) error.textContent = '';
+  var invalid = CitrusAuthContract.validateRecovery({
+    username: username, recovery_code: code, new_password: next, confirm_password: confirmValue
+  });
+  if (invalid) { if (error) error.textContent = invalid; return; }
+  authInFlight = true;
+  var epoch = authEpoch;
+  try {
+    var response = await accountFetch('/api/v2/auth/password/recover', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(CitrusAuthContract.buildRecoverPayload({username: username, recovery_code: code, new_password: next})),
+      credentials: 'same-origin',
+      cache: 'no-store'
+    });
+    if (epoch !== authEpoch) return;
+    if (response.status === 429) { if (error) error.textContent = '尝试过于频繁，请稍后再试。'; return; }
+    if (!response.ok) { if (error) error.textContent = '用户名或恢复码无效，请检查后重试。'; return; }
+    clearRecoveryInputs();
+    closeRecoverPane();
+    setAuthMode('login');
+    setAuthNotice('密码已重置，请使用新密码登录。');
+  } catch (e) { if (epoch === authEpoch && error) error.textContent = '网络异常，请稍后重试。'; }
+  finally { if (epoch === authEpoch) authInFlight = false; }
+}
+var _recoveryCodes = [];
+var recoveryDisplayEpoch = 0;
+var securityCurrentTab = 'password';
+function setSecurityStatus(id, text) {
+  var node = document.getElementById(id); if (node) node.textContent = text || '';
+}
+function openSecuritySettings(tab) {
+  var overlay = document.getElementById('securitySettingsOverlay'); if (!overlay) return;
+  overlay.hidden = false;
+  switchSecurityTab(tab || 'password');
+  clearSecurityInputs();
+  clearRecoveryCodes(false);
+  var first = overlay.querySelector(securityCurrentTab === 'recovery' ? '#recoveryCurrent' : '#passwordCurrent');
+  if (first) first.focus();
+}
+function closeSecuritySettings() {
+  var overlay = document.getElementById('securitySettingsOverlay'); if (overlay) overlay.hidden = true;
+  clearSecurityInputs();
+  clearRecoveryCodes(false);
+  var trigger = document.getElementById('accountTrigger'); if (trigger) trigger.focus();
+}
+function switchSecurityTab(tab) {
+  var selected = tab === 'recovery' ? 'recovery' : 'password';
+  if (selected !== 'recovery') clearRecoveryCodes(false);
+  securityCurrentTab = selected;
+  var passwordPane = document.getElementById('passwordPane');
+  var recoveryPane = document.getElementById('recoveryPane');
+  var passwordTab = document.getElementById('passwordTab');
+  var recoveryTab = document.getElementById('recoveryTab');
+  if (passwordPane) passwordPane.hidden = selected !== 'password';
+  if (recoveryPane) recoveryPane.hidden = selected !== 'recovery';
+  if (passwordTab) {
+    passwordTab.classList.toggle('is-active', selected === 'password');
+    passwordTab.setAttribute('aria-selected', selected === 'password' ? 'true' : 'false');
+  }
+  if (recoveryTab) {
+    recoveryTab.classList.toggle('is-active', selected === 'recovery');
+    recoveryTab.setAttribute('aria-selected', selected === 'recovery' ? 'true' : 'false');
+  }
+}
+function clearSecurityInputs() {
+  ['passwordCurrent', 'passwordNew', 'passwordConfirm', 'recoveryCurrent'].forEach(function (id) {
+    var node = document.getElementById(id); if (node) node.value = '';
+  });
+  setSecurityStatus('passwordChangeStatus', '');
+  setSecurityStatus('recoveryStatus', '');
+}
+function clearRecoveryCodes(announce) {
+  recoveryDisplayEpoch += 1;
+  _recoveryCodes = [];
+  var list = document.getElementById('recoveryCodesList'); if (list) list.textContent = '';
+  var result = document.getElementById('recoveryCodesResult'); if (result) result.hidden = true;
+  if (announce) setSecurityStatus('recoveryStatus', '恢复码已从页面清除，请确认已妥善保存。');
+}
+async function submitPasswordChange() {
+  var epoch = authEpoch;
+  var button = document.getElementById('passwordChangeSubmit');
+  var current = (document.getElementById('passwordCurrent') || {}).value || '';
+  var next = (document.getElementById('passwordNew') || {}).value || '';
+  var confirmValue = (document.getElementById('passwordConfirm') || {}).value || '';
+  var invalid = CitrusAuthContract.validatePasswordChange({
+    current_password: current, new_password: next, confirm_password: confirmValue
+  });
+  if (invalid) { setSecurityStatus('passwordChangeStatus', invalid); return; }
+  if (button) button.disabled = true;
+  setSecurityStatus('passwordChangeStatus', '正在修改…');
+  try {
+    var response = await accountFetch('/api/v2/auth/password/change', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(CitrusAuthContract.buildPasswordChangePayload({current_password: current, new_password: next})),
+      credentials: 'same-origin',
+      cache: 'no-store'
+    });
+    var data = await response.json().catch(function () { return {}; });
+    if (epoch !== authEpoch) return;
+    if (response.status === 403) {
+      setSecurityStatus('passwordChangeStatus', '当前密码不正确。');
+      var currentInput = document.getElementById('passwordCurrent'); if (currentInput) currentInput.value = '';
+      return;
+    }
+    if (response.status === 429) { setSecurityStatus('passwordChangeStatus', '操作过于频繁，请稍后再试。'); return; }
+    if (response.status === 401) {
+      resetAccountState();
+      setAuthMode('login');
+      setAuthNotice('登录已失效，请重新登录。');
+      return;
+    }
+    if (!response.ok) { setSecurityStatus('passwordChangeStatus', data.detail || '密码修改失败，请稍后重试。'); return; }
+    clearSecurityInputs();
+    closeSecuritySettings();
+    // 服务端已撤销全部会话；本地同样回到登录界面，不保留任何账号缓存。
+    resetAccountState();
+    setAuthMode('login');
+    setAuthNotice('密码已修改，所有设备已退出登录，请使用新密码重新登录。');
+  } catch (e) { if (epoch === authEpoch) setSecurityStatus('passwordChangeStatus', '网络异常，请稍后重试。'); }
+  finally { if (epoch === authEpoch && button) button.disabled = false; }
+}
+async function submitRecoveryCodes() {
+  var epoch = authEpoch;
+  var button = document.getElementById('recoveryCodesButton');
+  var current = (document.getElementById('recoveryCurrent') || {}).value || '';
+  if (!current) { setSecurityStatus('recoveryStatus', '请输入当前密码。'); return; }
+  clearRecoveryCodes(false);
+  var displayEpoch = recoveryDisplayEpoch;
+  if (button) button.disabled = true;
+  setSecurityStatus('recoveryStatus', '正在生成…');
+  try {
+    var response = await accountFetch('/api/v2/auth/password/recovery-codes', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({current_password: current}),
+      credentials: 'same-origin',
+      cache: 'no-store'
+    });
+    var data = await response.json().catch(function () { return {}; });
+    if (epoch !== authEpoch || displayEpoch !== recoveryDisplayEpoch) return;
+    if (response.status === 403) {
+      setSecurityStatus('recoveryStatus', '当前密码不正确。');
+      var currentInput = document.getElementById('recoveryCurrent'); if (currentInput) currentInput.value = '';
+      return;
+    }
+    if (response.status === 429) { setSecurityStatus('recoveryStatus', '操作过于频繁，请稍后再试。'); return; }
+    if (response.status === 401) { resetAccountState(); setAuthMode('login'); setAuthNotice('登录已失效，请重新登录。'); return; }
+    if (!response.ok) { setSecurityStatus('recoveryStatus', data.detail || '生成恢复码失败，请稍后重试。'); return; }
+    var codes = CitrusAuthContract.normalizeRecoveryCodes(data);
+    if (!codes.length) { setSecurityStatus('recoveryStatus', '未收到恢复码，请重试。'); return; }
+    _recoveryCodes = codes;
+    var list = document.getElementById('recoveryCodesList');
+    if (list) list.textContent = codes.join('\n');
+    var result = document.getElementById('recoveryCodesResult'); if (result) result.hidden = false;
+    var recoveryInput = document.getElementById('recoveryCurrent'); if (recoveryInput) recoveryInput.value = '';
+    setSecurityStatus('recoveryStatus', '已生成 8 个恢复码，旧恢复码已失效。请立即保存。');
+    if (list) list.focus();
+  } catch (e) { if (epoch === authEpoch && displayEpoch === recoveryDisplayEpoch) setSecurityStatus('recoveryStatus', '网络异常，请稍后重试。'); }
+  finally { if (epoch === authEpoch && button) button.disabled = false; }
+}
+window.addEventListener('pagehide', function () {
+  // 一次性秘密不留在可恢复的页面快照里。
+  clearSecurityInputs();
+  clearRecoveryCodes(false);
+  clearAuthSecrets();
+});
+async function copyRecoveryCodes() {
+  if (!_recoveryCodes.length) return;
+  var textToCopy = _recoveryCodes.join('\n');
+  try {
+    if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(textToCopy);
+      setSecurityStatus('recoveryStatus', '恢复码已复制，请粘贴到安全位置。');
+      return;
+    }
+  } catch (_) {}
+  var list = document.getElementById('recoveryCodesList');
+  if (list) {
+    var range = document.createRange(); range.selectNodeContents(list);
+    var selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range);
+  }
+  setSecurityStatus('recoveryStatus', '已选中恢复码，请按 Ctrl+C 或 ⌘C 复制。');
+}
+
 async function startAuthenticatedApp() {
   var epoch = authEpoch;
   showAuthGate(false);

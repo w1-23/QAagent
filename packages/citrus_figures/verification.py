@@ -124,14 +124,21 @@ def verify_current_figure(*, artifacts, source=None, layout_manifest=None, figur
             else:
                 source_bytes = source if isinstance(source, bytes) else str(source).encode("utf-8")
                 identity = {"role": "source", "format": backend, "sha256": sha256(source_bytes), "size": len(source_bytes)}
-                def preflight():
-                    source_text = source_bytes.decode("utf-8")
-                    mod = module("validate_figure")
-                    findings = mod.validate_source(source_text, backend)
-                    summary = mod.summarize(findings, strict=False)
-                    counts = summary["counts"]
-                    return ("fail" if counts["FAIL"] else "warn" if counts["WARN"] else "pass"), "source_only", {"findings": [dataclasses.asdict(v) for v in findings], "summary": summary}, {"rendered_artifact": False}
-                run(name, identity, preflight)
+                if str(backend).lower() not in {"python", "r"}:
+                    # A declarative spec is not plotting source; the static
+                    # preflight does not apply and must say so explicitly.
+                    record(name, identity, conclusion="not_applicable",
+                           reason="source_backend_not_applicable",
+                           coverage={"applicable": False})
+                else:
+                    def preflight():
+                        source_text = source_bytes.decode("utf-8")
+                        mod = module("validate_figure")
+                        findings = mod.validate_source(source_text, backend)
+                        summary = mod.summarize(findings, strict=False)
+                        counts = summary["counts"]
+                        return ("fail" if counts["FAIL"] else "warn" if counts["WARN"] else "pass"), "source_only", {"findings": [dataclasses.asdict(v) for v in findings], "summary": summary}, {"rendered_artifact": False}
+                    run(name, identity, preflight)
         elif name == "panel_alignment":
             bound = next((ident for ident, _ in rows if layout_manifest and ident["sha256"] == layout_manifest.get("artifact_sha256")), None)
             if bound is None or "layout" not in layout_manifest:
@@ -173,6 +180,7 @@ def verify_current_figure(*, artifacts, source=None, layout_manifest=None, figur
                     if not report["auditable"]:
                         raise Unauditable(report)
                     verdict = mod.verdict(report)
+                    report = {**report, "verdict": verdict}
                     return ("fail" if verdict == "FAIL" else "warn" if verdict == "PASS WITH WARNINGS" else "pass"), "upstream_result", report, {"schematic_rules_only": True, "visual_semantics": False,
                         "adapter_compatibility": list(getattr(mod, "__citrus_compatibility__", []))}
                 run(name, identity, audit_svg)

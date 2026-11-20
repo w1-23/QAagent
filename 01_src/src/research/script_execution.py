@@ -144,8 +144,13 @@ def publish_script_outputs(*, runner, text: str, title: str, output_name: str,
                 raise ValueError("图件对象清单超过大小限制。")
             manifest = strict_json(manifest_blob)
             figure["nature_skill_receipt"] = manifest.get("nature_skill_receipt", {})
-            from src.figures.nature_receipts import validate_nature_receipt
-            validate_nature_receipt(manifest, pdf=result.outputs.get(f"figure:{name}:pdf"))
+            from src.figures.nature_receipts import (accept_current_render_qa, current_qa_summary,
+                                                    validate_nature_receipt)
+            blobs = {fmt: result.outputs[f"figure:{name}:{fmt}"] for fmt in item["formats"]
+                     if f"figure:{name}:{fmt}" in result.outputs}
+            validate_nature_receipt(manifest, pdf=blobs.get("pdf"))
+            accept_current_render_qa(manifest, blobs, "initial")
+            figure["current_qa"] = current_qa_summary(manifest)
             from src.figures.spec import parse_qa_profile
             qa = manifest.get("qa_receipt") or {}
             if (not isinstance(manifest.get("objects"), list) or qa.get("version") != 1

@@ -75,6 +75,19 @@ class ImportRequest(BaseModel):
     mapping: dict[str, str] | None = None
 
 
+class CreateSvgRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+    svg: str = Field(min_length=1, max_length=100_000)
+    title: str = Field(default="", max_length=120)
+    alt_text: str = Field(default="图形", max_length=160)
+
+
+class SvgEditBatch(BaseModel):
+    model_config = {"extra": "forbid"}
+    edits: list[dict[str, Any]] = Field(min_length=1, max_length=100)
+    expected_revision: int = Field(ge=1, strict=True)
+
+
 class CurrentArtifactRequest(BaseModel):
     """An existing render revision, never caller paths/source or QA policy."""
 
@@ -202,6 +215,38 @@ async def get_project(figure_id: str, request: Request, prepare_edit: bool = Fal
         except projects.ProjectError as exc:
             return _fail(exc)
     return JSONResponse(detail, headers={"Cache-Control": "private, no-store"})
+
+
+@router.post("/schematics", status_code=201)
+async def create_schematic(body: CreateSvgRequest, request: Request):
+    from src.figures import projects, svg_projects
+
+    owner = _owner(request)
+    with _write_scope(owner) as lease:
+        session_id = await _resolve_session(request, lease)
+        try:
+            result = await run_account_thread(
+                lease, svg_projects.create_svg_project, owner=owner, session_id=session_id,
+                svg=body.svg, title=body.title, alt_text=body.alt_text)
+        except projects.ProjectError as exc:
+            return _fail(exc)
+    return JSONResponse(result, status_code=201, headers={"Cache-Control": "private, no-store"})
+
+
+@router.post("/projects/{figure_id}/svg-edits")
+async def edit_schematic(figure_id: str, body: SvgEditBatch, request: Request):
+    from src.figures import projects, svg_projects
+
+    owner = _owner(request)
+    with _write_scope(owner) as lease:
+        try:
+            # Keep the edit with its original owned project session.
+            result = await run_account_thread(
+                lease, svg_projects.apply_svg_project_edits, figure_id=figure_id,
+                owner=owner, edits=body.edits, expected_revision=body.expected_revision)
+        except projects.ProjectError as exc:
+            return _fail(exc)
+    return JSONResponse(result, headers={"Cache-Control": "private, no-store"})
 
 
 @router.post("/projects/{figure_id}/preview")

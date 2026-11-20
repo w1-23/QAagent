@@ -3,7 +3,9 @@
 This adapter uses the independent v2 receipt and bundle member contracts. A
 stored project is not an in-process FigureSession: its archive deliberately
 makes no frozen-session/reproduction claim and never calls write_bundle (which
-exports a live figure). Account publication remains the only download writer.
+exports a live figure). Stored bytes are audited in place with the verified
+vendor byte checkers; source is never executed and no export is rerendered.
+Account publication remains the only download writer.
 """
 from __future__ import annotations
 
@@ -14,12 +16,14 @@ from pathlib import Path
 import zipfile
 
 from citrus_figures import __version__ as PACKAGE_VERSION
-from citrus_figures.verification import sha256, verify_current_figure
+from citrus_figures.verification import sha256
 
 from src.figures import projects
 
 PRODUCER = "figure_current_artifact_qa"
 BRIDGE = "citrus.figure-current-artifacts/1"
+from src.figures.nature_receipts import current_receipt_id as _receipt_id
+
 MAX_FILE = 64 * 1024 * 1024
 MAX_TOTAL = 128 * 1024 * 1024
 _STATE_FIELDS = ("session_id", "render_version", "source_kind", "source_json",
@@ -29,11 +33,6 @@ _STATE_FIELDS = ("session_id", "render_version", "source_kind", "source_json",
 def _json(value):
     return (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2,
                        allow_nan=False) + "\n").encode("utf-8")
-
-
-def _receipt_id(receipt):
-    value = {key: item for key, item in receipt.items() if key != "receipt_id"}
-    return sha256(json.dumps(value, sort_keys=True, ensure_ascii=False, default=str).encode())
 
 
 def _state(project):
@@ -119,6 +118,8 @@ def _inputs(project, owner):
                 members["analysis_source.py"] = members.pop("source.py")
                 source_blob = None
                 gaps.append({"kind": "source", "reason_code": "renderer_identity_unverified"})
+    elif project.get("source_kind") == "svg" and isinstance(source.get("svg"), str):
+        source_blob, source_format = source["svg"].encode("utf-8"), "svg"
     elif project.get("source_kind") == "spec" and isinstance(source.get("spec"), dict):
         source_blob = _json(source["spec"])
         members["data/spec.json"] = source_blob
@@ -227,6 +228,68 @@ def _previous_receipt(file_id, project, owner):
     return receipt["receipt_id"]
 
 
+def _stored_layout(project):
+    """The trusted PDF-draw capture recorded with this project, if any.
+
+    Older artifacts have no capture. That stays an explicit gap rather than a
+    reason to rerender, or to accept a live figure as proof of stored bytes.
+    """
+    manifest = project.get("manifest_json") or {}
+    receipt = manifest.get("render_receipt") or {}
+    for candidate in (manifest.get("current_qa_layout"),
+                      receipt.get("current_qa_layout")):
+        if (isinstance(candidate, dict) and isinstance(candidate.get("layout"), dict)
+                and isinstance(candidate.get("artifact_sha256"), str)):
+            return candidate
+    return None
+
+
+def audit_current_bytes(*, artifacts, source=None, backend="python",
+                        stored_layout=None, mode="initial", supersedes=None,
+                        vendor_root=None):
+    """Audit exact current bytes; never render, re-export or execute source.
+
+    ``stored_layout`` is applied only when its captured artifact digest equals
+    the stored PDF digest, so geometry captured for other bytes is never
+    reused. ``mode="reaudit"`` requires a real prior receipt identity.
+    """
+    from src.figures.nature_runtime import run_current_qa
+    layout_manifest = None
+    pdf_sha256 = None
+    captured_sha256 = None
+    binding = "absent"
+    for row in artifacts:
+        if row.get("format") == "pdf":
+            pdf_sha256 = sha256(row["bytes"])
+    if isinstance(stored_layout, dict):
+        captured_sha256 = stored_layout.get("artifact_sha256")
+        if (pdf_sha256 is not None and captured_sha256 == pdf_sha256
+                and isinstance(stored_layout.get("layout"), dict)):
+            layout_manifest = {"artifact_sha256": pdf_sha256,
+                               "layout": stored_layout["layout"]}
+            binding = "bound_to_current_pdf"
+        else:
+            binding = "unbound"
+    receipt = run_current_qa(
+        artifacts=artifacts, mode=mode, source=source, backend=backend,
+        layout_manifest=layout_manifest, supersedes=supersedes, vendor_root=vendor_root)
+    receipt["layout"] = {
+        "binding": binding,
+        "artifact_sha256": pdf_sha256,
+        "captured_artifact_sha256": captured_sha256,
+        "capture": (stored_layout or {}).get("capture") if isinstance(stored_layout, dict) else None,
+        "rerendered": False,
+        "layout": layout_manifest["layout"] if layout_manifest else None}
+    unexecuted = sorted({check["check"] for check in receipt["checks"]
+                         if check["executed"] != "executed"})
+    receipt["overall"]["unexecuted"] = unexecuted
+    receipt["overall"]["execution"] = "partial" if unexecuted else "complete"
+    if unexecuted and receipt["overall"]["conclusion"] in {"pass", "warn"}:
+        receipt["overall"]["conclusion"] = "incomplete"
+    receipt["receipt_id"] = _receipt_id(receipt)
+    return receipt
+
+
 def _capture(project, owner, supersedes):
     exports = project.get("exports_json") or {}
     artifacts, members, bindings = [], {}, []
@@ -249,19 +312,23 @@ def _capture(project, owner, supersedes):
     bindings.extend(input_bindings)
     if sum(map(len, members.values())) > MAX_TOTAL:
         raise projects.ProjectError("artifact_too_large", "图件与输入总大小超过上限。", 413)
-    # No vendor root or visual inspector is supplied: even on a fully equipped
-    # machine this request cannot execute pinned upstream scripts or models.
-    receipt = verify_current_figure(artifacts=artifacts, source=source, backend=backend,
-                                    mode="reaudit" if supersedes else "initial",
-                                    supersedes=supersedes, vendor_root=None)
+    from src.figures.nature_runtime import current_vendor_root
+    vendor_root = current_vendor_root()
+    receipt = audit_current_bytes(
+        artifacts=artifacts, source=source, backend=backend,
+        stored_layout=_stored_layout(project),
+        mode="reaudit" if supersedes else "initial",
+        supersedes=supersedes, vendor_root=vendor_root)
+    if vendor_root is None:
+        for check in receipt["checks"]:
+            if check["reason_code"] == "resource_absent":
+                check["reason_code"] = "vendor_root_unavailable"
+                check["diagnostics"] = {}
     expanded = []
     for check in receipt["checks"]:
-        if check["reason_code"] == "resource_absent":
-            check["reason_code"] = "upstream_execution_not_authorized"
-            check["diagnostics"] = {}
-        # Bind unavailable artifact checks too, so a UI cannot apply one
-        # format's evidence to another format's bytes.
-        if check["artifact"] is None and check["check"] in {"visual", "panel_alignment"}:
+        # Report unavailable visual coverage for each stored artifact. A
+        # missing PDF/layout does not make the SVG the panel check's input.
+        if check["artifact"] is None and check["check"] == "visual":
             expanded.extend({**copy.deepcopy(check), "artifact": identity}
                             for identity in receipt["artifacts"])
         else:
@@ -284,14 +351,21 @@ def _capture(project, owner, supersedes):
     receipt["project"] = {"figure_id": project["figure_id"],
                           "render_version": int(project.get("render_version") or 0),
                           "state_sha256": sha256(_json(_state(project)))}
-    receipt["capabilities"] = {"upstream_scripts": "not_run", "visual": "not_run",
-                               "source_execution": "not_run", "rendering": "not_run"}
+    executed = {check["check"] for check in expanded if check["executed"] == "executed"}
+    upstream = executed & {"source_preflight", "panel_alignment", "pdf_text",
+                           "pdf_collisions", "svg_schematic"}
+    receipt["capabilities"] = {
+        "upstream_scripts": "executed" if upstream else "not_run",
+        "visual": "not_run", "source_execution": "not_run", "rendering": "not_run",
+        "vendor_root": "verified" if vendor_root else "unavailable"}
     unexecuted = sorted({c["check"] for c in expanded if c["executed"] != "executed"})
     receipt["overall"]["unexecuted"] = unexecuted
     receipt["overall"]["execution"] = "partial" if unexecuted else "complete"
     if unexecuted and receipt["overall"]["conclusion"] in {"pass", "warn"}:
         receipt["overall"]["conclusion"] = "incomplete"
-    receipt["overall"]["claims"].append("Upstream scripts and source were not executed; no render or frozen-session reconstruction was performed.")
+    receipt["overall"]["claims"].append(
+        "Figure source was not executed and no render or frozen-session reconstruction "
+        "was performed; only verified vendor byte checkers may have audited stored artifacts.")
     receipt["receipt_id"] = _receipt_id(receipt)
     members["objects.json"] = _json(project.get("manifest_json") or {})
     members["overrides.json"] = _json(project.get("overrides_json") or [])
@@ -301,6 +375,13 @@ def _capture(project, owner, supersedes):
 def _bundle(project, receipt, members):
     """v2 manifest/member hashes over exact stored bytes, not a new render."""
     members = dict(members)
+    layout = receipt.get("layout") or {}
+    if isinstance(layout.get("layout"), dict):
+        members["qa/layout.json"] = _json({
+            "artifact_sha256": layout.get("artifact_sha256"),
+            "layout": layout["layout"],
+            "capture": layout.get("capture") or "stored_capture",
+            "rerendered": False})
     members["qa/receipt.json"] = _json(receipt)
     for index, check in enumerate(receipt["checks"]):
         members[f"qa/reports/{index:02d}_{check['check']}.json"] = _json(check)
@@ -313,7 +394,7 @@ def _bundle(project, receipt, members):
                 "parameters_sha256": sha256(members["data/parameters.json"]),
                 "data_sha256": receipt["inputs"]["data_sha256"],
                 "editable_limitations": ["Archive of current stored artifacts, not a live FigureSession.",
-                    "No source execution, reproduction, statistical recomputation or upstream re-audit was performed.",
+                    "No source execution, reproduction or statistical recomputation was performed; upstream byte checks ran only from the verified vendor set.",
                     "Missing inputs and unexecuted checks remain explicit in qa/receipt.json.",
                     "No data/resolved.json or automatic load_spec_bundle/style-reopen capability is claimed."],
                 "members": [{"path": name, "sha256": sha256(blob), "size": len(blob)}
@@ -338,6 +419,10 @@ def verify_project(figure_id, owner, *, expected_revision, supersedes_file_id=No
         raise projects.ProjectError("revision_conflict", "图件已更新，请重新加载当前版本。", 409)
     sid = _session(project, owner)
     previous = _previous_receipt(supersedes_file_id, project, owner)
+    if previous is None:
+        current = (project.get("manifest_json") or {}).get("current_qa_receipt") or {}
+        if isinstance(current, dict) and current.get("version") == 2 and current.get("receipt_id") == _receipt_id(current):
+            previous = current["receipt_id"]
     receipt, members, bindings = _capture(project, owner, previous)
     bundle_blob, manifest = _bundle(project, receipt, members) if include_bundle else (None, None)
     stem = f"figure_{figure_id}_r{expected_revision}_{receipt['receipt_id'][:12]}"

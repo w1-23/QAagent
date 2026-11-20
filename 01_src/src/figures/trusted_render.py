@@ -249,6 +249,12 @@ def render_resolved(resolved, *, overrides=None, existing=None, formats=("svg", 
                     check = (receipt.get("checks") or {}).get(fmt) or {}
                     if check.get("sha256") != hashlib.sha256(data[fmt]).hexdigest() or check.get("size_bytes") != len(data[fmt]):
                         raise TrustedRenderError("worker_protocol_invalid", "图件输出与完整性回执不一致。")
+                if render_mode != "preview":
+                    from src.figures.nature_receipts import accept_current_render_qa
+                    try:
+                        accept_current_render_qa(manifest, {fmt: data[fmt] for fmt in formats}, render_mode)
+                    except ValueError as exc:
+                        raise TrustedRenderError("worker_protocol_invalid", str(exc)) from exc
                 if render_mode == "initial":
                     from src.figures.nature_receipts import validate_nature_receipt
                     try:

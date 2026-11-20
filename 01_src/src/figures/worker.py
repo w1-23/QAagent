@@ -135,6 +135,22 @@ def _report(code: int, detail: str = "", script_stdout: str = "",
     return code
 
 
+def _promote_current_qa(manifest: dict, container=None, *, receipt=None, layout=None) -> None:
+    """Expose this export's current-byte QA evidence at the manifest top level.
+
+    ``render_receipt`` keeps the same nested evidence for callers that only
+    transport an acknowledgement; a current-byte reaudit accepts either
+    location. Nothing is recomputed or rerendered here.
+    """
+    if isinstance(container, dict):
+        receipt = container.get("current_qa_receipt", receipt)
+        layout = container.get("current_qa_layout", layout)
+    if isinstance(receipt, dict):
+        manifest["current_qa_receipt"] = receipt
+    if isinstance(layout, dict):
+        manifest["current_qa_layout"] = layout
+
+
 def _guard_imports(script: str) -> str | None:
     """Refuse a script that imports a forbidden module.
 
@@ -279,8 +295,12 @@ def run(job_path: Path) -> int:
             formats=formats, dpi=int(job.get("dpi") or 300), source=script_text)
     except Exception as exc:
         receipt = getattr(exc, "receipt", None)
+        current = getattr(exc, "current_qa_receipt", None)
+        _promote_current_qa(manifest, receipt=current,
+                            layout=getattr(exc, "current_qa_layout", None))
         if receipt is not None:
             manifest["nature_skill_receipt"] = receipt
+        if receipt is not None or current is not None:
             out_dir.mkdir(parents=True, exist_ok=True)
             data = json.dumps(manifest, ensure_ascii=False, allow_nan=False).encode("utf-8")
             if len(data) <= 4 * 1024 * 1024:
@@ -311,6 +331,7 @@ def run(job_path: Path) -> int:
 
     manifest = manifest_module.build_manifest(rendered, source="script", include_qa=mode != "preview")
     manifest["render_receipt"] = render_receipt
+    _promote_current_qa(manifest, render_receipt)
     if nature_receipt is not None:
         manifest["nature_skill_receipt"] = nature_receipt
     manifest_bytes = json.dumps(manifest, ensure_ascii=False, allow_nan=False).encode("utf-8")
@@ -508,8 +529,12 @@ def _run_outputs(job, script_text, namespace, out_dir, core, exporter, manifest_
                     source=entry.get("render_script", script_text), allow_format_failure=True)
             except Exception as exc:
                 receipt = getattr(exc, "receipt", None)
+                current = getattr(exc, "current_qa_receipt", None)
+                _promote_current_qa(manifest, receipt=current,
+                                    layout=getattr(exc, "current_qa_layout", None))
                 if receipt is not None:
                     manifest["nature_skill_receipt"] = receipt
+                if receipt is not None or current is not None:
                     write_json(prefix + "manifest", manifest, 4 * 1024 * 1024)
                     if job.get("replay_overrides"):
                         write_json(prefix + "overrides", accepted, 256 * 1024)
@@ -518,6 +543,7 @@ def _run_outputs(job, script_text, namespace, out_dir, core, exporter, manifest_
             if frozen_receipt is not None:
                 manifest["frozen_render_receipt"] = frozen_receipt
             manifest["render_receipt"] = render_receipt
+            _promote_current_qa(manifest, render_receipt)
             if nature_receipt is not None:
                 manifest["nature_skill_receipt"] = nature_receipt
             write_json(prefix + "manifest", manifest, 4 * 1024 * 1024)

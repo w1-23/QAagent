@@ -193,12 +193,12 @@
     },
     {
       "id": "nature-figure",
-      "version": "2.0.0",
+      "version": "2.1.0",
       "path": "skills/nature-figure",
       "entry": "SKILL.md",
       "package": "citrus_figures",
       "dependency": "citrusscholar-support[figures]==2.0.0",
-      "sha256": "00779e01d2c8756245c3553adb8abf451c4eb1dcd15c46ce7192ce3892d7f127",
+      "sha256": "ed8c4840844904f7ccf7be7845382db58b7127534b9b4c1792de35570af30e7b",
       "files": [
         {
           "path": "ADAPTER.md",
@@ -207,18 +207,23 @@
         },
         {
           "path": "provenance.extra.json",
-          "sha256": "d009a7c9e34fef2627d01fd940bed35a6a71115bee3a7b4130c1f4c1ae55bcf4",
-          "size": 1301
+          "sha256": "6308decbc8b820e48ff47d923f75868a9169c232538e7dbef58e5a42c8017f81",
+          "size": 1491
         },
         {
           "path": "provenance.json",
-          "sha256": "6f2c4b4f6921fa2d029341a5992917658f48875ac140433e2d35dc3ce5a4ea6d",
-          "size": 11937
+          "sha256": "67def594c3024d54e402344b8762bcd53dfdd6fe19bd1316286ada19f35ca8b5",
+          "size": 12408
         },
         {
           "path": "references/bridge.md",
-          "sha256": "84d1263b12d64b02787c5fa11c57d1dfa8ca7618247aeadef8ca6050ff615d63",
-          "size": 3455
+          "sha256": "20d9aa14ab17374315d3002d8b599ff20919522abce7a6658465326f2c00a1a9",
+          "size": 6948
+        },
+        {
+          "path": "references/figure-methods.md",
+          "sha256": "df985b96cfbac9f04d6931c536cb70f42993d930e91309d8749da309c6a2b8b6",
+          "size": 7038
         },
         {
           "path": "RELEASE.md",
@@ -247,13 +252,8 @@
         },
         {
           "path": "SKILL.md",
-          "sha256": "878010ec09e4c3a65c18249cb2babc41e64ce48b93881a921dd3ff0fc4e9f23d",
-          "size": 4670
-        },
-        {
-          "path": "tests/test_resources.py",
-          "sha256": "2afb110d77d3cdd09290726fb4c33329ddaa258a8bd5a925baa131502a5df84f",
-          "size": 5740
+          "sha256": "9cb7b20f075d4178afcfb35b5e10862c2f794f2b72be15d5a187849b59e9a9e0",
+          "size": 5177
         },
         {
           "path": "vendor/nature-skills/INTEGRATION.md",
@@ -485,7 +485,15 @@
           "sha256": "d62a418fbd67841e745f553b98a267b5a01c9445457a07a0121095ce76fad0af",
           "size": 18975
         }
-      ]
+      ],
+      "supersedes": {
+        "version": "2.0.0",
+        "manifest_sha256": "00779e01d2c8756245c3553adb8abf451c4eb1dcd15c46ce7192ce3892d7f127",
+        "removed_dangling_entries": [
+          "tests/test_resources.py",
+          "vendor/nature-skills/.gitattributes"
+        ]
+      }
     }
   ]
 }

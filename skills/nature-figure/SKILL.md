@@ -1,7 +1,7 @@
 ---
 name: nature-figure
 description: Create, revise, package and audit scientific Matplotlib figures using explicit data and final artifact bytes. Apply pinned Nature figure guidance with honest per-check coverage, reproducible source/data bundles and frozen style edits.
-version: 2.0.0
+version: 2.1.0
 ---
 
 # Scientific figure workflow
@@ -9,6 +9,8 @@ version: 2.0.0
 Use the installed `citrus_figures` package and the four adapters in `scripts/citrus/`. Resolve adapter and resource paths relative to this SKILL.md; see [ADAPTER.md](ADAPTER.md) for path bases and the public interface. Runtime loading always receives the explicit vendor directory. Imports do not contact services, initialize models or change the environment.
 
 Before choosing a form, identify the scientific question, units, experimental unit, replicate counts, uncertainty definition and any transformation/statistical parameters. Select the form from that evidence. Preserve source values and complete labels. Follow the pinned upstream [figure contract](vendor/nature-skills/skills/nature-figure/references/figure-contract.md), [design theory](vendor/nature-skills/skills/nature-figure/references/design-theory.md), [chart types](vendor/nature-skills/skills/nature-figure/references/chart-types.md) and [legend conventions](vendor/nature-skills/skills/nature-figure/references/figure-legend-conventions.md). The upstream scientific palette and typography remain the defaults.
+
+For the application workflow, see [figure methods](references/figure-methods.md) for template parameters, composite layouts, and frozen replay. The steps below describe the standalone package.
 
 1. Prepare an explicit spec JSON or trusted Matplotlib source. Source receives `data` (named DataFrames) and `parameters` (JSON). The source path is executable local Python: obtain the caller's normal execution authorization; do not execute uploaded/untrusted source implicitly. Library execution provides no sandbox.
 2. Render with `python scripts/citrus/render_figure.py --spec /absolute/spec.json --output /absolute/new-bundle`. For a non-template scientific plot, use `--source /absolute/plot_source.py --data measurements=/absolute/measurements.csv --parameters /absolute/parameters.json`. Specs support inline data and explicit CSV bindings such as `--table account_file:measurements=/absolute/measurements.csv` or `--table attachment:1=/absolute/measurements.csv`. Library callers inject already authorized table mappings.
@@ -19,4 +21,4 @@ Before choosing a form, identify the scientific question, units, experimental un
 
 All CLI observations are one JSON object on stdout; diagnostics go to stderr. `status=incomplete` is successful observation delivery with coverage gaps, not successful scientific verification. Read `coverage` and the receipt; process exit alone is insufficient.
 
-The vendored snapshot contains the original 40 core files plus four pinned execution peripherals. R execution, image-generation networks, private templates, gallery images, and external models are not automatically enabled. Keep acquisition, local execution authorization and network authorization distinct. Consult the [resource bridge](references/bridge.md), [release scope](RELEASE.md) and [vendor provenance](vendor/nature-skills/provenance.json). Do not claim a complete upstream repository or availability of excluded assets.
+The vendored snapshot is the fixed 44-file upstream set (40 core files plus four pinned execution peripherals) at commit `7bff1d0`; a separately supplied user ZIP is a different upstream snapshot (8 of 39 same-named files differ) and is not packaged. Python paths are the `citrus_figures` library and the `scripts/citrus/` adapters. R execution and OpenRouter image generation are disabled and never invoked by the service; image-generation networks, private templates, gallery images, and external models are not automatically enabled. Keep acquisition, local execution authorization and network authorization distinct. Consult the [resource bridge](references/bridge.md), [release scope](RELEASE.md) and [vendor provenance](vendor/nature-skills/provenance.json). Do not claim a complete upstream repository or availability of excluded assets.

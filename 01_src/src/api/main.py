@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 import asyncio
 from contextvars import ContextVar
 import base64
+import hashlib
 import json
 import logging
 import re
@@ -27,10 +28,12 @@ from xml.etree import ElementTree
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, HTMLResponse
 from sse_starlette.sse import EventSourceResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from src.config import PROJECT_ROOT, WEB_DIR, settings
 from src.guardrails.memory import memory_store
@@ -313,6 +316,37 @@ async def lifespan(app: FastAPI):
 # v8.4.5: 版本单源（settings.VERSION）——UI/健康检查/API 元数据共用
 app = FastAPI(title=f"CitrusScholar v{settings.VERSION}", version=settings.VERSION, lifespan=lifespan)
 
+# Account writes accept a strict field whitelist. Validation errors on these
+# paths never echo the submitted password, invite code, or recovery code.
+_SENSITIVE_AUTH_EXACT = frozenset({
+    "/api/v2/auth/register",
+    "/api/v2/auth/login",
+    "/api/v2/auth/password/change",
+    "/api/v2/auth/password/recovery-codes",
+    "/api/v2/auth/password/recover",
+})
+_SENSITIVE_AUTH_PATTERN = re.compile(r"^/api/v2/admin/users/[^/]+/reset-password$")
+_ANONYMOUS_AUTH_PATHS = frozenset({
+    "/api/v2/auth/register",
+    "/api/v2/auth/login",
+    "/api/v2/auth/logout",
+    "/api/v2/auth/password/recover",
+})
+
+
+def _is_sensitive_auth_path(path: str) -> bool:
+    return path in _SENSITIVE_AUTH_EXACT or bool(_SENSITIVE_AUTH_PATTERN.fullmatch(path))
+
+
+async def sanitized_validation_error(request: Request, exc: RequestValidationError):
+    # Return a redacted 422 for account endpoints and the default elsewhere.
+    if _is_sensitive_auth_path(request.url.path):
+        return JSONResponse({"detail": "请求数据无效。"}, status_code=422)
+    return await request_validation_exception_handler(request, exc)
+
+
+app.add_exception_handler(RequestValidationError, sanitized_validation_error)
+
 
 def current_user(request: Request) -> dict:
     user = getattr(request.state, "user", None)
@@ -346,29 +380,37 @@ def require_owned_session(session_id: str, user: dict, *,
 @app.middleware("http")
 async def account_auth_guard(request: Request, call_next):
     path = request.url.path
-    public_auth_paths = {
-        "/api/v2/auth/register", "/api/v2/auth/login", "/api/v2/auth/logout",
-    }
     if request.method not in {"GET", "HEAD", "OPTIONS"}:
         origin = request.headers.get("origin")
         has_auth_cookie = bool(request.cookies.get("citrus_auth"))
-        if not origin and has_auth_cookie and path not in public_auth_paths:
-            return JSONResponse({"detail": "缺少同源请求校验信息，请刷新页面后重试。"}, status_code=403)
         if origin:
+            # Compare the Origin netloc with this request's own Host only.
+            # A client-reported forwarded host is never trusted.
             from urllib.parse import urlsplit
-            parsed = urlsplit(origin)
-            if parsed.netloc.lower() != request.headers.get("host", "").lower():
+            try:
+                parsed = urlsplit(origin)
+                same_host = (parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+                             and not (parsed.path or parsed.query or parsed.fragment or parsed.username is not None)
+                             and parsed.netloc.lower() == request.headers.get("host", "").lower())
+            except ValueError:
+                same_host = False
+            if not same_host:
                 return JSONResponse({"detail": "跨站请求已拒绝。"}, status_code=403)
-    if (path in public_auth_paths or path == "/health"
+        elif has_auth_cookie and path != "/api/v2/auth/logout":
+            # Cookie-bearing writes must prove same-origin. Logout remains
+            # callable so a stale cookie can always be cleared.
+            return JSONResponse({"detail": "缺少同源请求校验信息，请刷新页面后重试。"}, status_code=403)
+    if (path in _ANONYMOUS_AUTH_PATHS or path == "/health"
             or (not path.startswith("/api/")
                 and not path.startswith(("/jobs/", "/sessions/")))):
         return await call_next(request)
 
     from src.auth import user_for_token, require_admin as is_admin
-    user = user_for_token(request.cookies.get("citrus_auth", ""))
+    token = request.cookies.get("citrus_auth", "")
+    user = await asyncio.to_thread(user_for_token, token)
     if not user and path == "/api/v2/auth/account" and request.method == "DELETE":
         from src.auth import user_for_deletion_retry
-        user = user_for_deletion_retry(request.cookies.get("citrus_auth", ""))
+        user = await asyncio.to_thread(user_for_deletion_retry, token)
     if not user:
         return JSONResponse({"detail": "请先登录。"}, status_code=401)
     request.state.user = user
@@ -593,6 +635,42 @@ class CredentialsRequest(BaseModel):
     avatar_preset: str = Field(default="01", max_length=2)
 
 
+class RegisterRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    username: str = Field(..., min_length=1, max_length=64)
+    password: str = Field(..., min_length=1, max_length=256)
+    avatar_preset: str = Field(default="01", max_length=2)
+    invite_code: str = Field(..., min_length=1, max_length=128)
+
+
+class PasswordChangeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    current_password: str = Field(..., min_length=1, max_length=256)
+    new_password: str = Field(..., min_length=1, max_length=256)
+
+
+class RecoveryCodesRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    current_password: str = Field(..., min_length=1, max_length=256)
+
+
+class RecoverRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    username: str = Field(..., min_length=1, max_length=64)
+    recovery_code: str = Field(..., min_length=1, max_length=128)
+    new_password: str = Field(..., min_length=1, max_length=256)
+
+
+class AdminResetPasswordRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    current_password: str = Field(..., min_length=1, max_length=256)
+
+
+class InviteCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    expires_in_days: int = Field(default=7, ge=1, le=30)
+
+
 class AvatarPresetRequest(BaseModel):
     preset: str = Field(..., min_length=2, max_length=2)
 
@@ -664,6 +742,71 @@ def _client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
+def _source_hash(request: Request) -> str:
+    source = str(_client_ip(request) or "unknown").encode("utf-8")
+    return hashlib.sha256(source).hexdigest()
+
+
+_NO_STORE_HEADERS = {"Cache-Control": "no-store", "Pragma": "no-cache"}
+
+
+def _no_store(payload: dict, *, status_code: int = 200) -> JSONResponse:
+    return JSONResponse(payload, status_code=status_code, headers=dict(_NO_STORE_HEADERS))
+
+
+_ACCOUNT_ERROR_STATUS = {
+    "invalid_credentials": 400,
+    "invalid_avatar": 400,
+    "invalid_password": 400,
+    "invalid_invite": 400,
+    "username_unavailable": 409,
+    "invite_not_found": 404,
+    "invite_conflict": 409,
+    "application_not_found": 404,
+    "approval_conflict": 409,
+    "reauthentication_required": 403,
+    "admin_required": 403,
+    "invalid_recovery": 401,
+    "account_deletion_pending": 409,
+    "admin_target_forbidden": 403,
+    "account_not_approved": 409,
+    "cannot_disable_self": 400,
+}
+
+_ACCOUNT_ERROR_DETAIL = {
+    "invalid_credentials": "用户名或密码不符合要求。",
+    "invalid_avatar": "请选择有效的头像。",
+    "invalid_password": "新密码需为 10–256 个字符。",
+    "invalid_invite": "邀请码无效或已失效。",
+    "username_unavailable": "该用户名已被使用。",
+    "invite_not_found": "邀请码不存在。",
+    "invite_conflict": "邀请码已使用、已撤销或已过期。",
+    "application_not_found": "申请不存在。",
+    "approval_conflict": "该申请已被处理。",
+    "reauthentication_required": "当前密码不正确或会话已失效，请重新验证。",
+    "admin_required": "此操作仅管理员可用。",
+    "invalid_recovery": "恢复凭证无效。",
+    "account_deletion_pending": "账户正在删除，暂时无法启用或重置。",
+    "admin_target_forbidden": "不能通过该入口重置管理员账号。",
+    "account_not_approved": "该账号尚未通过审核。",
+    "cannot_disable_self": "不能停用当前管理员账号。",
+}
+
+
+def _account_error(exc, *, default_status: int = 400,
+                   default_detail: str = "请求无法处理。") -> JSONResponse:
+    code = str(getattr(exc, "code", "") or "")
+    status = _ACCOUNT_ERROR_STATUS.get(code, default_status)
+    detail = _ACCOUNT_ERROR_DETAIL.get(code, default_detail)
+    return JSONResponse({"code": code or "account_error", "detail": detail},
+                        status_code=status)
+
+
+def _page_result(key: str, rows: list, limit: int, offset: int) -> dict:
+    return {key: rows, "limit": limit, "offset": offset,
+            "next_offset": offset + len(rows) if len(rows) == limit else None}
+
+
 class AccountDeleteRequest(BaseModel):
     password: str = Field(..., min_length=1, max_length=256)
 
@@ -694,17 +837,20 @@ def _set_auth_cookie(response: Response, token: str) -> None:
 
 
 @app.post("/api/v2/auth/register")
-async def register_account(req: CredentialsRequest, request: Request, response: Response):
+async def register_account(req: RegisterRequest, request: Request):
     from src.auth import check_rate_limit, register
+    from src.auth_invites import AccountInviteError
     remote = _client_ip(request)
-    if not check_rate_limit("register", remote, limit=8, window_seconds=3600):
+    if not await asyncio.to_thread(check_rate_limit, "register", remote, 8, 3600):
         raise HTTPException(status_code=429, detail="注册请求过于频繁，请稍后再试。")
-    user, token, error = register(req.username, req.password, req.avatar_preset)
-    if error:
-        raise HTTPException(status_code=409 if "已被使用" in error else 400, detail=error)
-    _set_auth_cookie(response, token or "")
-    return {"status": "ok", "user": user,
-            "bootstrap_admin": bool(user and user.get("role") == "admin")}
+    try:
+        result = await asyncio.to_thread(
+            register, req.username, req.password, req.avatar_preset,
+            invite_code=req.invite_code, source_hash=_source_hash(request))
+    except AccountInviteError as exc:
+        return _account_error(exc)
+    return JSONResponse({"status": "pending", "application_id": result["application_id"]},
+                        status_code=202)
 
 
 @app.post("/api/v2/auth/login")
@@ -712,9 +858,9 @@ async def login_account(req: CredentialsRequest, request: Request, response: Res
     from src.auth import check_rate_limit, login
     remote = _client_ip(request)
     key = remote + "|" + req.username.strip().casefold()
-    if not check_rate_limit("login", key, limit=12, window_seconds=900):
+    if not await asyncio.to_thread(check_rate_limit, "login", key, 12, 900):
         raise HTTPException(status_code=429, detail="登录尝试过多，请 15 分钟后再试。")
-    user, token = login(req.username, req.password)
+    user, token = await asyncio.to_thread(login, req.username, req.password)
     if not user or not token:
         raise HTTPException(status_code=401, detail="用户名或密码错误。")
     _set_auth_cookie(response, token)
@@ -724,15 +870,74 @@ async def login_account(req: CredentialsRequest, request: Request, response: Res
 @app.post("/api/v2/auth/logout")
 async def logout_account(request: Request, response: Response):
     from src.auth import logout
-    logout(request.cookies.get("citrus_auth", ""))
+    await asyncio.to_thread(logout, request.cookies.get("citrus_auth", ""))
     response.delete_cookie("citrus_auth", path="/", httponly=True, samesite="lax")
     return {"status": "ok"}
+
+
+@app.post("/api/v2/auth/password/change")
+async def change_account_password(req: PasswordChangeRequest, request: Request,
+                                  response: Response):
+    from src.auth import change_password, check_rate_limit
+    from src.auth_invites import AccountInviteError
+    user = current_user(request)
+    key = "change|" + str(user["user_id"]) + "|" + _client_ip(request)
+    if not await asyncio.to_thread(check_rate_limit, "reauth", key, 10, 900):
+        raise HTTPException(status_code=429, detail="验证尝试过多，请稍后再试。")
+    try:
+        await asyncio.to_thread(
+            change_password, int(user["user_id"]), req.current_password, req.new_password,
+            token=request.cookies.get("citrus_auth", ""), source_hash=_source_hash(request))
+    except AccountInviteError as exc:
+        return _account_error(exc)
+    response.delete_cookie("citrus_auth", path="/", httponly=True, samesite="lax")
+    return {"status": "login_required"}
+
+
+@app.post("/api/v2/auth/password/recovery-codes")
+async def issue_recovery_codes(req: RecoveryCodesRequest, request: Request):
+    from src.auth import check_rate_limit, replace_recovery_codes
+    from src.auth_invites import AccountInviteError
+    user = current_user(request)
+    key = "recovery|" + str(user["user_id"]) + "|" + _client_ip(request)
+    if not await asyncio.to_thread(check_rate_limit, "reauth", key, 10, 900):
+        raise HTTPException(status_code=429, detail="验证尝试过多，请稍后再试。")
+    try:
+        codes = await asyncio.to_thread(
+            replace_recovery_codes, int(user["user_id"]), req.current_password,
+            token=request.cookies.get("citrus_auth", ""), source_hash=_source_hash(request))
+    except AccountInviteError as exc:
+        return _account_error(exc)
+    return _no_store({"codes": codes})
+
+
+@app.post("/api/v2/auth/password/recover")
+async def recover_account_password(req: RecoverRequest, request: Request):
+    from src.auth import check_rate_limit, recover_password
+    from src.auth_invites import AccountInviteError
+    remote = _client_ip(request)
+    normalized = str(req.username or "").strip().casefold()
+    if not await asyncio.to_thread(check_rate_limit, "recover", remote, 12, 900):
+        raise HTTPException(status_code=429, detail="恢复尝试过多，请稍后再试。")
+    if not await asyncio.to_thread(check_rate_limit, "recover_user",
+                                   remote + "|" + normalized, 8, 900):
+        raise HTTPException(status_code=429, detail="恢复尝试过多，请稍后再试。")
+    try:
+        await asyncio.to_thread(
+            recover_password, req.username, req.recovery_code, req.new_password,
+            source_hash=_source_hash(request))
+    except AccountInviteError as exc:
+        if getattr(exc, "code", "") == "invalid_password":
+            return _account_error(exc)
+        return JSONResponse({"code": "invalid_recovery",
+                             "detail": "恢复凭证无效。"}, status_code=401)
+    return {"status": "login_required"}
 
 
 @app.get("/api/v2/auth/me")
 async def current_account(request: Request):
     from src.auth import user_for_token
-    user = user_for_token(request.cookies.get("citrus_auth", ""))
+    user = await asyncio.to_thread(user_for_token, request.cookies.get("citrus_auth", ""))
     if not user:
         raise HTTPException(status_code=401, detail="尚未登录。")
     return {"user": user}
@@ -848,11 +1053,14 @@ async def delete_account(req: AccountDeleteRequest, request: Request, response: 
         raise HTTPException(status_code=400, detail="管理员账号不能自行删除。")
     # Inactive identities reach only this route through the deletion-only token
     # lookup. The original password is still required for every retry.
-    if not verify_password(user["user_id"], req.password, allow_disabled=True):
+    if not await asyncio.to_thread(verify_password, user["user_id"], req.password,
+                                   allow_disabled=True):
         raise HTTPException(status_code=401, detail="密码不正确。")
-    retain_deletion_retry(request.cookies.get("citrus_auth", ""), user["user_id"])
+    await asyncio.to_thread(retain_deletion_retry,
+                            request.cookies.get("citrus_auth", ""), user["user_id"])
     try:
-        deleted = delete_user_account(user["user_id"], raise_if_busy=True)
+        deleted = await asyncio.to_thread(delete_user_account, user["user_id"],
+                                          raise_if_busy=True)
     except AccountDeletionPending:
         return JSONResponse(
             {"status": "deletion_pending", "code": "account_work_in_flight",
@@ -863,7 +1071,7 @@ async def delete_account(req: AccountDeleteRequest, request: Request, response: 
             {"status": "deletion_failed", "code": "account_cleanup_failed",
              "detail": "账户清理尚未完成，可稍后重试或联系管理员。"},
             status_code=503, headers={"Retry-After": "2"})
-    logout(request.cookies.get("citrus_auth", ""))
+    await asyncio.to_thread(logout, request.cookies.get("citrus_auth", ""))
     response.delete_cookie("citrus_auth", path="/", httponly=True, samesite="lax")
     return {"status": "deleted"}
 
@@ -872,7 +1080,120 @@ async def delete_account(req: AccountDeleteRequest, request: Request, response: 
 async def admin_list_users(request: Request):
     from src.auth import list_users
     require_admin(request)
-    return {"users": list_users()}
+    return {"users": await asyncio.to_thread(list_users)}
+
+
+def _admin_page(request: Request) -> tuple[int, int]:
+    try:
+        limit = int(request.query_params.get("limit", "50"))
+        offset = int(request.query_params.get("offset", "0"))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="分页参数无效。")
+    if not 1 <= limit <= 100 or offset < 0:
+        raise HTTPException(status_code=400, detail="分页参数无效。")
+    return limit, offset
+
+
+@app.get("/api/v2/admin/applications")
+async def admin_list_applications(request: Request):
+    from src.auth import list_applications
+    require_admin(request)
+    status = str(request.query_params.get("status", "pending") or "pending")
+    if status not in {"pending", "approved", "rejected"}:
+        raise HTTPException(status_code=400, detail="申请状态无效。")
+    limit, offset = _admin_page(request)
+    rows = await asyncio.to_thread(list_applications, status=status, limit=limit, offset=offset)
+    return _page_result("applications", rows, limit, offset)
+
+
+async def _empty_json_object(request: Request) -> dict:
+    raw = await request.body()
+    if not raw:
+        return {}
+    try:
+        payload = json.loads(raw)
+    except (ValueError, UnicodeDecodeError):
+        raise HTTPException(status_code=422, detail="请求数据无效。")
+    if not isinstance(payload, dict) or payload:
+        raise HTTPException(status_code=422, detail="请求数据无效。")
+    return payload
+
+
+async def _review_application(request: Request, application_id: str, decision: str,
+                              reason: str | None = None):
+    from src.auth import review_application
+    from src.auth_invites import AccountInviteError
+    admin = require_admin(request)
+    try:
+        receipt = await asyncio.to_thread(
+            review_application, application_id,
+            actor_user_id=int(admin["user_id"]),
+            actor_token=request.cookies.get("citrus_auth", ""),
+            decision=decision, rejection_reason=reason,
+            source_hash=_source_hash(request))
+    except AccountInviteError as exc:
+        return _account_error(exc)
+    return {"application": receipt}
+
+
+@app.post("/api/v2/admin/applications/{application_id}/approve")
+async def admin_approve_application(application_id: str, request: Request):
+    await _empty_json_object(request)
+    return await _review_application(request, application_id, "approved")
+
+
+@app.post("/api/v2/admin/applications/{application_id}/reject")
+async def admin_reject_application(application_id: str, request: Request):
+    raw = await request.body()
+    reason = None
+    if raw:
+        try:
+            payload = json.loads(raw)
+        except (ValueError, UnicodeDecodeError):
+            raise HTTPException(status_code=422, detail="请求数据无效。")
+        if not isinstance(payload, dict) or set(payload) - {"reason"}:
+            raise HTTPException(status_code=422, detail="请求数据无效。")
+        candidate = payload.get("reason")
+        if candidate is not None and (not isinstance(candidate, str)
+                                      or len(candidate.strip()) > 300):
+            raise HTTPException(status_code=422, detail="拒绝原因无效。")
+        reason = (candidate or "").strip() or None
+    return await _review_application(request, application_id, "rejected", reason)
+
+
+@app.get("/api/v2/admin/invites")
+async def admin_list_invites(request: Request):
+    from src.auth import list_invites
+    require_admin(request)
+    limit, offset = _admin_page(request)
+    rows = await asyncio.to_thread(list_invites, limit=limit, offset=offset)
+    return _page_result("invites", rows, limit, offset)
+
+
+@app.post("/api/v2/admin/invites")
+async def admin_create_invite(req: InviteCreateRequest, request: Request):
+    from src.auth import issue_invite
+    admin = require_admin(request)
+    invite = await asyncio.to_thread(
+        issue_invite, actor_user_id=int(admin["user_id"]),
+        actor_token=request.cookies.get("citrus_auth", ""),
+        expires_in_days=req.expires_in_days, source_hash=_source_hash(request))
+    return _no_store({"invite": invite}, status_code=201)
+
+
+@app.post("/api/v2/admin/invites/{invite_id}/revoke")
+async def admin_revoke_invite(invite_id: str, request: Request):
+    from src.auth import revoke_invite
+    from src.auth_invites import AccountInviteError
+    admin = require_admin(request)
+    try:
+        invite = await asyncio.to_thread(
+            revoke_invite, invite_id, actor_user_id=int(admin["user_id"]),
+            actor_token=request.cookies.get("citrus_auth", ""),
+            source_hash=_source_hash(request))
+    except AccountInviteError as exc:
+        return _account_error(exc)
+    return {"invite": invite}
 
 
 @app.get("/api/v2/admin/requests")
@@ -916,23 +1237,42 @@ async def admin_set_onnx_device(req: OnnxDeviceRequest, request: Request):
 
 
 @app.post("/api/v2/admin/users/{user_id}/reset-password")
-async def admin_reset_password(user_id: int, request: Request):
-    from src.auth import reset_password
-    require_admin(request)
-    password, ok = reset_password(user_id)
+async def admin_reset_password(user_id: int, req: AdminResetPasswordRequest, request: Request):
+    from src.auth import check_rate_limit, reset_password
+    from src.auth_invites import AccountInviteError
+    admin = require_admin(request)
+    key = "reset|" + str(admin["user_id"]) + "|" + _client_ip(request)
+    if not await asyncio.to_thread(check_rate_limit, "reauth", key, 10, 900):
+        raise HTTPException(status_code=429, detail="验证尝试过多，请稍后再试。")
+    try:
+        password, ok = await asyncio.to_thread(
+            reset_password, int(user_id), actor_user_id=int(admin["user_id"]),
+            actor_token=request.cookies.get("citrus_auth", ""),
+            current_password=req.current_password, source_hash=_source_hash(request))
+    except AccountInviteError as exc:
+        return _account_error(exc)
     if not ok:
         raise HTTPException(status_code=404, detail="用户不存在。")
-    return {"status": "ok", "temporary_password": password,
-            "message": "临时密码仅显示本次；请通过安全渠道交给用户。"}
+    return _no_store({"status": "ok", "temporary_password": password,
+                      "message": "临时密码仅显示本次；请通过安全渠道交给用户。"})
 
 
 @app.post("/api/v2/admin/users/{user_id}/active")
 async def admin_set_user_active(user_id: int, req: AccountActiveRequest, request: Request):
     from src.auth import set_user_status
+    from src.auth_invites import AccountInviteError
     admin = require_admin(request)
     if user_id == admin["user_id"] and not req.active:
         raise HTTPException(status_code=400, detail="不能停用当前管理员账号。")
-    if not set_user_status(user_id, req.active):
+    try:
+        ok = await asyncio.to_thread(
+            set_user_status, int(user_id), req.active,
+            actor_user_id=int(admin["user_id"]),
+            actor_token=request.cookies.get("citrus_auth", ""),
+            source_hash=_source_hash(request))
+    except AccountInviteError as exc:
+        return _account_error(exc)
+    if not ok:
         raise HTTPException(status_code=404, detail="用户不存在。")
     return {"status": "ok", "active": req.active}
 
