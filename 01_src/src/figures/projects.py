@@ -1094,7 +1094,7 @@ def data_files(owner: int) -> list[dict[str, Any]]:
     """The account's tables, for the workspace's "import from library" list."""
     from src.session import files as session_files
 
-    entries = session_files.list_account_files(int(owner), touch=False)
+    entries = session_files.list_account_files(int(owner))
     out: list[dict[str, Any]] = []
     for entry in entries:
         filename = str(entry.get("filename") or "")
@@ -1125,6 +1125,7 @@ def schema_for_file(owner: int, file_id: str) -> dict[str, Any]:
             Path(entry["path"]).read_bytes(), filename)
     except Exception as exc:  # noqa: BLE001
         raise ProjectError("data_unavailable", f"文件无法解析：{exc}") from exc
+    session_files.get_account_file(str(file_id), int(owner), touch=True)
     columns = []
     numeric = set(_numeric_columns(frame, [str(name) for name in list(frame.columns)]))
     for name in list(frame.columns):

@@ -76,6 +76,14 @@ _REASON_CLASS = {
     # A retained result that is gone (rotated, expired, other account) is a
     # missing source, not a product failure.
     "result_unavailable": "source_unavailable",
+    "result_access_denied": "scope_limited",
+    "result_read_range": "scope_limited",
+    "result_fields_invalid": "scope_limited",
+    "result_fields_unavailable": "scope_limited",
+    "result_page_too_large": "scope_limited",
+    "result_retention_truncated": "coverage_incomplete",
+    "result_storage_unavailable": "source_unavailable",
+    "result_integrity_failed": "source_unavailable",
     "scope_limited": "scope_limited",
     "coverage_incomplete": "coverage_incomplete",
     "audit_failed": "internal_error",

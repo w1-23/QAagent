@@ -16,6 +16,8 @@ import uuid
 from typing import Any
 
 SCHEMA_VERSION = "integrity-finding/1"
+METHOD_DECISIONS = frozenset({"registered", "rejected"})
+MAX_METHOD_EVIDENCE_BYTES = 256 * 1024
 STATES = frozenset({"pending", "needs_context", "explained", "confirmed_discrepancy", "dismissed"})
 _SHA = re.compile(r"[a-f0-9]{64}")
 MAX_REPORT_BYTES = 8 * 1024 * 1024
@@ -58,6 +60,20 @@ def _connect():
             review_id TEXT NOT NULL, finding_id TEXT NOT NULL, revision INTEGER NOT NULL,
             state TEXT NOT NULL, note TEXT NOT NULL, created_at TEXT NOT NULL,
             PRIMARY KEY(review_id,finding_id,revision));
+        CREATE TABLE IF NOT EXISTS custom_method_candidates (
+            candidate_id TEXT PRIMARY KEY, owner INTEGER NOT NULL,
+            session_id TEXT NOT NULL, method_id TEXT NOT NULL,
+            method_version TEXT NOT NULL, state TEXT NOT NULL,
+            evidence TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+        CREATE INDEX IF NOT EXISTS custom_method_candidates_owner
+            ON custom_method_candidates(owner,created_at);
+        CREATE UNIQUE INDEX IF NOT EXISTS custom_method_active
+            ON custom_method_candidates(owner,method_id,method_version)
+            WHERE state!='rejected';
+        CREATE TABLE IF NOT EXISTS custom_method_decisions (
+            candidate_id TEXT NOT NULL, revision INTEGER NOT NULL,
+            state TEXT NOT NULL, admin INTEGER NOT NULL, note TEXT NOT NULL,
+            created_at TEXT NOT NULL, PRIMARY KEY(candidate_id,revision));
     """)
     return conn
 
@@ -172,6 +188,107 @@ def decide(owner: int, review_id: str, finding_id: str, *, state: str,
     return receipt
 
 
+def record_method_candidate(owner: int, session_id: str, method_id: str,
+                            method_version: str, evidence: dict) -> dict:
+    """Store a retested method as a pending, owner-bound candidate."""
+    from src.session.manager import session_manager
+    from src.core.account_leases import account_lease
+    from src.core.cancel import raise_if_cancelled
+    if (type(owner) is not int or owner <= 0
+            or session_manager.get_session_owner(session_id) != owner):
+        raise ValueError("authorized session required")
+    if (not isinstance(method_id, str) or not method_id
+            or not isinstance(method_version, str) or not method_version
+            or not isinstance(evidence, dict) or not evidence
+            or evidence.get("method_id") != method_id
+            or evidence.get("method_version") != method_version):
+        raise ValueError("invalid method candidate evidence")
+    text = json.dumps(evidence, ensure_ascii=False, allow_nan=False)
+    if len(text.encode("utf-8")) > MAX_METHOD_EVIDENCE_BYTES:
+        raise ValueError("method candidate evidence exceeds limit")
+    cid, now = uuid.uuid4().hex, _now()
+    with account_lease(owner):
+        raise_if_cancelled("custom_method_candidate_publish")
+        try:
+            with closing(_connect()) as conn, conn:
+                conn.execute("INSERT INTO custom_method_candidates VALUES(?,?,?,?,?,?,?,?,?)",
+                             (cid, owner, session_id, method_id, method_version,
+                              "candidate", text, now, now))
+        except sqlite3.IntegrityError:
+            raise ReviewConflict("method candidate already exists") from None
+    return {"candidate_id": cid, "method_key": method_id + "@" + method_version,
+            "state": "candidate", "method_id": method_id,
+            "method_version": method_version, "created_at": now}
+
+
+def list_method_candidates(owner: int, *, admin: bool = False, limit: int = 50) -> list[dict]:
+    columns = "candidate_id,owner,session_id,method_id,method_version,state,created_at,updated_at"
+    with closing(_connect()) as conn:
+        if admin:
+            rows = conn.execute("SELECT " + columns + " FROM custom_method_candidates "
+                                "ORDER BY created_at DESC LIMIT ?", (min(max(limit, 1), 100),))
+        else:
+            rows = conn.execute("SELECT " + columns + " FROM custom_method_candidates "
+                                "WHERE owner=? ORDER BY created_at DESC LIMIT ?",
+                                (owner, min(max(limit, 1), 100)))
+        return [{**dict(row), "method_key": row["method_id"] + "@" + row["method_version"]}
+                for row in rows]
+
+
+def get_method_candidate(owner: int, candidate_id: str, *, admin: bool = False) -> dict | None:
+    with closing(_connect()) as conn:
+        row = conn.execute("SELECT * FROM custom_method_candidates WHERE candidate_id=?",
+                           (candidate_id,)).fetchone()
+        if not row or (not admin and row["owner"] != owner):
+            return None
+        decisions = conn.execute("SELECT * FROM custom_method_decisions WHERE candidate_id=? "
+                                 "ORDER BY revision", (candidate_id,)).fetchall()
+    history = [dict(decision) for decision in decisions]
+    return {"candidate_id": candidate_id, "owner": row["owner"],
+            "session_id": row["session_id"], "method_id": row["method_id"],
+            "method_version": row["method_version"],
+            "method_key": row["method_id"] + "@" + row["method_version"],
+            "state": row["state"], "evidence": json.loads(row["evidence"]),
+            "created_at": row["created_at"], "updated_at": row["updated_at"],
+            "review": history[-1] if history else {"state": "candidate", "revision": 0, "note": ""},
+            "review_history": history}
+
+
+def decide_method_candidate(admin_id: int, candidate_id: str, *, state: str,
+                            note: str, expected_revision: int) -> dict:
+    """Register or reject a pending method; only a verified admin may decide."""
+    from src.auth import require_admin, user_by_id
+    if not require_admin(user_by_id(admin_id)):
+        raise PermissionError("administrator_required")
+    if (state not in METHOD_DECISIONS or type(expected_revision) is not int
+            or expected_revision < 0 or not isinstance(note, str)
+            or len(note) > 4000 or not note.strip()):
+        raise ValueError("invalid method decision")
+    with closing(_connect()) as conn, conn:
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute("SELECT state FROM custom_method_candidates WHERE candidate_id=?",
+                           (candidate_id,)).fetchone()
+        if not row:
+            raise KeyError("method candidate unavailable")
+        if row["state"] != "candidate":
+            raise ReviewConflict("method candidate already decided")
+        current = conn.execute("SELECT COALESCE(MAX(revision),0) FROM custom_method_decisions "
+                               "WHERE candidate_id=?", (candidate_id,)).fetchone()[0]
+        if current != expected_revision:
+            raise ReviewConflict("method candidate changed; reload before saving")
+        receipt = {"state": state, "note": note.strip(), "revision": current + 1,
+                   "created_at": _now(), "admin": admin_id}
+        conn.execute("INSERT INTO custom_method_decisions VALUES(?,?,?,?,?,?)",
+                     (candidate_id, receipt["revision"], state, admin_id,
+                      receipt["note"], receipt["created_at"]))
+        updated = conn.execute("UPDATE custom_method_candidates SET state=?, updated_at=? "
+                               "WHERE candidate_id=? AND state='candidate'",
+                               (state, receipt["created_at"], candidate_id))
+        if updated.rowcount != 1:
+            raise ReviewConflict("method candidate changed; reload before saving")
+    return receipt
+
+
 def source_entry(owner: int, review_id: str, finding_id: str, side: int):
     """Authorize from persisted evidence, never from caller-supplied paths/IDs."""
     from src.session import files
@@ -197,3 +314,6 @@ def purge_account(owner: int) -> None:
         conn.execute("DELETE FROM integrity_decisions WHERE review_id IN "
                      "(SELECT review_id FROM integrity_reviews WHERE owner=?)", (owner,))
         conn.execute("DELETE FROM integrity_reviews WHERE owner=?", (owner,))
+        conn.execute("DELETE FROM custom_method_decisions WHERE candidate_id IN "
+                     "(SELECT candidate_id FROM custom_method_candidates WHERE owner=?)", (owner,))
+        conn.execute("DELETE FROM custom_method_candidates WHERE owner=?", (owner,))

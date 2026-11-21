@@ -2493,3 +2493,11 @@ html[data-reduce-motion="1"] :is(.ctx-drawer, .ctx-drawer-backdrop) { transition
 }
 .research-task-orbit i:first-child { --angle: 0deg; }
 @media (pointer: coarse) { .ctx-drawer-close { min-width: 44px; min-height: 44px; } }
+
+.shared-maintenance-notice {
+  margin: 0;
+  padding: .65rem 1rem;
+  font-size: .875rem;
+  line-height: 1.4;
+  border-bottom: 1px solid currentColor;
+}

@@ -894,9 +894,8 @@ def get_file(session_id: str, file_id: str, *, touch: bool = False,
     return public
 
 
-def list_account_files(owner_user_id: int, *, session_id: str = "",
-                       touch: bool = True) -> list[dict[str, Any]]:
-    """Return unexpired files in one account's library.
+def list_account_files(owner_user_id: int, *, session_id: str = "") -> list[dict[str, Any]]:
+    """List available account files without extending any file retention.
 
     ``session_id`` narrows the result to a single session.  The default is the
     whole account, which is what the file library page lists.  Filtering in SQL
@@ -934,15 +933,6 @@ def list_account_files(owner_user_id: int, *, session_id: str = "",
             conn.executemany(
                 "DELETE FROM session_files WHERE file_id=? AND owner_user_id=? AND " + _UNREFERENCED,
                 [(fid, uid) for fid in stale])
-    # Opening the library counts as use. Context assembly can inspect the
-    # catalog without extending retention on every chat turn.
-    if valid and touch:
-        now = time.time()
-        with _connect() as conn:
-            conn.executemany(
-                "UPDATE session_files SET last_accessed_at=? "
-                "WHERE file_id=? AND owner_user_id=?",
-                [(now, item["file_id"], uid) for item in valid])
     return valid
 
 

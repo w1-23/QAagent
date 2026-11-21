@@ -8,7 +8,8 @@
   'use strict';
 
   var MASK_ID = 'corpusReaderMask';
-  var state = { key: '', data: null, view: 'rendered', loading: false };
+  var state = { key: '', data: null, view: 'rendered', request: 0 };
+  var PAGE_CHARS = 12000;
 
   function esc(s) {
     return String(s == null ? '' : s)
@@ -45,6 +46,8 @@
         '<div class="cr-body" id="crBody" tabindex="0"></div>' +
         '<footer class="cr-foot" id="crFoot">' +
           '<div class="cr-actions">' +
+            '<button type="button" class="cr-btn" id="crPreviousBtn" hidden>上一页</button>' +
+            '<button type="button" class="cr-btn" id="crNextBtn" hidden>下一页</button>' +
             '<button type="button" class="cr-btn" id="crViewBtn" title="切换渲染/原始 Markdown">原始 Markdown</button>' +
             '<button type="button" class="cr-btn" id="crCopyBtn" title="复制原文">复制原文</button>' +
             '<button type="button" class="cr-close" id="crCloseBtn" aria-label="关闭">×</button>' +
@@ -63,6 +66,12 @@
       paint();
     });
     mask.querySelector('#crCopyBtn').addEventListener('click', copySource);
+    mask.querySelector('#crPreviousBtn').addEventListener('click', function () {
+      if (state.shared && state.data) loadSharedPage(state.shared, Math.max(0, state.data.start - PAGE_CHARS));
+    });
+    mask.querySelector('#crNextBtn').addEventListener('click', function () {
+      if (state.shared && state.data && state.data.next_start != null) loadSharedPage(state.shared, state.data.next_start);
+    });
     document.addEventListener('keydown', function (ev) {
       if (ev.key === 'Escape' && !mask.hasAttribute('hidden')) closeReader();
     });
@@ -76,6 +85,9 @@
   }
 
   function closeReader() {
+    state.request += 1;
+    state.shared = null;
+    state.data = null;
     var mask = document.getElementById(MASK_ID);
     if (mask) mask.setAttribute('hidden', '');
     document.body.classList.remove('corpus-reader-open');
@@ -112,8 +124,11 @@
     if (state.view !== 'raw' && state.focus) markFocus(state.focus);
     var footNote = document.getElementById('crFootNote');
     if (footNote) {
-      footNote.textContent = '来源：本地语料 ' + (d.corpus || '') +
-        '（只读，不修改原始语料）';
+      footNote.textContent = d.kind === 'stored_markdown'
+        ? '已保存 Markdown 全文 · ' + (d.title || '共享文献') + ' · 字符 ' + (d.start + 1) + '–' + d.end + ' / ' + d.total_chars
+        : '基于分块重建 · 本地语料 ' + (d.corpus || '');
+      document.getElementById('crPreviousBtn').hidden = !(state.shared && d.start > 0);
+      document.getElementById('crNextBtn').hidden = !(state.shared && d.next_start != null);
     }
   }
 
@@ -193,15 +208,13 @@
     if (status === 403) {
       return (payload && payload.message) || '该来源需要更高权限，当前账号无法查看。';
     }
+    if (payload && payload.detail && payload.detail.code === 'knowledge_base_updating') return payload.detail.message;
     if (payload && payload.message) return payload.message;
     if (status === 404) return '本地原文不可用。';
     return '读取原文失败（HTTP ' + status + '），请稍后重试。';
   }
 
-  function openCorpusSource(recordKey, opts) {
-    var key = String(recordKey || '').trim();
-    if (!key) return;
-    var focus = (opts && opts.focus) ? String(opts.focus) : '';
+  function openReader(key, focus) {
     var mask = ensureMask();
     mask.removeAttribute('hidden');
     document.body.classList.add('corpus-reader-open');
@@ -212,16 +225,45 @@
     state.focus = focus;
     document.getElementById('crFootNote').textContent = '';
     document.getElementById('crViewBtn').textContent = '原始 Markdown';
-    setStatus('正在读取本地原文…', 'info');
+    document.getElementById('crPreviousBtn').hidden = true;
+    document.getElementById('crNextBtn').hidden = true;
+  }
 
-    var url = '/api/v2/corpus/source?record=' + encodeURIComponent(key);
+  function openCorpusSource(recordKey, opts) {
+    var key = String(recordKey || '').trim();
+    if (!key) return;
+    state.shared = null;
+    openReader(key, (opts && opts.focus) ? String(opts.focus) : '');
+    loadSource('/api/v2/corpus/source?record=' + encodeURIComponent(key), 'local');
+  }
+
+  function loadSharedPage(ref, start) {
+    var params = new URLSearchParams({version_id: ref.version_id, index_generation: ref.index_generation,
+                                      md_sha256: ref.md_sha256, start: start, length: PAGE_CHARS});
+    loadSource('/api/v2/shared-corpus/documents/' + encodeURIComponent(ref.document_id) + '?' + params, 'shared');
+  }
+
+  function openSharedSource(ref) {
+    state.shared = ref;
+    openReader(ref.document_id, '');
+    loadSharedPage(ref, ref.start);
+  }
+
+  function loadSource(url, kind) {
+    var request = ++state.request;
+    state.data = null;
+    document.getElementById('crFootNote').textContent = '';
+    document.getElementById('crPreviousBtn').hidden = true;
+    document.getElementById('crNextBtn').hidden = true;
+    setStatus('正在读取本地原文…', 'info');
     fetch(url, { credentials: 'same-origin' })
       .then(function (r) {
         return r.json().catch(function () { return {}; })
           .then(function (payload) { return { ok: r.ok, status: r.status, payload: payload }; });
       })
       .then(function (res) {
-        if (!res.ok || !res.payload || res.payload.ok !== true) {
+        if (request !== state.request) return;
+        if (!res.ok || !res.payload || (kind === 'shared' ? res.payload.kind !== 'stored_markdown' : res.payload.ok !== true)) {
           setStatus(reasonText(res.payload, res.status), 'warn');
           return;
         }
@@ -229,7 +271,7 @@
         paint();
       })
       .catch(function () {
-        setStatus('读取原文失败：网络或服务异常，请稍后重试。', 'warn');
+        if (request === state.request) setStatus('读取原文失败：网络或服务异常，请稍后重试。', 'warn');
       });
   }
 
@@ -341,17 +383,19 @@
   function renderTurnSources(bubble, list) {
     var old = bubble.querySelector('.cr-turn-sources');
     if (old && old.parentNode) old.parentNode.removeChild(old);
-    var currentLocals = [], currentWebs = [], historyLocals = [], historyWebs = [];
+    var shared = [], currentLocals = [], currentWebs = [], historyLocals = [], historyWebs = [];
     for (var i = 0; i < (list || []).length; i++) {
       var item = list[i] || {};
       var historical = item.origin === 'history';
-      if (item.kind === 'web' && safeWebUrl(item.url)) {
+      if (item.kind === 'shared' && item.read_ref) {
+        shared.push(item);
+      } else if (item.kind === 'web' && safeWebUrl(item.url)) {
         (historical ? historyWebs : currentWebs).push(item);
       } else if (item.kind === 'local' && item.record_key) {
         (historical ? historyLocals : currentLocals).push(item);
       }
     }
-    if (!currentLocals.length && !currentWebs.length &&
+    if (!shared.length && !currentLocals.length && !currentWebs.length &&
         !historyLocals.length && !historyWebs.length) return false;
 
     var row = document.createElement('div');
@@ -394,6 +438,14 @@
       return a;
     }
 
+    group('共享文献', shared, function (item) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'cr-ts-chip';
+      button.textContent = item.title || '共享文献';
+      button.addEventListener('click', function () { openSharedSource(item.read_ref); });
+      return button;
+    });
     group('本轮本地来源', currentLocals, localChip);
     group('本轮网络来源', currentWebs, webChip);
     group('历史复用来源 · 本地', historyLocals, localChip);

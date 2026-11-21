@@ -20,14 +20,33 @@ _PAGE_HEADERS = {**_HEADERS, "Referrer-Policy": "same-origin",
     "Content-Security-Policy": "default-src 'none'; img-src 'self' blob:; style-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'self'; form-action 'none'"}
 
 
-def _owner(request: Request):
+def _user(request: Request):
     user = getattr(request.state, "user", None)
     if not user:
         from src.auth import user_for_token
         user = user_for_token(request.cookies.get("citrus_auth", ""))
     if not user:
         raise HTTPException(401, "请先登录。")
+    return user
+
+
+def _owner(request: Request):
+    return int(_user(request)["user_id"])
+
+
+def _admin(request: Request):
+    from src.auth import require_admin
+    user = _user(request)
+    if not require_admin(user):
+        raise HTTPException(403, "此操作仅管理员可用。")
     return int(user["user_id"])
+
+
+def _same_origin(request: Request):
+    from urllib.parse import urlsplit
+    origin = request.headers.get("origin", "")
+    if not origin or urlsplit(origin).netloc.lower() != request.headers.get("host", "").lower():
+        raise HTTPException(403, "需要同源请求。")
 
 
 @contextmanager
@@ -45,6 +64,22 @@ class Decision(BaseModel):
     note: str = Field(max_length=4000)
     expected_revision: int = Field(ge=0)
 
+
+class MethodProposal(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    method_id: str = Field(min_length=1, max_length=80)
+    method_version: str = Field(min_length=1, max_length=80)
+    session_id: str = Field(min_length=1, max_length=256)
+    output_path: str = Field(min_length=1, max_length=240)
+    execution_ids: list[str] = Field(min_length=2, max_length=8)
+    note: str = Field(default="", max_length=2000)
+
+
+class MethodDecision(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    state: str
+    note: str = Field(min_length=1, max_length=4000)
+    expected_revision: int = Field(ge=0)
 
 @router.get("/integrity-review")
 async def review_page(request: Request):
@@ -169,3 +204,95 @@ async def evidence_preview(review_id: str, finding_id: str, side: int, request: 
     with _lease(owner) as lease:
         content, mime = await run_account_thread(lease, _preview, owner, review_id, finding_id, side)
     return Response(content, media_type=mime, headers={**_HEADERS, "Content-Security-Policy": "default-src 'none'; sandbox"})
+
+
+@router.post("/api/v2/integrity/custom-methods")
+async def propose_method(body: MethodProposal, request: Request):
+    owner = _owner(request)
+    _same_origin(request)
+    if len(set(body.execution_ids)) != len(body.execution_ids):
+        raise HTTPException(400, "重复测试必须使用不同的执行记录。")
+    from src.research.custom_audit import verify_reusable_method
+
+    def propose():
+        evidence = verify_reusable_method(owner, body.session_id, body.method_id,
+                                          body.method_version, body.output_path,
+                                          body.execution_ids)
+        if body.note.strip():
+            evidence["note"] = body.note.strip()
+        return store.record_method_candidate(owner, body.session_id, body.method_id,
+                                             body.method_version, evidence)
+
+    try:
+        with _lease(owner) as lease:
+            return await run_account_thread(lease, propose)
+    except store.ReviewConflict as exc:
+        raise HTTPException(409, str(exc)) from None
+    except (LookupError, PermissionError):
+        raise HTTPException(404, "执行回执不可用或不属于该账号。") from None
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+
+
+@router.get("/api/v2/integrity/custom-methods")
+async def method_list(request: Request, scope: str = "mine"):
+    from src.auth import require_admin
+    user = _user(request)
+    if scope not in {"mine", "all"}:
+        raise HTTPException(400, "无效的列表范围。")
+    admin = require_admin(user)
+    if scope == "all" and not admin:
+        raise HTTPException(403, "此操作仅管理员可用。")
+    owner = int(user["user_id"])
+    with _lease(owner) as lease:
+        methods = await run_account_thread(lease, store.list_method_candidates,
+                                           owner, admin=scope == "all")
+    return JSONResponse({"methods": methods}, headers=_HEADERS)
+
+
+@router.get("/api/v2/integrity/custom-methods/{candidate_id}")
+async def method_detail(candidate_id: str, request: Request):
+    from src.auth import require_admin
+    user = _user(request)
+    admin = require_admin(user)
+    owner = int(user["user_id"])
+    with _lease(owner) as lease:
+        result = await run_account_thread(lease, store.get_method_candidate,
+                                          owner, candidate_id, admin=bool(admin))
+    if not result:
+        raise HTTPException(404, "自定义方法候审记录不可用。")
+    return Response(json.dumps(result, ensure_ascii=False, allow_nan=False),
+                    media_type="application/json", headers=_HEADERS)
+
+
+@router.put("/api/v2/integrity/custom-methods/{candidate_id}/review")
+async def method_review(candidate_id: str, body: MethodDecision, request: Request):
+    admin = _admin(request)
+    _same_origin(request)
+    from src.research.custom_audit import verify_reusable_method
+
+    def review():
+        if body.state == "registered":
+            candidate = store.get_method_candidate(admin, candidate_id, admin=True)
+            if not candidate:
+                raise KeyError("method candidate unavailable")
+            evidence = candidate["evidence"]
+            verify_reusable_method(candidate["owner"], candidate["session_id"],
+                                   candidate["method_id"], candidate["method_version"],
+                                   evidence["evidence"]["path"],
+                                   [run["execution_id"] for run in evidence["executions"]])
+        return store.decide_method_candidate(admin, candidate_id, state=body.state,
+                                             note=body.note,
+                                             expected_revision=body.expected_revision)
+
+    try:
+        with _lease(admin) as lease:
+            return await run_account_thread(lease, review)
+    except store.ReviewConflict as exc:
+        raise HTTPException(409, str(exc)) from None
+    except KeyError:
+        raise HTTPException(404, "自定义方法候审记录不可用。") from None
+    except PermissionError:
+        raise HTTPException(403, "此操作仅管理员可用。") from None
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None

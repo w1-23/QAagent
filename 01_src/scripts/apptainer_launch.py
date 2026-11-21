@@ -43,6 +43,14 @@ def lan_ingress(config, port):
                                   '--env', f'CITRUS_LAN_TOKEN_FILE={token_file}'])
 
 
+def release_identity(config):
+    source = Path(absolute(config['source_root']))
+    manifest = (source / 'LINUX-SOURCE-MANIFEST.json').read_bytes()
+    # Config contains paths and expected image hashes, never private file contents.
+    configuration = json.dumps(config, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
+    return hashlib.sha256(hashlib.sha256(manifest).digest() + configuration).hexdigest()
+
+
 def command(config, role):
     if role not in {'web', 'worker', 'prepare'}:
         raise ValueError('Unknown deployment role')
@@ -71,6 +79,13 @@ def command(config, role):
               'hostfs,cwd,home,bind-paths', '--pwd', source]
     # GPU exposure belongs to the trusted Web model runtime only. The ordinary
     # Code sandbox command never inherits this flag or these application binds.
+    if role in {'web', 'worker'}:
+        result += ['--env', 'CITRUS_WORKER_RELEASE=' + release_identity(config)]
+    if role == 'worker' and os.getenv('INVOCATION_ID'):
+        invocation = os.environ['INVOCATION_ID']
+        if not re.fullmatch('[a-f0-9]{32}', invocation) or invocation == '0' * 32:
+            raise ValueError('Invalid Worker systemd activation')
+        result += ['--env', 'CITRUS_WORKER_ACTIVATION=' + invocation]
     if role != 'worker':
         gpu_device = config.get('gpu_device', 0)
         if type(gpu_device) is not int or not 0 <= gpu_device < 128:
@@ -90,6 +105,16 @@ def command(config, role):
         binds += [(absolute(config['corpus_root']), 'ro'),
                   (absolute(config['model_cache_root']), 'rw')]
     if role == 'web':
+        shared_enabled = config.get('shared_literature_single_web', False)
+        if type(shared_enabled) is not bool:
+            raise ValueError('Invalid shared literature deployment mode')
+        if shared_enabled:
+            data = Path(absolute(config['corpus_root']))
+            for private_dir in (data / 'shared_agent_literature', data / '_review_queue'):
+                if not private_dir.is_dir() or private_dir.is_symlink():
+                    raise ValueError('Provide existing private shared literature and review queue directories')
+                binds.append((str(private_dir), 'rw'))
+            result += ['--env', 'CITRUS_SHARED_CORPUS=single-web']
         ingress_binds, ingress_env = lan_ingress(config, port)
         binds += ingress_binds
         result += ingress_env
@@ -158,8 +183,47 @@ def verify_image(path, expected):
         raise ValueError('SIF pin mismatch or image changed')
 
 
-def wait_for_worker(config, *, timeout=90):
-    """Wait for a heartbeat published after this Web startup began."""
+def worker_dependency_inventory(config):
+    # The App SIF may have an older libc than the host Apptainer binary.
+    # Run this offline probe before entering the App SIF.
+    source = Path(absolute(config['source_root']))
+    sys.dont_write_bytecode = True
+    sys.path.insert(0, str(source / '01_src'))
+    try:
+        from src.code_execution.apptainer import ApptainerConfig, OfflineApptainerBackend
+        backend = OfflineApptainerBackend(ApptainerConfig(
+            image_id='sha256:' + config['sandbox_sha256'],
+            staging_root=absolute(config['code_staging']),
+            sif_path=absolute(config['sandbox_sif']),
+            runtime=absolute(config.get('apptainer_path', '/usr/bin/apptainer')),
+            host_python=absolute(config['host_python']),
+        ))
+        return backend.base_dependency_versions()
+    except (OSError, RuntimeError, ValueError):
+        return {}
+    finally:
+        sys.path.pop(0)
+
+
+def _worker_activation(unit):
+    import subprocess
+    if not re.fullmatch(r'citrusscholar-worker@[a-zA-Z0-9_.-]+\.service', unit):
+        raise ValueError('Invalid Worker unit name')
+    try:
+        receipt = subprocess.run(['/usr/bin/systemctl', '--user', 'show', unit,
+            '--property=ActiveState', '--property=InvocationID'], capture_output=True,
+            text=True, timeout=3, check=True)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    fields = dict(line.split('=', 1) for line in receipt.stdout.splitlines() if '=' in line)
+    value = fields.get('InvocationID', '')
+    if fields.get('ActiveState') == 'active' and re.fullmatch('[a-f0-9]{32}', value) and value != '0' * 32:
+        return value
+    return None
+
+
+def wait_for_worker(config, *, worker_unit=None, timeout=90):
+    """Wait for a fresh heartbeat from this release and the active Worker unit."""
     import time
 
     source = Path(absolute(config['source_root']))
@@ -170,10 +234,13 @@ def wait_for_worker(config, *, timeout=90):
     finally:
         sys.path.pop(0)
     db = runtime / 'state' / 'code_executions.sqlite3'
+    release = release_identity(config)
     since = time.time()
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        if worker_available(db, since=since):
+        activation = _worker_activation(worker_unit) if worker_unit else None
+        if ((not worker_unit or activation) and worker_available(db, since=since, release=release, activation=activation)
+                and (not worker_unit or _worker_activation(worker_unit) == activation)):
             return
         time.sleep(0.5)
     raise SystemExit('No new offline Code Worker heartbeat for the configured runtime')
@@ -184,6 +251,7 @@ def main():
     parser.add_argument('--config', type=Path, required=True)
     parser.add_argument('--role', choices=('web', 'worker', 'prepare', 'wait-worker'), required=True)
     parser.add_argument('--print-command', action='store_true')
+    parser.add_argument('--worker-unit', help='Expected systemd Worker unit for the startup gate')
     args = parser.parse_args()
     if sys.platform != 'linux' or os.getuid() == 0:
         parser.error('Run as the unprivileged Linux service user')
@@ -191,8 +259,10 @@ def main():
     if args.role == 'wait-worker':
         if args.print_command:
             parser.error('wait-worker does not launch an Apptainer command')
-        wait_for_worker(config)
+        wait_for_worker(config, worker_unit=args.worker_unit)
         return
+    if args.worker_unit:
+        parser.error('--worker-unit applies only to wait-worker')
     argv = command(config, args.role)
     if args.print_command:
         print(json.dumps(argv))
@@ -211,6 +281,8 @@ def main():
            'GOMAXPROCS': str(threads), 'GOMEMLIMIT': '256MiB',
            'XDG_RUNTIME_DIR': f'/run/user/{os.getuid()}',
            'DBUS_SESSION_BUS_ADDRESS': f'unix:path=/run/user/{os.getuid()}/bus'}
+    if args.role == 'worker':
+        argv += ['--base-dependency-inventory', json.dumps(worker_dependency_inventory(config))]
     os.execve(argv[0], argv, env)
 
 

@@ -48,6 +48,8 @@ application.sif 实际安装 requirements-gpu.txt 与非 editable 支持 wheel�
 
 ## 隔离验收启动
 
+共享文献库由 `shared_literature_single_web` 控制。启用时预建同一 `corpus_root` 下服务账号拥有的私有 `shared_agent_literature/` 和 `_review_queue/`。Web 单独将这两个目录挂载为可写，基础语料根仍为只读。运行时只允许一个 Web 持有共享库锁，沿用受控 Worker。候审通过与全站索引更新分别核对。
+
 复制 deployment.example.json 到运行区，填写真实绝对路径和实际 SIF SHA-256，不填写任何密钥。该远程主机的示例包含三个镜像；namespace_sif 与 namespace_sha256 必须成对配置。其他已验证允许宿主 unshare 的 Linux 环境可同时省略两项。Worker 启动器验证 namespace SIF；宿主 bootstrap 在 exec 前再次验证，错误或变动即拒绝。Web 不挂载该控制镜像。example 的占位哈希故意不能启动。figure_staging 要求当前服务账号所有、0700；code_staging 使用较短路径，Unix control.sock 总路径长度受内核限制。运行目录不能是源码目录或来源配置目录。
 
 先新建隔离 runtime；仅复用授权的公共模型配置、语料、缓存，选择的模型 key 只由 Web 启动器在内存读取。不会复制账号/会话 DB，也不自动创建管理员。

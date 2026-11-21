@@ -29,6 +29,7 @@ ROUTE_LOCAL = "route_local"
 RESEARCH = "research"
 ARTIFACT = "artifact"
 VISUALIZATION = "visualization"
+SHARED_CORPUS = "shared_corpus"
 
 TOOL_METADATA: dict[str, ToolMetadata] = {
     "request_user_input": ToolMetadata("请你确认", capabilities=frozenset({"interaction"})),
@@ -90,6 +91,17 @@ TOOL_METADATA: dict[str, ToolMetadata] = {
         "生成科研图", "下载图件", frozenset({RESEARCH, ARTIFACT, VISUALIZATION})),
     "run_research_figure_script": ToolMetadata(
         "执行绘图脚本", "下载图件", frozenset({RESEARCH, ARTIFACT, VISUALIZATION})),
+    # Administrator-published shared literature. Visibility is gated by the
+    # shared corpus runtime; this capability stays out of route/completion
+    # groups so default behavior is unchanged.
+    "propose_document_ingest": ToolMetadata(
+        "申请收录文献", capabilities=frozenset({SHARED_CORPUS})),
+    "prepare_document": ToolMetadata(
+        "准备文献入库", capabilities=frozenset({SHARED_CORPUS})),
+    "commit_document_index": ToolMetadata(
+        "更新共享索引", capabilities=frozenset({SHARED_CORPUS})),
+    "search_agent_corpus": ToolMetadata(
+        "检索共享文献库", capabilities=frozenset({SHARED_CORPUS})),
 }
 
 
@@ -146,7 +158,7 @@ def capabilities(name: str) -> frozenset[str]:
 
 __all__ = [
     "ARTIFACT", "LITERATURE_RETRIEVAL", "LOCAL_CORPUS", "LOCAL_RETRIEVAL",
-    "NETWORK", "RESEARCH", "ROUTE_LOCAL", "ROUTE_WEB", "TOOL_METADATA",
+    "NETWORK", "RESEARCH", "ROUTE_LOCAL", "ROUTE_WEB", "SHARED_CORPUS", "TOOL_METADATA",
     "ToolMetadata", "VISUALIZATION", "WEB_RETRIEVAL", "artifact_link_labels",
     "capabilities", "capability_groups", "display_labels",
 ]

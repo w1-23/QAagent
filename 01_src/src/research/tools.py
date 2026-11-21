@@ -1217,18 +1217,26 @@ def _audit_file_ids(raw: str | list[str] = '') -> list[str]:
     return ids
 
 
-def _audit_source_tables(file_ids_json: str | list[str] = '') -> list[dict[str, Any]]:
-    """Resolve only explicit account IDs, or retain this turn's attachment list."""
+def _audit_source_tables(file_ids_json: str | list[str] = '', *,
+                         indexes: list[int] | None = None) -> list[dict[str, Any]]:
+    """Resolve selected account files without changing their original indexes."""
     ids = _audit_file_ids(file_ids_json)
     if not ids:
         return get_request_tables()
+    selected = range(len(ids)) if indexes is None else indexes
+    if any(index >= len(ids) for index in selected):
+        raise ToolArgumentError(f'file_indexes_json 超出账号文件列表的索引范围 0 至 {len(ids) - 1}；invalid_input')
+    tables = [{} for _ in ids]
+    if not selected:
+        return tables
     from src.session import files
     from src.core.cancel import raise_if_cancelled
     owner = int(get_user_id() or 0)
     if owner <= 0 or not get_session_id():
         raise _AuditSourceUnavailable('source_unavailable', '读取账号文件需要已认证账号与当前会话。')
-    tables, used = [], 0
-    for fid in ids:
+    used = 0
+    for index in selected:
+        fid = ids[index]
         raise_if_cancelled('audit_source_read')
         entry = files.get_account_file(fid, owner, touch=False)
         if not entry:
@@ -1249,10 +1257,11 @@ def _audit_source_tables(file_ids_json: str | list[str] = '') -> list[dict[str, 
             raise _AuditSourceUnavailable('source_size_limit', '实际文件超过单次20MB总读取上限；未执行扫描。')
         if len(data) != declared or hashlib.sha256(data).hexdigest() != expected:
             raise _AuditSourceUnavailable('source_changed', '实际文件大小或SHA-256与登记不一致；未执行扫描。')
+        files.get_account_file(fid, owner, touch=True)
         used += len(data)
         name = str(entry.get('filename') or 'table')
-        tables.append({'name': name, 'data': data, 'file_id': fid,
-            'source_ref': {'kind': 'account_file', 'file_id': fid, 'sha256': expected, 'filename': name}})
+        tables[index] = {'name': name, 'data': data, 'file_id': fid,
+                         'source_ref': {'kind': 'account_file', 'file_id': fid, 'sha256': expected, 'filename': name}}
     return tables
 
 
@@ -1532,7 +1541,7 @@ def inspect_uploaded_table(file_index: int = 0, sheet_name: str = "", header_row
                                 cell_range=cell_range, page_rows=page_rows, cursor=cursor)
     header_rows = _parse_header_rows(header_rows_json, header_row)
     try:
-        tables = _audit_source_tables(file_ids_json)
+        tables = _audit_source_tables(file_ids_json, indexes=[file_index])
     except _AuditSourceUnavailable as exc:
         return json.dumps(_audit_source_not_run(exc.reason_code, str(exc)), ensure_ascii=False)
     if not tables:
@@ -2224,7 +2233,7 @@ def validate_audit_request(*, checks_json: str | dict = "", publish: bool = Fals
     supported_checks = {'optional_fields', 'required_fields', 'ranges', 'relations', 'key_columns',
                         'groups', 'values', 'column_mapping', 'integer_data_confirmed', 'sd_kind',
                         'mean_decimals', 'sd_decimals', 'reported_summaries', 'composite_keys',
-                        'pattern_checks', 'expected_structure', 'selected_checks'}
+                        'pattern_checks', 'expected_structure', 'selected_checks', 'audit_plan', 'custom_findings'}
     if 'selected_checks' in checks:
         from citrus_audit.data_audit_rules import RULES
         selected = checks['selected_checks']
@@ -2287,14 +2296,40 @@ def validate_audit_request(*, checks_json: str | dict = "", publish: bool = Fals
         if (not isinstance(relation, dict) or not isinstance(relation.get('op', '<='), str)
                 or relation.get('op', '<=') not in {'<', '<=', '>', '>=', '=='}):
             raise ToolArgumentError('invalid_operator_config: supported operators are < <= > >= ==; invalid_input')
-    _audit_file_ids(file_ids_json)
-    indexes = _json_arg(file_indexes_json, list, [], shape="非负整数数组")
-    if any(type(index) is not int or index < 0 for index in indexes):
-        raise ToolArgumentError('file_indexes_json 必须为非负整数数组；invalid_input')
+    ids = _audit_file_ids(file_ids_json)
+    indexes = _json_arg(file_indexes_json, list, None, shape="非负整数数组")
+    if indexes is not None:
+        if any(type(index) is not int or index < 0 for index in indexes):
+            raise ToolArgumentError('file_indexes_json 必须为非负整数数组；invalid_input')
+        indexes = list(dict.fromkeys(indexes))
+        if ids and any(index >= len(ids) for index in indexes):
+            raise ToolArgumentError(f'file_indexes_json 超出账号文件列表的索引范围 0 至 {len(ids) - 1}；invalid_input')
     summaries = checks.get('reported_summaries', [])
     if not isinstance(summaries, list) or len(summaries) > 50:
         raise ToolArgumentError('reported_summaries 必须为最多50个明确映射；invalid_input')
-    return {'checks': checks, 'formats': formats, 'header_rows': header_rows}
+    plan = None
+    if 'audit_plan' in checks:
+        from citrus_audit.plan import QUALITY_DEFAULT, parse_plan
+        checks = dict(checks)
+        try:
+            plan = parse_plan(checks.pop('audit_plan'))
+        except (TypeError, ValueError) as exc:
+            raise ToolArgumentError(f'{exc}；invalid_input') from None
+        if plan['mode'] == 'experimental_quality':
+            checks.setdefault('selected_checks', list(QUALITY_DEFAULT))
+            if set(checks['selected_checks']) - set(QUALITY_DEFAULT):
+                raise ToolArgumentError('实验质量模式不运行复用和整数一致性规则；请显式选择研究完整性模式。')
+    custom = None
+    if 'custom_findings' in checks:
+        from src.research.custom_audit import validate_reference
+        if plan is None or plan['mode'] != 'research_integrity':
+            raise ToolArgumentError('自定义检测要求显式 research_integrity 审计计划。')
+        try:
+            custom = validate_reference(checks['custom_findings'])
+        except (TypeError, ValueError) as exc:
+            raise ToolArgumentError('custom_findings 需要 Code Worker 的 execution_id 和已声明的 JSON 输出。') from exc
+    return {'checks': checks, 'formats': formats, 'header_rows': header_rows, 'plan': plan,
+            'file_ids': ids, 'file_indexes': indexes, 'custom_findings': custom}
 
 
 @tool(response_format="content_and_artifact")
@@ -2351,6 +2386,12 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
     原始尾数只对共享解析器保存词法精度的文本数值执行；数值型Excel不能恢复原始末位。
     expected_structure 显式给 factors、unit_column、可选 replicate_column、expected_cells：
     [{"treatment":"control","expected_units":3,"expected_replicates":2}]，不推测实验语义。
+    checks_json.audit_plan 使用 schema="audit-plan/1"，mode 是 experimental_quality 或 research_integrity。
+    完整性模式的 comparisons 支持 sample_alignment（真实 key_columns）、finite_rectangle（原表 rows/columns）、
+    window_search（两侧明确的 rectangles，每个包含原表 rows/columns，及 window={rows,columns}、可选 max_windows/max_pairs/seed）。
+    每个比较都要绑定来源 file_index/sheet、已知 units，异单位给 right_factor_to_left，并可指定绝对/相对容差。
+    自定义检测在完整性模式传 checks_json.custom_findings={execution_id,path}，path 是已接纳的 /outputs/*.json，
+    内容按 data-audit Skill 的 custom-audit-finding/1 格式。宿主验签、核对坐标，再列为人工复核线索。
     """
     def summarize_findings(targets, digest):
         # Marked-cell counts belong to workbook rendering, not computation.
@@ -2368,17 +2409,15 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
         file_ids_json=file_ids_json)
     formats = validated['formats']
     publish_xlsx = 'xlsx' in formats
+    requested = validated['file_indexes']
     try:
-        tables = _audit_source_tables(file_ids_json)
+        tables = _audit_source_tables(validated['file_ids'], indexes=requested)
     except _AuditSourceUnavailable as exc:
         artifact = _audit_source_not_run(exc.reason_code, str(exc))
         artifact['audit_results'] = []
         return json.dumps(artifact, ensure_ascii=False), artifact
-    requested = _json_arg(file_indexes_json, list, list(range(len(tables))),
-                          shape="整数数组 [0,1]，序号从 0 开始")
-    if any(type(index) is not int for index in requested):
-        raise ValueError("file_indexes_json 必须是整数数组")
-    requested = list(dict.fromkeys(requested))
+    if requested is None:
+        requested = list(range(len(tables)))
     if not requested:
         text = "未执行审查：没有选中的本轮附件或显式账号文件引用；请用file_ids_json提供真实文件ID，或附上文件。"
         artifact = _audit_source_not_run('no_selected_attachment', text)
@@ -2389,11 +2428,18 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
         annotations_json, (list, dict), [], shape=_ANNOTATION_SHAPE), errors=annotation_errors)
     # Invalid annotations remain separate errors; they do not suppress scanning.
     checks, header_rows = validated['checks'], validated['header_rows']
-    cross_enabled = len(requested) >= 2
+    plan = validated['plan']
+    cross_enabled = len(requested) >= 2 and (plan is None or bool(plan['cross_file_methods']))
+    bound_checks = bool(plan and plan['comparisons'])
+    bound_tables = {}
+    bound_results = []
+    custom_reference = validated['custom_findings']
+    custom_tables = {}
+    custom_receipt = {"status": "not_requested"}
     summary_bindings = checks.get("reported_summaries") or []
     if not isinstance(summary_bindings, list) or len(summary_bindings) > 50:
         raise ValueError("reported_summaries 必须为最多50个明确的原始数据/报告单元格映射")
-    snapshots_enabled = cross_enabled or bool(summary_bindings)
+    snapshots_enabled = cross_enabled or bool(summary_bindings) or bound_checks or bool(custom_reference)
     common_findings: list[dict[str, Any]] = []
     # Private persisted evidence; never place source tables in the model's
     # observation. The repository enforces its existing bounded report limit.
@@ -2401,7 +2447,8 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
     common_omitted = 0
     cross_summary: dict[str, Any] = {
         "status": "not_run",
-        "reason_code": "fewer_than_two_attachments" if len(requested) < 2 else "no_successful_table_outputs",
+        "reason_code": ("not_requested" if plan and not plan["cross_file_methods"] else
+                        "fewer_than_two_attachments" if len(requested) < 2 else "no_successful_table_outputs"),
         "selected_attachment_count": len(requested),
     }
     cross_tables: list[Any] = []
@@ -2518,6 +2565,16 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                             max_rows=cross_limits["max_rows_per_table"],
                             max_columns=cross_limits["max_columns_per_table"],
                             max_cells=cross_limits["max_cells"])
+                        if bound_checks:
+                            from citrus_audit.plan import key_columns
+                            keysets = {tuple(side['key_columns']) for comparison in plan['comparisons']
+                                       if comparison['method'] == 'sample_alignment'
+                                       for side in (comparison['left'], comparison['right'])
+                                       if side['file_index'] == index and side['sheet'] == snapshot.sheet}
+                            bound_tables[index, snapshot.sheet] = (snapshot, {
+                                keys: key_columns(frame.iloc[:nrows, :ncols], keys) for keys in keysets})
+                        if custom_reference and item.get("file_id"):
+                            custom_tables[source_file_id, snapshot.sheet] = snapshot
                         cross_tables.append(snapshot)
                         cross_source_indexes.add(index)
                         used_cells = nrows * ncols
@@ -2761,7 +2818,8 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                 from src.research.integrity import IntegrityConfig, audit_numeric_reuse
                 cross_report = audit_numeric_reuse(cross_tables, config=IntegrityConfig(
                     max_column_pairs=600, max_block_windows=4000,
-                    max_block_candidates=200, max_findings=20))
+                    max_block_candidates=200, max_findings=20,
+                    **({"selected_methods": tuple(plan["cross_file_methods"])} if plan else {})))
                 common_findings.extend(cross_report.get("common_findings", []))
                 input_coverage = {
                     "selected_attachment_indexes": requested,
@@ -2837,6 +2895,48 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
         summary_consistency = compare_reported_summaries(cross_tables, summary_bindings)
         summary_consistency["status"] = ("complete" if summary_consistency["coverage"]["completed_bindings"] == len(summary_bindings) else "partial")
         common_findings.extend(summary_consistency.get("common_findings", []))
+    if bound_checks:
+        from citrus_audit.plan import compare_bound
+        from src.research.integrity_review import finding
+        bound_results = compare_bound(plan, bound_tables)
+        signals = {'sample_alignment': 'cells_differing', 'finite_rectangle': 'finite_rectangle_match',
+                   'window_search': 'window_search_match'}
+        for bound in bound_results:
+            evidence = bound.get('evidence', {})
+            if evidence.get(signals[bound['method']]):
+                common_findings.append(finding(rule=bound['method'], version=bound['method_version'],
+                    locations=bound['locations'], evidence={**evidence, 'binding': bound['binding']},
+                    coverage=bound['coverage'], applicability=['explicit_source_bindings'],
+                    counterexamples=['共享对照、合法重复、不同处理口径'], summary='仅供人工复核。'))
+    if custom_reference:
+        from src.core.cancel import raise_if_cancelled
+        from src.research.custom_audit import admit
+        raise_if_cancelled("custom_audit_admission")
+        try:
+            custom_findings, custom_receipt = admit(custom_reference, custom_tables)
+            common_findings.extend(custom_findings)
+        except (ValueError, LookupError, PermissionError, OSError, RecursionError):
+            custom_receipt = {"status": "not_run", "reason": "custom_audit_evidence_not_admitted"}
+    plan_receipt = None
+    if plan is not None:
+        plan_receipt = {**plan,
+            "file_refs": [{"file_index": index, "file_id": tables[index].get("file_id"),
+                           "sha256": hashlib.sha256(tables[index]["data"]).hexdigest()}
+                          for index in requested],
+            "sheet_ranges": [{"file": result["file"], "tables": result.get("table_metadata", []),
+                              "skipped": result.get("skipped", []), "reason": result.get("reason_code")}
+                             for result in results],
+            "columns": checks.get("values", []), "grouping": checks.get("groups", []),
+            "experimental_unit": (checks.get("expected_structure", {}).get("unit_column")
+                                  or checks.get("column_mapping", {}).get("experimental_unit")),
+            "units": [binding["units"] for binding in plan["comparisons"]],
+            "selected_checks": checks.get("selected_checks"),
+            "parameter_sources": {"comparison_parameters": plan["parameter_source"],
+                                  "source_selection": "explicit_account_files" if validated['file_ids'] else "turn_attachments"},
+            "consent": {"scope": "authorized_sources_for_this_audit", "share_sources": False},
+            "budgets": {"max_account_source_bytes": _AUDIT_SOURCE_MAX_BYTES, **cross_limits},
+            "execution": [{"file": row["file"], "methods": row.get("rule_execution", [])} for row in results],
+        }
     review_receipt = {"status": "unavailable", "reason": "authenticated_session_required"}
     if int(get_user_id() or 0) > 0 and get_session_id():
         try:
@@ -2849,6 +2949,8 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
             review_report = {"common_findings": common_findings,
                              "source_envelopes": review_envelopes,
                              "table_results": results, "cross_file_report": cross_report,
+                             "audit_plan": plan_receipt, "bound_comparisons": bound_results,
+                             "custom_findings": custom_receipt,
                              "summary_consistency": summary_consistency,
                              "coverage": {"findings_omitted": common_omitted, "cross_file": cross_summary.get("status"),
                                           "summary_consistency": summary_consistency.get("coverage", {}),
@@ -2937,6 +3039,12 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
         partial_reasons.append("人工复核记录未持久保存")
     if summary_consistency["status"] == "partial":
         partial_reasons.append("部分报告汇总缺少可核对的证据或口径")
+    if custom_reference and custom_receipt["status"] != "complete":
+        partial_reasons.append("自定义检测的受信回执、原表坐标或覆盖未完整通过核验")
+    if any(result["status"] != "complete" for result in bound_results):
+        partial_reasons.append("部分指定样本对齐或矩形未完整比较")
+    if plan and plan["cross_file_methods"] and not cross_enabled:
+        partial_reasons.append("跨文件比较至少需要两个明确文件")
     if cross_enabled and cross_summary["status"] != "complete":
         partial_reasons.append("跨文件数值审查或独立报告未完整完成")
     if failed_items:
@@ -2989,6 +3097,8 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
             "artifacts": artifact_links,
         },
         "audit_status": status,
+        "audit_plan": plan_receipt,
+        "bound_comparisons": [{k: v for k, v in row.items() if k not in {"locations", "binding"}} for row in bound_results],
         "reason_code": reason_code,
         "coverage_summary": coverage_text,
         "results": results,
@@ -3000,6 +3110,7 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
         "publication_errors": publication_errors,
         "integrity_review": review_receipt,
         "summary_consistency": summary_consistency,
+        "custom_findings": custom_receipt,
         "common_finding_count": len(common_findings),
         "common_findings_omitted": common_omitted,
     }

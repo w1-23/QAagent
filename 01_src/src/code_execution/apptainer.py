@@ -202,6 +202,28 @@ class OfflineApptainerBackend:
                 if stat.S_ISLNK(info.st_mode) or info.st_mode & 0o022:
                     raise OCIError("trusted_apptainer_launcher_required")
 
+    def base_dependency_versions(self):
+        """Read the installed inventory from the pinned sandbox without user inputs."""
+        self._validate_host_image()
+        result = self._run([self.config.runtime, "exec", "--userns", "--containall", "--cleanenv",
+            "--no-home", "--no-mount", "hostfs,cwd,home,bind-paths,sys", "--net", "--network", "none",
+            "--no-privs", "--drop-caps", "ALL", "--cwd", "/", self.config.sif_path,
+            self.config.python_path, "-I", "-c",
+            "import pathlib, platform, sys; print('python==' + platform.python_version(), flush=True); "
+            "sys.stdout.buffer.write(pathlib.Path('/opt/citrusfig/installed-requirements.txt').read_bytes())"],
+            max_bytes=32768)
+        if result.returncode != 0 or result.truncated or result.uncertain:
+            raise OCIError("code_dependency_inventory_unavailable")
+        versions = {}
+        for line in result.stdout.decode("utf-8").splitlines():
+            name, sep, version = line.partition("==")
+            if sep and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,99}", name) and re.fullmatch(
+                    r"[0-9][A-Za-z0-9.+!_-]{0,99}", version):
+                versions[re.sub(r"[-_.]+", "-", name).lower()] = version
+        if "python" not in versions or len(versions) > 256:
+            raise OCIError("code_dependency_inventory_invalid")
+        return versions
+
     def prepare(self, request, *, execution_id, fence, input_root):
         self._validate_host_image()
         # OCI prepare is passive: exact snapshot validation and trusted overlay
@@ -482,16 +504,14 @@ class OfflineApptainerBackend:
         unit = self._unit(handle)
         if not unit or unit.get("InvocationID") != status.identity["invocation"]:
             return ApptainerStatus("unknown")
-        result = self._run(["/usr/bin/systemctl", "--user", "kill", "--kill-whom=all", "--signal=KILL", handle.name])
-        if result.uncertain or result.truncated or result.returncode != 0:
-            return self.inspect(handle, read_summary=False)
+        self._run(["/usr/bin/systemctl", "--user", "kill", "--kill-whom=all", "--signal=KILL", handle.name])
         deadline = time.monotonic() + self.config.control_timeout_sec
         while time.monotonic() < deadline:
             observed = self.inspect(handle, read_summary=False)
-            # SIGKILL reaping can briefly leave systemd state unconfirmed.
-            # Continue bounded observation; stopped still requires the exact
-            # invocation and an empty original cgroup, never just CLI success.
-            if observed.stopped:
+            # systemd can report an auxiliary-process error after signalling
+            # the cgroup. Wait for proof that this invocation and its cgroup
+            # stopped regardless of the signal command's exit status.
+            if observed.stopped and observed.identity == status.identity:
                 return observed
             time.sleep(0.05)
         return ApptainerStatus("unknown", identity=status.identity)

@@ -39,7 +39,9 @@ async def general_agent_node(state: dict) -> dict:
     state["job_id"] = identity.run_id
     ledger = ExecutionLedger(session_id=identity.session_id, request_id=identity.user_turn_id)
     ledger_token = bind_execution_ledger(ledger)
-    epoch_token = _epoch.set(ContextEpoch(history_load_status=str(state.get("history_load_status") or "unknown")))
+    epoch_token = _epoch.set(ContextEpoch(
+        history_load_status=str(state.get("history_load_status") or "unknown"),
+        history_load_reason=str(state.get("history_load_reason") or "")))
     question_token = bind_question_context({})
     # Scientific task scope is loaded only if its capability is actually used.
     output = None
@@ -628,7 +630,7 @@ def _settled_trace(messages, host, result):
 
 async def _finish(state, identity, ledger, host, result, trace_start, started, *, final_review=None):
     from src.core import figures, task_events
-    from src.core.progress_bus import emit_answer_start, emit_text
+    from src.core.progress_bus import emit_answer_start, emit_encoded, emit_text
     from src.core.task_result import build_task_result
     from src.core.turn_outcome import TurnOutcome, completion_digest, reviewed_completion_valid
     from src.graph.agent_operations import _safe_persisted_trace, _sanitize_answer_artifact_links
@@ -699,6 +701,18 @@ async def _finish(state, identity, ledger, host, result, trace_start, started, *
             answer += "\n\n实际操作：" + "、".join(f"{labels.get(key, key)} {value} 项" for key, value in counts.items()) + "。"
         answer += f"\n\n停止原因：`{result.reason}`。"
         status = "partial" if host.messages else "failed"
+    budget_blocked = result.reason == "context_budget_exhausted:tool_observations"
+    if budget_blocked:
+        from src.core.tool_result_view import last_readback_range
+        notice = {"stage": "model_admission", "status": "budget_blocked", "reason_code": result.reason,
+                  "message": "工具证据超出本轮上下文预算。请只读取所需字段，或用较短的一页继续。"}
+        page = last_readback_range(list(host.messages.values()))
+        if page:
+            notice["last_readback_page"] = page
+            if page["offset_basis"] == "stored_text":
+                answer += (f"\n\n可沿用最近一次回执的引用，从第 {page['retry']['start_char']} 个字符起"
+                           f"读取最多 {page['retry']['max_chars']} 个字符。")
+        emit_encoded("context_degraded", notice)
     if result.status != "complete" and status in {"partial", "failed", "cancelled"}:
         from src.session.files import list_turn_files, get_account_file, _sha256_file
         links = []
@@ -714,11 +728,12 @@ async def _finish(state, identity, ledger, host, result, trace_start, started, *
             answer += "\n\n已生成并核对文件完整性的产物（不表示整项任务已完成）：\n" + "\n".join(links)
     ledger.close(status="unknown" if uncertain else
                  "cancelled" if status == "cancelled" else "failed", reason_code=result.reason)
-    outcome = TurnOutcome(**reviewed) if result.status == "complete" else TurnOutcome(status, result.reason, result.reason)
+    reason_code = "budget_blocked" if budget_blocked else result.reason
+    outcome = TurnOutcome(**reviewed) if result.status == "complete" else TurnOutcome(status, reason_code, result.reason)
     task_result = build_task_result(host.records, requested_status=status, turn_outcome=outcome)
     # Even stopped paths use the same conservative task decision as the API.
     if task_result.status != outcome.status and outcome.status not in {"cancelled", "awaiting_input"}:
-        outcome = TurnOutcome(task_result.status, "execution_incomplete", result.reason)
+        outcome = TurnOutcome(task_result.status, reason_code if budget_blocked else "execution_incomplete", result.reason)
         task_result = build_task_result(host.records, requested_status=outcome.status, turn_outcome=outcome)
     task_events.release_finalization(identity.run_id)
     emit_answer_start()

@@ -229,10 +229,40 @@ def sources_for_request(session_id: str, request_id: str,
     return merged
 
 
+def _shared_sources(session_id: str, request_id: str, *, limit: int) -> list[dict]:
+    from src.shared_corpus.references import read_reference, source_rows
+    from src.shared_corpus.runtime import current_runtime
+
+    runtime = current_runtime()
+    if runtime is None or not runtime.generation or runtime.unavailable:
+        return []
+    seen = set()
+    sources = []
+    for stored in tool_results.fetch_by_request(session_id, request_id):
+        rows = source_rows(stored.get("tool_name"), stored.get("result_text") or "")
+        if not rows or not tool_results.storage_integrity(stored)["complete"]:
+            continue
+        for row in rows:
+            ref = read_reference(row)
+            if not ref:
+                continue
+            key = (ref["document_id"], ref["version_id"], ref["index_generation"])
+            if key in seen or not runtime.reference_visible(ref):
+                continue
+            sources.append({"kind": "shared", "origin": "current", "read_ref": ref,
+                            "title": turn_source_ledger.safe_text(row.get("title"), 200)})
+            seen.add(key)
+            if len(sources) >= limit:
+                return sources
+    return sources
+
+
 def sources_payload(session_id: str, request_id: str,
                     limit: int = MAX_SOURCES) -> dict[str, Any]:
     """Compatibility payload with an explicit current/history/mixed status."""
-    sources = sources_for_request(session_id, request_id, limit=limit)
+    cap = max(1, min(int(limit or MAX_SOURCES), MAX_SOURCES))
+    shared = _shared_sources(session_id, request_id, limit=min(4, cap))
+    sources = (shared + sources_for_request(session_id, request_id, limit=cap))[:cap]
     origins = {str(item.get("origin") or "current") for item in sources}
     if origins == {"current"}:
         status = "current"

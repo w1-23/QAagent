@@ -36,6 +36,7 @@ def reuse_existing(port, distribution, image, record_path):
         process = psutil.Process(record["pid"])
         if (abs(process.create_time() - record["created"]) > 0.01
                 or Path(process.exe()).resolve() != Path(sys.executable).resolve()
+                or record["profile"] != PROFILE or Path(record["workspace"]).resolve() != ROOT.resolve()
                 or record["distribution"] != distribution or record["image"] != image):
             return False
         owners = {item.pid for item in psutil.net_connections(kind="tcp")
@@ -45,22 +46,16 @@ def reuse_existing(port, distribution, image, record_path):
         opener = build_opener(ProxyHandler({}))
         with opener.open(f"http://127.0.0.1:{port}/ready", timeout=3) as response:
             ready = json.load(response)
-        identity = ready.get("local_runtime") or {}
-        matches = bool(ready.get("ready") and ready.get("status") == "ready"
-                       and ready.get("worker", {}).get("verified")
-                       and identity.get("profile") == PROFILE
-                       and identity.get("instance_id") == record["instance_id"]
-                       and identity.get("pid") == process.pid
-                       and identity.get("workspace_id") == hashlib.sha256(
-                           os.path.normcase(str(ROOT.resolve())).encode("utf-8")).hexdigest())
-        if not matches:
+        # Identity is checked against the local launcher record and socket
+        # owner above. Anonymous readiness exposes no process metadata.
+        if ready != {"ready": True}:
             return False
         # A cached HTTP receipt alone cannot prove an idle Docker daemon is
         # still running. Recheck/restart it without launching probe containers.
         from src.figures.wsl_docker import WslDockerBackend
         runner = WslDockerBackend(image=image, distribution=distribution)
         prepare_docker(runner)
-        return hashlib.sha256(str(runner.image_id).encode()).hexdigest() == ready["worker"].get("image_fingerprint")
+        return hashlib.sha256(str(runner.image_id).encode()).hexdigest() == record["image_fingerprint"]
     except (OSError, ValueError, KeyError, psutil.Error):
         return False
 
@@ -179,7 +174,8 @@ def main(argv=None):
         import psutil
         instance = os.environ["CITRUS_LOCAL_INSTANCE_ID"]
         record = dict(pid=os.getpid(), created=psutil.Process().create_time(), instance_id=instance,
-                      workspace=str(ROOT), distribution=args.distribution, image=args.image, profile=PROFILE)
+                      workspace=str(ROOT), distribution=args.distribution, image=args.image, profile=PROFILE,
+                      image_fingerprint=hashlib.sha256(str(runner.image_id).encode()).hexdigest())
         temporary = record_path.with_suffix(".json.tmp")
         temporary.write_text(json.dumps(record), encoding="utf-8")
         temporary.replace(record_path)

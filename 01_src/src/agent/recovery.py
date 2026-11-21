@@ -23,7 +23,7 @@ _REQUEST_FIELDS = frozenset({
     "agent_no_prefetch_hints", "parent_job_id", "question_answer", "continuation_context",
     "no_replay", "script_budget_scope", "context_working_state", "history_summary",
     "long_term_memory", "resident_cards", "user_preferences", "account_files",
-    "history_evidence_block", "history_load_status", "history_load_error", "format_hint",
+    "history_evidence_block", "history_load_status", "history_load_reason", "history_load_error", "format_hint",
     "candidate_pool", "candidate_pool_notice", "request_plan", "task_contract",
 })
 

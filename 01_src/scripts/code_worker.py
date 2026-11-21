@@ -29,12 +29,19 @@ def main():
     parser.add_argument("--worker-id", default="code-worker-1")
     parser.add_argument("--development-oci", action="store_true", required=True,
                         help="Explicit offline development boundary; not public-user admission")
+    parser.add_argument("--base-dependency-inventory", type=json.loads,
+                        help="Verified base dependency versions from the trusted host launcher")
     parser.add_argument("--once", action="store_true")
     parser.add_argument("--hard-storage-root", type=Path)
     parser.add_argument("--hard-storage-limit-bytes", type=int)
     args = parser.parse_args()
     if bool(args.namespace_sif_path) != bool(args.namespace_sif_sha256):
         parser.error("namespace SIF path and SHA-256 must be supplied together")
+    inventory = args.base_dependency_inventory
+    if inventory is not None and (args.backend != "apptainer" or type(inventory) is not dict
+                                  or len(inventory) > 256 or inventory and "python" not in inventory
+                                  or any(type(version) is not str or not version for version in inventory.values())):
+        parser.error("Invalid Apptainer base dependency inventory")
     if args.namespace_sif_path and args.backend != "apptainer":
         parser.error("namespace SIF requires the Apptainer backend")
     if (args.hard_storage_root is None) != (args.hard_storage_limit_bytes is None):
@@ -66,6 +73,7 @@ def main():
     def load_environment(request):
         workspace = TaskWorkspaceService(request.identity.owner_user_id, request.identity.session_id)
         return EnvironmentStore(workspace).read_overlay(request)
+    base_dependency_versions = None
     if args.backend == "apptainer":
         from src.code_execution.apptainer import ApptainerConfig, OfflineApptainerBackend
         backend = OfflineApptainerBackend(ApptainerConfig(image_id=args.image_id,
@@ -74,11 +82,20 @@ def main():
             namespace_sif_sha256=args.namespace_sif_sha256,
             **({"service_path": args.service_path} if args.service_path else {})),
             environment_loader=load_environment)
+        base_dependency_versions = inventory
+        if base_dependency_versions is None:
+            try:
+                base_dependency_versions = backend.base_dependency_versions()
+            except (OSError, RuntimeError, ValueError):
+                pass
+        if not base_dependency_versions:
+            print("Code Worker dependency inventory unavailable", file=sys.stderr)
     else:
         backend = OfflineOCIBackend(OCIConfig(image_id=args.image_id,
             staging_root=str(args.staging_root), mode=args.backend), environment_loader=load_environment)
     queue = ExecutionRepository(args.runtime_root / "state" / "code_executions.sqlite3")
-    worker = ExecutionController(queue, backend, staging_root=args.staging_root, worker_id=args.worker_id)
+    worker = ExecutionController(queue, backend, staging_root=args.staging_root, worker_id=args.worker_id,
+                                 base_dependency_versions=base_dependency_versions)
     cleanup = ExecutionCleanup(queue, backend, staging_root=args.staging_root)
     # A heartbeat is an availability hint only. Queue fences, actual container
     # receipts and protected Host checkpoints remain the execution authorities.

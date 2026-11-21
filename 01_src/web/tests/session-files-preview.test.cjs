@@ -326,7 +326,8 @@ test('library item exposes explicit Preview, a Reference pill and a secondary me
 
   const retention = b.get('sessionFilesRetention').textContent;
   assert.match(retention, /连续 14 天/);
-  assert.match(retention, /重新计时/);
+  assert.match(retention, /浏览资料库不会续期/);
+  assert.match(retention, /只刷新所用文件的保留期限/);
   assert.doesNotMatch(retention, /保留 30 天/);
 
   await b.context.showSessionFileInfo(uploaded.file_id);

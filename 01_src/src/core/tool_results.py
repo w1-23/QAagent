@@ -296,23 +296,30 @@ def storage_integrity(row: dict) -> dict:
     }
 
 
-def fetch_for_current_request(tool_call_id: str) -> dict | None:
+def fetch_for_current_request(tool_call_id: str, *, strict: bool = False) -> dict | None:
     """Owner + session scoped read, using authenticated server context only.
 
     Like account-file reads, the model selects an opaque ID, never an owner.
     Missing auth, wrong owner/session and absent/rotated results all return None.
-    ``fetch`` below remains an internal API for existing authenticated routes.
+    Strict readback distinguishes a rejected current scope or storage error.
+    Missing IDs and IDs elsewhere in an authorized scope remain indistinguishable.
     """
     from src.core.tracing import get_session_id, get_user_id
     from src.core.resource_access import PRIVATE_FILE, authorize_resource
     from src.session.manager import session_manager
     uid, sid = get_user_id(), get_session_id()
     cid = str(tool_call_id or "").strip()
-    if not uid or uid <= 0 or not sid or not cid:
+    if not uid or uid <= 0 or not sid:
+        if strict:
+            raise PermissionError("result_access_denied")
+        return None
+    if not cid:
         return None
     decision = authorize_resource(PRIVATE_FILE, {"user_id": uid},
                                   owner_user_id=session_manager.get_session_owner(sid))
     if not decision.allowed:
+        if strict:
+            raise PermissionError("result_access_denied")
         return None
     try:
         ensure_schema()
@@ -322,8 +329,10 @@ def fetch_for_current_request(tool_call_id: str) -> dict | None:
                 "SELECT * FROM tool_results WHERE retained=1 AND tool_call_id=? AND session_id=?",
                 (cid, sid)).fetchone()
         return dict(row) if row else None
-    except Exception:
-        logger.debug("tool_results scoped read failed", exc_info=True)
+    except sqlite3.Error as exc:
+        if strict:
+            raise
+        logger.debug("tool_results scoped read failed: %s", type(exc).__name__)
         return None
 
 

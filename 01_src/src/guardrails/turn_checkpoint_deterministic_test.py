@@ -5,11 +5,12 @@ import json
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
-from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
 from src.core import tracing
+from src.core.context_manager import ContextManager, finalize_load_result
 from src.core.checkpoint_restore import (GENERATOR, SCHEMA, navigation_view,
                                          structured_checkpoint, validate_checkpoint)
 from src.guardrails import turn_checkpoint
@@ -108,6 +109,103 @@ class DeterministicCheckpointTests(unittest.TestCase):
             self.assertFalse(validate_checkpoint(case, self.manager, self.sid,
                                                  self.watermark))
 
+    def restore(self, *, user_id=None, memory=None):
+        with patch.object(manager.SessionManager, "_instance", None):
+            reopened = manager.SessionManager()
+            loader = ContextManager(session_manager=reopened, memory_store=memory)
+            return asyncio.run(loader.load(self.sid, "follow-up", "general_agent",
+                                          user_id=user_id or self.owner, generate_hints=False))
+
+    def test_reopened_preview_only_checkpoint_falls_back_and_can_be_rebuilt(self):
+        self.assertTrue(self.build())
+        old = self.stored()
+        old["schema"] = "citrus-turn-checkpoint/1"
+        with manager._connect_db(self.manager.db_path) as conn:
+            conn.execute("UPDATE sessions SET checkpoint_summary=? WHERE session_id=?",
+                         (json.dumps(old), self.sid))
+            conn.commit()
+        ctx = self.restore()
+        self.assertEqual((ctx.history_load_status, ctx.history_load_reason),
+                         ("degraded", "legacy_checkpoint_untrusted"))
+        self.assertEqual([m.content for m in ctx.history_messages], ["What changed?", "A" * 300])
+        self.assertTrue(self.build())
+        restored = self.restore()
+        self.assertEqual((restored.history_load_status, restored.history_load_reason), ("loaded", ""))
+        self.assertEqual(len(restored.history_messages), 1)
+        self.assertTrue(restored.history_messages[0].content.startswith("<conversation_checkpoint>"))
+
+    def test_missing_covered_row_preserves_remaining_history(self):
+        self.assertTrue(self.build())
+        with manager._connect_db(self.manager.db_path) as conn:
+            conn.execute("DELETE FROM messages WHERE session_id=? AND msg_type='human'", (self.sid,))
+            conn.commit()
+        ctx = self.restore()
+        self.assertEqual(ctx.history_load_reason, "raw_history_incomplete")
+        self.assertEqual([m.content for m in ctx.history_messages], ["A" * 300])
+
+    def test_corrupt_body_outside_checkpoint_excerpts_is_excluded(self):
+        asyncio.run(self.manager.save_messages(self.sid, [AIMessage(
+            content="final", additional_kwargs={"request_id": "req-2"})], idempotency_key="crid:req-2"))
+        self.state.update(request_id="req-2", answer="final")
+        self.assertTrue(self.build())
+        with manager._connect_db(self.manager.db_path) as conn:
+            conn.execute("UPDATE messages SET content=? WHERE id=?",
+                         ("A" * 200 + "X" + "A" * 99, self.watermark))
+            conn.commit()
+        ctx = self.restore()
+        self.assertEqual(ctx.history_load_reason, "source_integrity_failed")
+        self.assertEqual([m.content for m in ctx.history_messages], ["What changed?", "final"])
+
+    def test_different_checkpoint_owner_preserves_authorized_messages(self):
+        self.assertTrue(self.build())
+        checkpoint = self.stored()
+        checkpoint["owner_user_id"] = self.owner + 1
+        with manager._connect_db(self.manager.db_path) as conn:
+            conn.execute("UPDATE sessions SET checkpoint_summary=? WHERE session_id=?",
+                         (json.dumps(checkpoint), self.sid))
+            conn.commit()
+        ctx = self.restore()
+        self.assertTrue(ctx.history_scope_authorized)
+        self.assertEqual(ctx.history_load_reason, "owner_scope_mismatch")
+        self.assertEqual([m.content for m in ctx.history_messages], ["What changed?", "A" * 300])
+
+    def test_wrong_request_scope_performs_no_account_or_evidence_reads(self):
+        memory = Mock()
+        tracing.set_user_id(self.owner + 1)
+        with patch("src.session.files.list_account_files") as files:
+            ctx = self.restore(user_id=self.owner + 1, memory=memory)
+            files.assert_not_called()
+        with patch.object(self.manager, "build_evidence_block") as evidence:
+            result = finalize_load_result(ctx, session_manager=self.manager, session_id=self.sid,
+                                          budget=None, node_label="session_load", log_prefix="test")
+            evidence.assert_not_called()
+        self.assertFalse(memory.mock_calls)
+        self.assertFalse(ctx.history_scope_authorized)
+        self.assertEqual(result["history_load_reason"], "owner_scope_mismatch")
+        self.assertEqual(result["history_load_status"], "failed")
+        self.assertNotIn("messages", result)
+
+    def test_reopened_legacy_tool_groups_keep_only_exactly_paired_rows(self):
+        def batch(call_id):
+            return [AIMessage(content="", tool_calls=[{"id": call_id, "name": "read_data", "args": {}}]),
+                    ToolMessage(content=call_id, tool_call_id=call_id, name="read_data")]
+
+        asyncio.run(self.manager.save_messages(self.sid, [*batch("intact"), *batch("broken"),
+                                                           AIMessage(content="final")]))
+        with manager._connect_db(self.manager.db_path) as conn:
+            conn.execute("UPDATE messages SET msg_type='AIMessageChunk' "
+                         "WHERE session_id=? AND tool_calls_json LIKE '%intact%'", (self.sid,))
+            conn.execute("UPDATE messages SET tool_call_id='wrong' "
+                         "WHERE session_id=? AND tool_call_id='broken'", (self.sid,))
+            conn.commit()
+        ctx = self.restore()
+        self.assertEqual(ctx.history_load_reason, "raw_history_incomplete")
+        self.assertEqual(ctx.history_messages[2].tool_calls[0]["id"], "intact")
+        self.assertEqual(ctx.history_messages[3].tool_call_id, "intact")
+        self.assertEqual([m.content for m in ctx.history_messages],
+                         ["What changed?", "A" * 300, "", "intact", "final"])
+        self.assertNotIn("host_publication", ctx.history_messages[3].additional_kwargs)
+
     def test_owner_unavailable_defers_without_writing(self):
         before = self.manager.get_checkpoint(self.sid)["summary"]
         with patch.object(turn_checkpoint, "_owner", return_value=0):
@@ -137,7 +235,6 @@ class DeterministicCheckpointTests(unittest.TestCase):
         self.assertNotIn("preview_sha256", text)
 
     def test_tool_evidence_is_pinned_and_bound(self):
-        from langchain_core.messages import ToolMessage
         from src.core import tool_results
         tool_results._schema_ready = False
         body = "FULL-ORIGINAL-" * 500
@@ -162,6 +259,16 @@ class DeterministicCheckpointTests(unittest.TestCase):
         self.assertTrue(row["pinned"])
         self.assertEqual(row["full_sha256"],
                          hashlib.sha256(body.encode("utf-8")).hexdigest())
+        self.assertEqual(doc["tool_result_sha256"], {"call-1": row["full_sha256"]})
+        with tool_results._connect() as conn:
+            conn.execute("UPDATE tool_results SET pinned=0 WHERE tool_call_id='call-1'")
+            conn.commit()
+        self.assertEqual(self.restore().history_load_reason, "raw_history_incomplete")
+        with tool_results._connect() as conn:
+            conn.execute("UPDATE tool_results SET pinned=1, full_sha256=? WHERE tool_call_id='call-1'",
+                         ("0" * 64,))
+            conn.commit()
+        self.assertEqual(self.restore().history_load_reason, "source_integrity_failed")
         # Losing complete evidence invalidates the checkpoint instead of hiding rows.
         with tool_results._connect() as conn:
             conn.execute("UPDATE tool_results SET retained=0 WHERE tool_call_id='call-1'")

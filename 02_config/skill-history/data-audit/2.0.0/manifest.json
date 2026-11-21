@@ -1,0 +1,56 @@
+{
+  "id": "data-audit",
+  "version": "2.0.0",
+  "path": "skills/data-audit",
+  "entry": "SKILL.md",
+  "package": "citrus_audit",
+  "dependency": "citrusscholar-support[audit]==2.0.0",
+  "sha256": "87247d295c5fcb2bd97ac833361afb0f9376c69bc35de309f5a0e09839b60339",
+  "files": [
+    {
+      "path": "PROVENANCE.md",
+      "sha256": "b5d0af7e0b4c998e40888bc9a49e6d4ec595b2c097ed84cfe4c677500e023080",
+      "size": 564
+    },
+    {
+      "path": "references/marking.md",
+      "sha256": "7ad43b6f47d5f43bfcc4a16a98157d1b4df7a30c8e5001543130f5ab772b9b85",
+      "size": 1401
+    },
+    {
+      "path": "references/methods.md",
+      "sha256": "39c1b26a15128698f1f2108eaf34e613a2ad2cb1938aaeaad4df544307ab9e03",
+      "size": 2813
+    },
+    {
+      "path": "references/precision-and-coverage.md",
+      "sha256": "a6679502f66fe5a3a86fd741984b37b7e533745afd7efd5be2f91944ed543c8c",
+      "size": 1217
+    },
+    {
+      "path": "scripts/annotate_workbook.py",
+      "sha256": "7dd76aebac5a6ae2a0e6afab141905d9ce483d900130437fb17efe08ff97d841",
+      "size": 185
+    },
+    {
+      "path": "scripts/audit_table.py",
+      "sha256": "6d6dae9b9e99c5e7836403bc1ce53814ddfe7ab2ea36513cf8b4e0f311a3528a",
+      "size": 184
+    },
+    {
+      "path": "scripts/catalog.py",
+      "sha256": "5bd67927dc1554115c6eb9be8103981e1209d3afc2d4fa182d235ebd5f459b12",
+      "size": 99
+    },
+    {
+      "path": "SKILL.md",
+      "sha256": "2814e56420c37adc68472db2a5e70fff25545d1349b2c5a15eb60f011c0fbdb5",
+      "size": 2819
+    },
+    {
+      "path": "tests/cli_test.py",
+      "sha256": "4ef065fbc258d0599d84a9b4c4a6887604a9f8c152c12db8025c60c0b907ad42",
+      "size": 1186
+    }
+  ]
+}

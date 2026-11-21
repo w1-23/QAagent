@@ -476,7 +476,8 @@ class SessionManager:
         return await asyncio.to_thread(self._get_messages_sync, session_id)
 
     def _get_messages_sync(self, session_id: str, with_ids: bool = False,
-                           for_display: bool = False, with_request_ids: bool = False):
+                           for_display: bool = False, with_request_ids: bool = False,
+                           diagnostics: list[str] | None = None):
         """读回会话历史。with_ids=True 时返回 (messages, row_ids)，
         row_ids 与 messages 一一对应（压缩 checkpoint 定位用）。"""
         import sqlite3
@@ -549,7 +550,8 @@ class SessionManager:
                                 ]
                                 kw["tool_calls"] = tool_calls
                             except Exception:
-                                pass
+                                if diagnostics is not None and not diagnostics:
+                                    diagnostics.append("raw_history_incomplete")
                         messages.append(AIMessage(**{k: v for k, v in kw.items() if v is not None}))
                         # v8.7 INV-01 防御：记录待配对工具结果数（孤立 ToolMessage 防护）
                         ai_tool_pending = len(kw.get("tool_calls") or [])
@@ -557,7 +559,7 @@ class SessionManager:
                         # v8.7 INV-01 协议配对防御：tool 消息前必须存在带 tool_calls
                         # 的 AI 消息（预算跳过/熔断/压缩切割任何路径破坏配对时，
                         # 宁可丢弃也不让非法消息列表进入 API 触发 400）
-                        if ai_tool_pending <= 0:
+                        if ai_tool_pending <= 0 and diagnostics is None:
                             logger.warning(
                                 f"[SessionManager] 丢弃孤立 ToolMessage "
                                 f"(session={session_id[:8]}, id={row['id']}, "
@@ -581,6 +583,8 @@ class SessionManager:
                     elif msg_type == "system":
                         messages.append(SystemMessage(content=content))
                     else:
+                        if diagnostics is not None and not diagnostics:
+                            diagnostics.append("raw_history_incomplete")
                         continue
                     messages[-1].additional_kwargs = context_meta
                     messages[-1].additional_kwargs["source_id"] = str(row["id"])
@@ -590,8 +594,10 @@ class SessionManager:
                         if str(row["content"] or "").startswith(_SYNTH_FORCE_FINAL_MARK):
                             key = ""
                         request_ids.append(key.removeprefix("crid:"))
-                except Exception as e:
-                    logger.debug(f"[SessionManager] skip unparseable message: {e}")
+                except Exception as exc:
+                    if diagnostics is not None and not diagnostics:
+                        diagnostics.append("raw_history_incomplete")
+                    logger.debug("[SessionManager] skipped unparseable message: %s", type(exc).__name__)
         if with_request_ids:
             return messages, row_ids, request_ids
         if with_ids:
@@ -603,14 +609,15 @@ class SessionManager:
         return await asyncio.to_thread(self._get_messages_sync, session_id,
                                        for_display=True, with_request_ids=True)
 
-    async def get_messages_with_ids(self, session_id: str, for_display: bool = False):
+    async def get_messages_with_ids(self, session_id: str, for_display: bool = False, *,
+                                    diagnostics: list[str] | None = None):
         """v8.4: 返回 (messages, row_ids)（压缩视图构建/checkpoint 定位用）。
 
         for_display=True 时**不清洗**回答正文里的内部键：前端要把
         `paper_*` 渲染成可点击的本地原文入口（读上下文仍用清洗版）。
         """
         return await asyncio.to_thread(
-            self._get_messages_sync, session_id, True, for_display)
+            self._get_messages_sync, session_id, True, for_display, diagnostics=diagnostics)
 
     async def get_user_message_request_ids(self, session_id: str) -> list[str]:
         """Return request ids for human turns in the same order as history."""
@@ -796,13 +803,20 @@ class SessionManager:
                                max_sources: int = 10000) -> list[dict]:
         """Internal raw inventory: never filter malformed protocol rows or scrub text.
 
-        Bounded previews avoid reading full long inputs into maintenance memory.
-        Range extraction uses get_context_source under the same authenticated lease.
+        Only bounded previews and row digests leave the SQL query. Range
+        extraction uses get_context_source under the same authenticated lease.
         """
+        def row_sha256(*fields):
+            payload = json.dumps(fields, ensure_ascii=False, separators=(",", ":"))
+            return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
         with _connect_db(self.db_path) as conn:
+            conn.create_function("checkpoint_row_sha256", 6, row_sha256, deterministic=True)
             rows = conn.execute(
                 "SELECT id,msg_type,length(content),substr(content,1,160),"
-                "tool_call_id,tool_calls_json,context_metadata_json "
+                "tool_call_id,tool_calls_json,context_metadata_json,"
+                "checkpoint_row_sha256(msg_type,content,tool_call_id,tool_calls_json,"
+                "context_metadata_json,name) "
                 "FROM messages WHERE session_id=? AND id<=? ORDER BY id LIMIT ?",
                 (session_id, watermark, max_sources + 1)).fetchall()
         if len(rows) > max_sources:
@@ -811,10 +825,10 @@ class SessionManager:
                  "preview": r[3] or "", "preview_start_char": 0,
                  "preview_complete": (r[2] or 0) <= 160,
                  "tool_call_id": r[4] or "", "tool_calls": json.loads(r[5] or "[]"),
-                 "metadata": json.loads(r[6] or "{}")}
+                 "metadata": json.loads(r[6] or "{}"), "row_sha256": r[7]}
                 for r in rows]
 
-    def get_checkpoint(self, session_id: str) -> dict:
+    def get_checkpoint(self, session_id: str, *, strict: bool = False) -> dict:
         """Legacy fields plus revision and current raw message watermark."""
         empty = {"msg_id": 0, "summary": "", "revision": 0,
                  "message_watermark": 0, "checkpoint_watermark": 0, "working_state": {}}
@@ -832,7 +846,9 @@ class SessionManager:
                         "message_watermark": int(row[5] or 0),
                         "working_state": state if isinstance(state, dict) else {}}
         except Exception as exc:
-            logger.warning("[SessionManager] get_checkpoint failed: %s", exc)
+            if strict:
+                raise
+            logger.warning("[SessionManager] get_checkpoint failed: %s", type(exc).__name__)
         return empty
 
     def set_checkpoint(self, session_id: str, msg_id: int, summary: str, *,

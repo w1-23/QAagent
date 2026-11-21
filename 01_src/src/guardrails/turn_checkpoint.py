@@ -181,6 +181,12 @@ async def build_checkpoint(manager, session_id: str, state: dict, snapshot: dict
         from src.core.checkpoint_restore import (GENERATOR, SCHEMA, inventory_digest,
                                                  source_inventory)
 
+        owner = _owner()
+        if owner <= 0:
+            return _reject("checkpoint_owner_unavailable")
+        from src.core.tracing import get_session_id
+        if get_session_id() != session_id or not await asyncio.to_thread(manager.session_belongs_to, session_id, owner):
+            return _reject("checkpoint_owner_scope_mismatch")
         watermark = int(snapshot["message_watermark"])
         sources = await asyncio.to_thread(manager.get_checkpoint_sources, session_id, watermark)
         call_ids = validate_pairs(sources)
@@ -194,9 +200,15 @@ async def build_checkpoint(manager, session_id: str, state: dict, snapshot: dict
         # Pin before writing: legacy missing/truncated evidence is not compressible.
         if call_ids and not await asyncio.to_thread(tool_results.pin_references, session_id, call_ids):
             return _reject("evidence_not_pinnable")
-        owner = _owner()
-        if owner <= 0:
-            return _reject("checkpoint_owner_unavailable")
+        tool_hashes = {}
+        for call_id in call_ids:
+            row = await asyncio.to_thread(tool_results.fetch, call_id)
+            if not row or row.get("session_id") != session_id or not row.get("pinned"):
+                return _reject("checkpoint_evidence_unavailable")
+            integrity = tool_results.storage_integrity(row)
+            if not integrity["complete"]:
+                return _reject("checkpoint_evidence_unavailable")
+            tool_hashes[call_id] = integrity["full_sha256"]
         from copy import deepcopy
         host_state = deepcopy({key: state[key] for key in
                       ("task_contract", "coverage", "turn_outcome") if key in state})
@@ -238,6 +250,7 @@ async def build_checkpoint(manager, session_id: str, state: dict, snapshot: dict
             "source_inventory": inventory,
             "inventory_sha256": inventory_digest(inventory),
             "tool_result_call_ids": call_ids,
+            "tool_result_sha256": tool_hashes,
             "exact_excerpts": exact,
         }
         encoded = json.dumps(document, ensure_ascii=False)

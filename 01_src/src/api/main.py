@@ -279,15 +279,23 @@ async def lifespan(app: FastAPI):
     from src.core import chat_turn_queue
     await asyncio.to_thread(chat_turn_queue.ensure_schema)
     await _reconcile_turn_queue_startup()
+    from src.shared_corpus.runtime import start_runtime, stop_runtime
+    shared_runtime = await asyncio.to_thread(start_runtime)
     if os.getenv("CITRUS_CODE_EXECUTION") == "offline-development":
         execution_coordinator_task = asyncio.create_task(coordinator.run())
     app.state.turn_queue_wake = asyncio.Event()
     app.state.turn_queue_consumer = asyncio.create_task(_consume_chat_turns(app.state.turn_queue_wake))
+    shared_task = (asyncio.create_task(shared_runtime.run(app.state.turn_queue_wake))
+                   if shared_runtime else None)
     try:
         yield
     finally:
+        if shared_task is not None:
+            shared_task.cancel()
+            await asyncio.gather(shared_task, return_exceptions=True)
         app.state.turn_queue_consumer.cancel()
         await asyncio.gather(app.state.turn_queue_consumer, return_exceptions=True)
+        stop_runtime(shared_runtime)
         if execution_coordinator_task is not None:
             execution_coordinator_task.cancel()
             await asyncio.gather(execution_coordinator_task, return_exceptions=True)
@@ -324,7 +332,8 @@ async def lifespan(app: FastAPI):
 
 
 # v8.4.5: 版本单源（settings.VERSION）——UI/健康检查/API 元数据共用
-app = FastAPI(title=f"CitrusScholar v{settings.VERSION}", version=settings.VERSION, lifespan=lifespan)
+app = FastAPI(title=f"CitrusScholar v{settings.VERSION}", version=settings.VERSION, lifespan=lifespan,
+              docs_url=None, redoc_url=None, openapi_url=None)
 
 # Account writes accept a strict field whitelist. Validation errors on these
 # paths never echo the submitted password, invite code, or recovery code.
@@ -385,6 +394,11 @@ def require_owned_session(session_id: str, user: dict, *,
     if not decision.allowed:
         # Return the same response for unknown and foreign ids.
         raise HTTPException(status_code=404, detail="会话不存在或无权访问。")
+
+
+from src.shared_corpus.activity import ActivityMiddleware  # noqa: E402
+
+app.add_middleware(ActivityMiddleware)
 
 
 @app.middleware("http")
@@ -1537,7 +1551,7 @@ def _capture_upload_candidate(name: str, text: str, raw: bytes | None = None) ->
         if not consent and not admin_flag:
             return
         _corpus_review.archive_upload(
-            name, raw or b"", text, consent=consent, is_admin=bool(admin_flag))
+            name, raw or b"", text, user_id=uid, consent=consent, is_admin=bool(admin_flag))
     except Exception:
         logger.debug("capture upload candidate failed", exc_info=True)
 
@@ -2073,11 +2087,17 @@ async def _reconcile_turn_queue_startup():
 
 async def _consume_chat_turns(wake: asyncio.Event):
     from src.core import chat_turn_queue as queue, user_questions
+    from src.shared_corpus.activity import MaintenanceBusy
+    from src.shared_corpus.runtime import current_runtime
+    runtime = current_runtime()
+    activity = runtime.activity if runtime else None
     cursor = None
     workers: dict[tuple[int, str], asyncio.Task] = {}
 
     def worker_finished(key, worker):
         workers.pop(key, None)
+        if activity is not None:
+            activity.leave("J")
         if not worker.cancelled() and (error := worker.exception()) is not None:
             logger.warning("Turn queue worker failed: %s", type(error).__name__)
         wake.set()
@@ -2109,6 +2129,11 @@ async def _consume_chat_turns(wake: asyncio.Event):
                     if (counts["queued"] or counts["active"] >= counts["max_active"]
                             or counts["owner_active"] >= counts["max_active_per_owner"]):
                         continue
+                if activity is not None:
+                    try:
+                        activity.enter("J")
+                    except MaintenanceBusy:
+                        break
                 work = (_advance_question_turn(turn, action, child) if state == queue.AWAITING_INPUT
                         else _dispatch_queued_turn(*key))
                 worker = workers[key] = asyncio.create_task(work)
@@ -4575,6 +4600,9 @@ app.include_router(integrity_router)
 from src.api.reference_router import router as reference_router  # noqa: E402
 
 app.include_router(reference_router)
+from src.shared_corpus.api_router import router as shared_corpus_router  # noqa: E402
+
+app.include_router(shared_corpus_router)
 
 
 @app.get("/figures")
@@ -4624,10 +4652,10 @@ def _runtime_snapshot():
             "agent": getattr(app.state, "agent_readiness", None) or _agent_runtime_readiness()}
 
 
-@app.get("/ready")
-async def readiness_check():
+async def _readiness_details(*, snapshot=None):
     from src.runtime_status import public_readiness
-    snapshot = await asyncio.to_thread(_runtime_snapshot)
+    if snapshot is None:
+        snapshot = await asyncio.to_thread(_runtime_snapshot)
     status = public_readiness(**snapshot, version=settings.VERSION,
         model_configured=bool(settings.RESOLVED_MAIN_API_KEY),
         full=os.getenv("CITRUS_LOCAL_FULL_STARTUP") == "1",
@@ -4639,7 +4667,13 @@ async def readiness_check():
         code_available = await asyncio.to_thread(worker_available, PROJECT_ROOT / "state" / "code_executions.sqlite3")
     status["code_worker"] = {"enabled": code_enabled, "available": code_available,
         "network_policy": "offline", "admission": "development-oci", "public_ready": False}
-    return JSONResponse(status, status_code=200 if status["ready"] else 503,
+    return status
+
+
+@app.get("/ready", include_in_schema=False)
+async def readiness_check():
+    ready = bool((await _readiness_details())["ready"])
+    return JSONResponse({"ready": ready}, status_code=200 if ready else 503,
                         headers={"Cache-Control": "no-store"})
 
 
@@ -4647,6 +4681,7 @@ async def readiness_check():
 async def runtime_diagnostics(request: Request):
     require_admin(request)
     snapshot = await asyncio.to_thread(_runtime_snapshot)
+    snapshot["readiness"] = await _readiness_details(snapshot=snapshot)
     return JSONResponse(snapshot, headers={"Cache-Control": "no-store"})
 
 

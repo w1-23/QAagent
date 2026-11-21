@@ -63,6 +63,12 @@ from src.research.figure_tools import (
 # produces: deliverable kinds the tool actually writes to storage.
 # authorization: execution-time permission; visibility is never affected.
 from src.tools.browse_web import browse_web
+from src.shared_corpus.tool_adapter import (
+    commit_document_index,
+    prepare_document,
+    propose_document_ingest,
+    search_agent_corpus,
+)
 
 _TOOL_DECLARATIONS = (
     (request_user_input, "interaction", "user_question", None, ("session",), (), ""),
@@ -114,6 +120,15 @@ _TOOL_DECLARATIONS = (
      ("research_tools", "session"), ("figure_package",), ""),
     (run_research_figure_script, "research", "research_artifacts", "session_artifact",
      ("session", "research_tools", "script_sandbox"), ("figure_package",), ""),
+    # Administrator-published shared literature. Every tool is hidden until
+    # the shared corpus runtime exists; no tool accepts paths or commands.
+    (propose_document_ingest, "research", "shared_corpus_proposal", "account_record",
+     ("shared_corpus",), (), ""),
+    (prepare_document, "research", "shared_corpus_prepare", "account_record",
+     ("shared_corpus",), (), ""),
+    (commit_document_index, "research", "shared_corpus_build", "account_record",
+     ("shared_corpus",), (), ""),
+    (search_agent_corpus, "rag", "shared_corpus_search", None, ("shared_corpus",), (), ""),
 )
 
 _names = [tool.name for tool, *_ in _TOOL_DECLARATIONS]

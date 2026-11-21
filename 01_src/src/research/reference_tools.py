@@ -32,7 +32,7 @@ def _compact_audit(payload):
     """Project model observations only; durable audit/API/export rows stay intact."""
     keys = ("record_id", "record_index", "citation", "original", "claims", "positions",
             "source_sha256", "parse_status", "parse_error", "field_certainty", "uncertain_fields",
-            "status", "existence", "identity", "fields", "errors", "attempts", "retryable")
+            "status", "existence", "identity", "fields", "errors", "attempts", "retryable", "verdict")
     from src.core.request_context import text_tokens
 
     rows = []

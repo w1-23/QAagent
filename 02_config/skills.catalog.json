@@ -137,12 +137,12 @@
     },
     {
       "id": "data-audit",
-      "version": "2.0.0",
+      "version": "2.1.0",
       "path": "skills/data-audit",
       "entry": "SKILL.md",
       "package": "citrus_audit",
       "dependency": "citrusscholar-support[audit]==2.0.0",
-      "sha256": "87247d295c5fcb2bd97ac833361afb0f9376c69bc35de309f5a0e09839b60339",
+      "sha256": "42be5d63a924075901c5cc79dfa6fd698bbf565632097f2a253b26bd567f6bb7",
       "files": [
         {
           "path": "PROVENANCE.md",
@@ -181,8 +181,8 @@
         },
         {
           "path": "SKILL.md",
-          "sha256": "2814e56420c37adc68472db2a5e70fff25545d1349b2c5a15eb60f011c0fbdb5",
-          "size": 2819
+          "sha256": "7cdbe69fd053dba7f5a291a0995ddbddf0f5b73bd3e04ea052f453424cbc8390",
+          "size": 5408
         },
         {
           "path": "tests/cli_test.py",

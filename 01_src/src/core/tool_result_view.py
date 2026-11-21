@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 
 INLINE_CHARS = 16000
 FIRST_DELIVERY_BYTES = 3072
@@ -24,7 +25,7 @@ def _json(value) -> str:
     return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
 
 
-def _content_bytes(value) -> int:
+def content_wire_bytes(value) -> int:
     # Include the escaping required when the provider serializes content.
     return len(_json(value).encode("utf-8"))
 
@@ -41,16 +42,68 @@ def _verified_reference(message, text: str):
     from src.core.tool_results import fetch_for_current_request, storage_integrity
 
     row = fetch_for_current_request(message.tool_call_id)
-    if (not row or row["tool_name"] != message.name or row["full_sha256"] != digest
-            or not storage_integrity(row)["complete"]):
+    try:
+        if (not row or row.get("tool_name") != message.name or row.get("full_sha256") != digest
+                or not storage_integrity(row)["complete"]):
+            return None
+    except (ValueError, TypeError):
         return None
     return {"tool_call_id": message.tool_call_id, "full_sha256": digest,
             "original_chars": len(text), "stored_chars": len(text)}
 
 
+def delivery_issue(message):
+    """Expose only known delivery states, without publishing tool output."""
+    code = message.additional_kwargs.get("model_delivery_issue")
+    messages = {
+        "result_storage_unavailable": "回执原文暂时无法验证或读取。请保留现有操作记录。",
+        "result_page_too_large": "该页超过单次交付上限。请缩小原文页或字段范围。",
+        "result_reference_too_large": "回执引用超过交付上限。",
+        "result_readback_unavailable": "回执已保存，当前任务无法调用原文读取工具。",
+    }
+    return (code, messages[code]) if isinstance(code, str) and code in messages else None
+
+
+def last_readback_range(observations):
+    """Range of the latest verified read page for a budget-stop notice."""
+    for message in reversed(observations):
+        if message.name != "read_tool_result" or not message.additional_kwargs.get("host_publication"):
+            continue
+        try:
+            data = json.loads(message.content)
+        except (TypeError, ValueError, RecursionError):
+            continue
+        if not isinstance(data, dict) or data.get("status") != "ok":
+            continue
+        storage, source, page = (data.get(key) for key in ("storage", "tool_result_ref", "page"))
+        if not all(isinstance(part, dict) for part in (storage, source, page)) or storage.get("complete") is not True:
+            continue
+        digest, call_id = source.get("full_sha256"), source.get("tool_call_id")
+        start, end, total = (page.get(key) for key in ("start_char", "end_char", "total_chars"))
+        basis = page.get("offset_basis")
+        if (not isinstance(digest, str) or not re.fullmatch(r"[a-f0-9]{64}", digest)
+                or not isinstance(call_id, str) or not 0 < len(call_id) <= 256
+                or any(type(value) is not int for value in (start, end, total))
+                or not 0 <= start < end <= total or basis not in ("stored_text", "selected_fields_json")):
+            continue
+        cursor = {"tool_call_id": call_id, "full_sha256": digest, "start_char": start,
+                  "end_char": end, "total_chars": total, "offset_basis": basis,
+                  "next_start_char": end if end < total else None}
+        max_chars = min(4000, max(1, (end - start) // 2))
+        if basis == "stored_text":
+            cursor["retry"] = {"start_char": start, "max_chars": max_chars}
+        else:
+            # Public progress carries no private JSON field names. Reuse the
+            # original selection; these offsets cannot address stored text.
+            cursor["retry_same_selection"] = {"start_char": start, "max_chars": max_chars}
+        return cursor
+    return None
+
+
 def _failure(message, code: str, *, verified: bool = False):
     metadata = dict(message.additional_kwargs)
     metadata.pop("first_delivery_reference", None)
+    metadata["model_delivery_issue"] = code
     if not verified:
         metadata.pop("result_reference", None)
     notice = ("请求较小的原文页或更窄的字段范围，不要重做原操作。" if code == "result_page_too_large"
@@ -64,7 +117,7 @@ def first_delivery(message, *, call: dict, reader_available: bool):
     is_reader = message.name in _READERS or (
         message.name == "research_workspace" and (call.get("args") or {}).get("operation") in _WORKSPACE_READS)
     try:
-        size = _content_bytes(text)
+        size = content_wire_bytes(text)
     except (ValueError, TypeError, RecursionError):
         return _failure(message, "result_storage_unavailable")
     if size <= (READER_DELIVERY_BYTES if is_reader else FIRST_DELIVERY_BYTES):
@@ -89,14 +142,14 @@ def first_delivery(message, *, call: dict, reader_available: bool):
                       "type": "object" if isinstance(item, dict) else "array" if isinstance(item, list) else "scalar"}
                      for key, item in list(value.items())[:12] if len(key) <= 80]
             try:
-                _content_bytes(index)
+                content_wire_bytes(index)
             except UnicodeError:
                 index = []
             for key in _CONTROL_PRIORITY:
                 if key in value:
                     total_controls += 1
                     try:
-                        if _content_bytes(_json(value[key])) <= FIRST_DELIVERY_BYTES:
+                        if content_wire_bytes(_json(value[key])) <= FIRST_DELIVERY_BYTES:
                             control[key] = value[key]
                     except (ValueError, TypeError, RecursionError):
                         continue
@@ -129,19 +182,20 @@ def first_delivery(message, *, call: dict, reader_available: bool):
         return _json(payload)
 
     rendered = render()
-    if _content_bytes(rendered) > FIRST_DELIVERY_BYTES:
+    if content_wire_bytes(rendered) > FIRST_DELIVERY_BYTES:
         payload["delivery"] = "stored_result_reference"
         payload.pop("previews")
         rendered = render()
     for field in ("field_index", "notice"):
-        if _content_bytes(rendered) <= FIRST_DELIVERY_BYTES:
+        if content_wire_bytes(rendered) <= FIRST_DELIVERY_BYTES:
             break
         payload.pop(field)
         rendered = render()
-    while _content_bytes(rendered) > FIRST_DELIVERY_BYTES and control:
+    while content_wire_bytes(rendered) > FIRST_DELIVERY_BYTES and control:
         control.pop(next(reversed(control)))
         rendered = render()
-    if _content_bytes(rendered) > FIRST_DELIVERY_BYTES:
+    if content_wire_bytes(rendered) > FIRST_DELIVERY_BYTES:
         return _failure(message, "result_reference_too_large", verified=True)
     metadata = {**message.additional_kwargs, "first_delivery_reference": True}
+    metadata.pop("model_delivery_issue", None)
     return message.model_copy(update={"content": rendered, "additional_kwargs": metadata})

@@ -1,6 +1,8 @@
 """Original evidence survives delivery, SQLite reopen, and scoped paging."""
 import hashlib
 import json
+import random
+import string
 import tempfile
 import time
 import unittest
@@ -207,6 +209,113 @@ class ToolResultDeliveryTests(unittest.IsolatedAsyncioTestCase):
             tracing.set_user_id(7)
             tracing.set_session_id(await reopened.get_or_create_session(None, 7))
             self.assertEqual(json.loads(read_tool_result.invoke({"tool_call_id": first.tool_call_id}))["status"], "unavailable")
+
+    async def test_readback_rejections_and_corruption_do_not_count_as_execution_failures(self):
+        from src.tools.outcome import safe_tool_step
+
+        raw = "字😀" * 12000
+        result = self.delivery("large-unicode", raw)
+        digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+        args = {"tool_call_id": result.tool_call_id}
+        cases = [({**args, "max_chars": 20_001}, "result_read_range"),
+                 ({**args, "max_chars": 20_000}, "result_page_too_large"),
+                 ({**args, "start_char": len(raw) + 1}, "result_read_range"),
+                 ({**args, "fields": ["/unknown"]}, "result_fields_unavailable"),
+                 ({"tool_call_id": "missing"}, "result_unavailable")]
+        for inputs, reason in cases:
+            with self.subTest(reason=reason):
+                content = read_tool_result.invoke(inputs)
+                self.assertNotIn("result_text", json.loads(content))
+                step = safe_tool_step("read_tool_result", content)
+                self.assertEqual((step["status"], step["reason_code"], step["retryable"]),
+                                 ("not_run", reason, False))
+        denied = {**args}
+        tracing.set_user_id(8)
+        denial = json.loads(read_tool_result.invoke(denied))
+        self.assertEqual(denial["reason"], "result_access_denied")
+        self.assertNotIn("tool_result_ref", denial)
+        tracing.set_user_id(7)
+        small = json.loads(read_tool_result.invoke({**args, "start_char": 11, "max_chars": 32}))
+        self.assertEqual(small["tool_result_ref"]["full_sha256"], digest)
+        self.assertEqual(small["result_text"], raw[11:43])
+        self.assertEqual(small["page"]["next_start_char"], 43)
+        with tool_results._connect() as conn:
+            conn.execute("UPDATE tool_results SET result_text=? WHERE tool_call_id=?",
+                         ("X" + raw[1:], result.tool_call_id))
+            conn.commit()
+        broken = json.loads(read_tool_result.invoke(args))
+        self.assertEqual(broken["reason"], "result_integrity_failed")
+        self.assertNotIn("result_text", broken)
+        with tool_results._connect() as conn:
+            conn.execute("UPDATE tool_results SET result_text=?, truncated=1 WHERE tool_call_id=?",
+                         (raw[:30], result.tool_call_id))
+            conn.commit()
+        clipped = json.loads(read_tool_result.invoke(args))
+        self.assertEqual(clipped["storage"]["state"], "truncated")
+        self.assertFalse(clipped["storage"]["complete"])
+        self.assertEqual(clipped["_tool_outcome"]["status"], "partial")
+        self.assertEqual(clipped["result_text"], raw[:30])
+
+    async def test_thirty_published_pages_stop_at_budget_with_durable_resume_range(self):
+        from src.agent.host import _finish
+        from src.agent.runtime import RunResult
+        from src.config import settings
+        from src.core.execution_ledger import ExecutionLedger
+
+        self.enterContext(patch.object(jobs, "_DB_PATH", Path(self.session_store.db_path)))
+        claim = jobs.claim_job(self.sid, "request", owner_user_id=7, client_request_id="request", payload={})
+        identity = ExecutionIdentity(7, self.sid, "request", claim.job_id)
+        progress_bus.set_turn_scope(self.sid, "request")
+        progress_bus.set_request_queue(task_events.DurableEventQueue(claim.job_id))
+        self.addCleanup(progress_bus.clear_turn_scope)
+        self.addCleanup(progress_bus.clear_request_queue)
+        self.addCleanup(tracing.set_job_id, tracing.get_job_id())
+        tracing.set_job_id(claim.job_id)
+        host = HostTools(identity, {}, allowed_names={"read_tool_result"})
+
+        class FixtureArchive:
+            provider_scope = ("https://api.deepseek.com/v1", "deepseek-fixture")
+
+        random_data = random.Random(9)
+        raw = "".join(random_data.choices(string.ascii_letters + string.digits, k=210_001))
+        digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+        source = self.delivery("source", raw)
+        messages = [HumanMessage(content="Read synthetic evidence")]
+        for index in range(30):
+            start = index * 7000
+            args = {"tool_call_id": source.tool_call_id, "start_char": start, "max_chars": 7000}
+            call = {"id": f"page-{index}", "name": "read_tool_result", "args": args}
+            message = ToolMessage(content=read_tool_result.invoke(args), name=call["name"], tool_call_id=call["id"])
+            page = await host.publish(call, ToolExecution(message), identity)
+            data = json.loads(page.content)
+            self.assertEqual(data["tool_result_ref"]["full_sha256"], digest)
+            self.assertEqual(data["result_text"], raw[start:start + 7000])
+            private = _ProtocolState(FixtureArchive.provider_scope, "synthetic private protocol")
+            messages.extend((_DeepSeekMessage(content="", tool_calls=[call], provider_protocol=private), page))
+        started = time.monotonic()
+        projector = WorkingContextProjection(archive=FixtureArchive(), summary_model=None, enabled=True,
+            trigger_tokens=settings.CONTEXT_WORKING_SOFT_TOKENS, target_tokens=settings.CONTEXT_WORKING_TARGET_TOKENS,
+            deadline=started + 12, readback_available=True)
+        with self.assertRaisesRegex(AdmissionStopped, "context_budget_exhausted:tool_observations") as halted:
+            await projector.project(messages)
+        self.assertEqual(await projector.project(messages[:3]), tuple(messages[:3]))
+        ledger = ExecutionLedger(session_id=self.sid, request_id="request")
+        result = await _finish({"query": "Read synthetic evidence"}, identity, ledger, host,
+            RunResult("incomplete", halted.exception.reason, tuple(messages), 30), 1, started)
+        self.assertEqual(result["turn_outcome"]["reason_code"], "budget_blocked")
+        self.assertEqual({record["status"] for record in result["tool_status"]}, {"complete"})
+        with task_events.transaction() as conn:
+            rows = conn.execute("SELECT data FROM task_events WHERE job_id=? AND event='context_degraded'",
+                                (claim.job_id,)).fetchall()
+        self.assertEqual(len(rows), 1)
+        event = json.loads(rows[0][0])
+        self.assertEqual(event["status"], "budget_blocked")
+        cursor = event["last_readback_page"]
+        self.assertEqual((cursor["tool_call_id"], cursor["full_sha256"]), (source.tool_call_id, digest))
+        self.assertEqual(cursor["next_start_char"], 210_000)
+        smaller = json.loads(read_tool_result.invoke({"tool_call_id": source.tool_call_id, **cursor["retry"]}))
+        self.assertEqual(smaller["result_text"], raw[203_000:206_500])
+        self.assertEqual(smaller["tool_result_ref"]["full_sha256"], digest)
 
     async def test_exact_latest_readback_stops_before_summary_when_it_exceeds_budget(self):
         class FixtureArchive:

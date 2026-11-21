@@ -29,11 +29,12 @@ REQUIRES_ACCOUNT_FILES = "account_files"
 REQUIRES_SESSION = "session"
 REQUIRES_RESEARCH_TOOLS = "research_tools"
 REQUIRES_SCRIPT_SANDBOX = "script_sandbox"
+REQUIRES_SHARED_CORPUS = "shared_corpus"
 
 KNOWN_REQUIRES = frozenset({
     REQUIRES_NETWORK, REQUIRES_LOCAL_CORPUS, REQUIRES_CANDIDATE_POOL,
     REQUIRES_ATTACHMENT, REQUIRES_ACCOUNT_FILES, REQUIRES_SESSION,
-    REQUIRES_RESEARCH_TOOLS, REQUIRES_SCRIPT_SANDBOX,
+    REQUIRES_RESEARCH_TOOLS, REQUIRES_SCRIPT_SANDBOX, REQUIRES_SHARED_CORPUS,
 })
 
 # Deliverable kinds a tool actually writes to storage. Used to verify that a
@@ -68,6 +69,7 @@ REQUIREMENT_LABELS = {
     REQUIRES_SESSION: "当前请求没有有效会话，无法保存成果",
     REQUIRES_RESEARCH_TOOLS: "运维已关闭科研工具",
     REQUIRES_SCRIPT_SANDBOX: "当前环境没有配置绘图脚本沙箱",
+    REQUIRES_SHARED_CORPUS: "共享文献库未启用",
 }
 
 SCOPE_LABELS = {
@@ -89,6 +91,7 @@ class Env:
     session: bool = True
     research_tools: bool = True
     script_sandbox: bool = False
+    shared_corpus: bool = False
     denied: frozenset[str] = field(default_factory=frozenset)
     # Explicit user constraints. They are facts about the request, not guesses
     # about its topic: "只查本地库" and "这轮别检索" are statements, not keywords
@@ -123,6 +126,10 @@ class Env:
             return self.research_tools
         if requirement == REQUIRES_SCRIPT_SANDBOX:
             return self.script_sandbox
+        if requirement == REQUIRES_SHARED_CORPUS:
+            if self.source_scope == SCOPE_WEB or "shared_corpus" in self.capability_denials:
+                return False
+            return bool(self.shared_corpus and self.retrieval)
         raise KeyError(f"unknown requirement token: {requirement}")
 
 
@@ -179,6 +186,15 @@ def script_sandbox_available() -> bool:
         return False
 
 
+def shared_corpus_available() -> bool:
+    """Whether this process started the shared-corpus runtime."""
+    try:
+        from src.shared_corpus.runtime import current_runtime
+        return current_runtime() is not None
+    except Exception:
+        return False
+
+
 def runtime_env(*, source_scope: str = SCOPE_AUTO, attachments: int = 0,
                 account_files: int = 0, session: bool = True,
                 research_tools: bool = True, retrieval: bool = True,
@@ -187,7 +203,8 @@ def runtime_env(*, source_scope: str = SCOPE_AUTO, attachments: int = 0,
                 script_sandbox: bool | None = None,
                 capability_denials: frozenset[str] | set[str] | None = None,
                 denied: frozenset[str] | set[str] | None = None,
-                candidate_pool: bool = False) -> Env:
+                candidate_pool: bool = False,
+                shared_corpus: bool | None = None) -> Env:
     """Build an `Env` from the values the request handler already computed.
 
     Kept here (not in the graph module) so the mapping from request state to
@@ -211,6 +228,8 @@ def runtime_env(*, source_scope: str = SCOPE_AUTO, attachments: int = 0,
         visualization=bool(visualization),
         capability_denials=frozenset(capability_denials or ()),
         candidate_pool=bool(candidate_pool),
+        shared_corpus=(shared_corpus_available()
+                       if shared_corpus is None else bool(shared_corpus)),
     )
 
 
@@ -273,11 +292,11 @@ def missing_requirements(tool_name: str, env: Env) -> tuple[str, ...]:
 
 def _reason(token: str, env: Env) -> str:
     """Explain why a requirement is unmet, preferring the explicit constraint."""
-    if token in (REQUIRES_NETWORK, REQUIRES_LOCAL_CORPUS) and not env.retrieval:
+    if token in (REQUIRES_NETWORK, REQUIRES_LOCAL_CORPUS, REQUIRES_SHARED_CORPUS) and not env.retrieval:
         return NO_RETRIEVAL_LABEL
     if token == REQUIRES_NETWORK and env.source_scope == SCOPE_LOCAL:
         return SCOPE_LABELS[SCOPE_LOCAL]
-    if token == REQUIRES_LOCAL_CORPUS and env.source_scope == SCOPE_WEB:
+    if token in (REQUIRES_LOCAL_CORPUS, REQUIRES_SHARED_CORPUS) and env.source_scope == SCOPE_WEB:
         return SCOPE_LABELS[SCOPE_WEB]
     return REQUIREMENT_LABELS.get(token, token)
 
@@ -294,7 +313,7 @@ def unavailable_capability(name: str, env: Env) -> str:
     for capability in caps:
         if capability in env.capability_denials:
             return capability
-    if not env.retrieval and caps & {"network", "local_corpus",
+    if not env.retrieval and caps & {"network", "local_corpus", "shared_corpus",
                                     "web_retrieval", "local_retrieval",
                                     "literature_retrieval"}:
         return "retrieval"
@@ -340,6 +359,7 @@ __all__ = [
     "SCOPE_AUTO", "SCOPE_FUSION", "SCOPE_LABELS", "SCOPE_LOCAL", "SCOPE_WEB",
     "Env", "available_tool_names", "declarations", "explain", "missing_requirements",
     "matching_producer_kinds",
-    "runtime_env", "script_sandbox_available", "tool_metadata",
+    "runtime_env", "script_sandbox_available", "shared_corpus_available",
+    "tool_metadata",
     "unavailable_capability",
 ]

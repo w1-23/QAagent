@@ -127,6 +127,7 @@ class ContextEpoch:
     working_state: dict = field(default_factory=dict)
     # Populated from the session loader; absence is not evidence of success.
     history_load_status: str = "unknown"
+    history_load_reason: str = ""
 
     def apply_prefix(self, messages):
         if not self.covered_count:

@@ -449,6 +449,7 @@ async def run_model_attempt(model, messages, invoke, *, purpose="supervisor", ou
              "epoch": phase.number if phase else 0,
              "change_reason": "protocol_fallback" if parent and parent.get("redirected") else phase.reason if phase else "initial",
              "history_load_status": phase.history_load_status if phase else "unknown",
+             "history_load_reason": phase.history_load_reason if phase else "",
              "estimate": estimate, "model": str(payload.get("model", "")),
              "parent_purpose": parent.get("purpose", "") if parent else ""}
 
@@ -456,7 +457,8 @@ async def run_model_attempt(model, messages, invoke, *, purpose="supervisor", ou
         snapshot = build_context_snapshot(scope["estimate"],
             logical_call_id=logical_call_id, attempt_id=scope["attempt_id"], purpose=purpose,
             model=scope["model"], epoch=scope["epoch"], change_reason=scope["change_reason"],
-            history_load_status=scope["history_load_status"], input_limit=limit,
+            history_load_status=scope["history_load_status"],
+            history_load_reason=scope["history_load_reason"], input_limit=limit,
             usage=usage, status=status, error=error)
         snapshot["parent_purpose"] = scope["parent_purpose"]
         scope["context_snapshot"] = snapshot

@@ -1150,6 +1150,37 @@ async function copyRecoveryCodes() {
   setSecurityStatus('recoveryStatus', '已选中恢复码，请按 Ctrl+C 或 ⌘C 复制。');
 }
 
+var sharedMaintenanceTimer = null;
+var sharedMaintenanceActive = false;
+
+function displaySharedMaintenance(message) {
+  sharedMaintenanceActive = Boolean(message);
+  var notice = document.getElementById('shared-maintenance-notice');
+  if (notice) {
+    if (notice.textContent !== message) notice.textContent = message;
+    notice.hidden = !message;
+  }
+}
+
+async function refreshSharedMaintenance(epoch) {
+  if (epoch !== authEpoch || !currentAccount || !document.getElementById('shared-maintenance-notice')) return;
+  var delay = 5000;
+  try {
+    var response = await accountFetch('/api/v2/shared-corpus/maintenance', {cache:'no-store'});
+    if (epoch !== authEpoch) return;
+    if ([401, 404].includes(response.status)) { displaySharedMaintenance(''); return; }
+    if (!response.ok) throw new Error('maintenance status unavailable');
+    var status = await response.json();
+    if (epoch !== authEpoch) return;
+    displaySharedMaintenance(status.state === 'maintenance' ? status.message || '' : '');
+    if (status.state === 'disabled') return;
+    delay = status.state === 'idle' || status.state === 'active' ? 8000 : 2000;
+  } catch (_) {
+    if (epoch !== authEpoch) return;
+  }
+  sharedMaintenanceTimer = setTimeout(function () { refreshSharedMaintenance(epoch); }, delay);
+}
+
 async function startAuthenticatedApp() {
   var epoch = authEpoch;
   showAuthGate(false);
@@ -1160,6 +1191,9 @@ async function startAuthenticatedApp() {
     _runtimeConfig = cfg; applyAppVersion();
   }).catch(function(){ if (epoch !== authEpoch) return;});
   await ensureSession(); if (epoch !== authEpoch) return;
+  clearTimeout(sharedMaintenanceTimer);
+  displaySharedMaintenance('');
+  void refreshSharedMaintenance(epoch);
   if (currentAccount && currentAccount.role === 'admin' &&
       new URLSearchParams(location.search).get('adminSettings') === '1') {
     if (configReady) await configReady;
@@ -1491,6 +1525,8 @@ async function reviewUploadedPdf(file, card) {
       a.textContent = label; a.setAttribute('download', ''); controls.appendChild(a); return a;
     }
     function auditStatusText(row) {
+      var verdict = row && row.verdict;
+      if (verdict) return ({verified:'已核实', correction_required:'建议更正', not_confirmed:'尚未确认'})[verdict.decision] || '尚未确认';
       var state = (row && row.result && row.result.status) || (row && row.status) || 'not_checked';
       return ({metadata_matched:'已匹配', metadata_mismatch:'字段冲突', metadata_uncertain:'字段待确认',
         title_candidate:'标题候选待确认', web_candidate:'网页候选待确认',
@@ -1548,7 +1584,9 @@ async function reviewUploadedPdf(file, card) {
         network_disabled:'联网已关闭', already_running:'已有核验正在运行，请稍后继续',
         cancelled:'已取消，已完成的记录保留', cancelled_use_resume:'已取消，可继续核验',
         lease_lost:'运行状态已改变，请继续核验'};
-      summary.textContent = '已核验 ' + (coverage.processed || 0) + '/' + (coverage.total || 0) +
+      var verdicts = view.verdict_counts;
+      summary.textContent = '已处理 ' + (coverage.processed || 0) + '/' + (coverage.total || 0) +
+        (verdicts ? '；已核实 ' + verdicts.verified + '，建议更正 ' + verdicts.correction_required + '，尚未确认 ' + verdicts.not_confirmed : '') +
         (coverage.pending ? '，待核验 ' + coverage.pending : '') +
         (coverage.retryable ? '，可重试 ' + coverage.retryable : '') +
         (view.extraction && view.extraction.status !== 'complete' ? '；条目提取不完整，仅核验已提取部分' : '') +
@@ -2463,6 +2501,7 @@ function queueStateLabel(entry) {
     awaiting_input: '等待你的选择', settling: '正在保存结果', terminal: '已结束',
     reconcile_required: '状态待核对'};
   var label = names[entry.state] || '等待确认';
+  if (entry.state === 'queued' && sharedMaintenanceActive) label = '已排队 · 等待语料库更新';
   if (entry.state === 'queued' && Number(entry.queue_position) > 0)
     label += ' · 第 ' + Number(entry.queue_position) + ' 位';
   return label;
@@ -3207,7 +3246,12 @@ function renderContextPanel(data) {
         (breakdown.inconsistent ? ' 分类合计与总量不一致，暂按总量显示。' : '') +
         (max > 0 && est > max ? ' 输入估算已超过模型窗口。' : '');
     var historyLabels = {success: '已装配', loaded: '已装配', empty: '无历史记录', degraded: '降级装配', failed: '加载失败', unknown: '装配状态未知'};
-    sumEl.textContent += ' 历史：' + (historyLabels[_ctxData.history_load_status] || historyLabels.unknown) + '。';
+    var historyReasons = {legacy_checkpoint_untrusted: '已读取可用的原始对话',
+      raw_history_incomplete: '部分原始记录不可用', source_integrity_failed: '部分历史未通过完整性校验',
+      owner_scope_mismatch: '部分历史未通过账号与会话校验', history_load_failed: '部分历史暂不可读'};
+    var historyStatus = historyLabels[_ctxData.history_load_status] || historyLabels.unknown;
+    var historyReason = historyReasons[_ctxData.history_load_reason];
+    sumEl.textContent += ' 历史：' + historyStatus + (historyReason ? '，' + historyReason : '') + '。';
     if (CTX_CHANGES[_ctxData.change_reason]) sumEl.textContent += ' 变化：' + CTX_CHANGES[_ctxData.change_reason] + '。';
     var toolMessages = _ctxTokenNumber(_ctxData.tool_message_count);
     if (toolMessages != null) sumEl.textContent += ' 工具结果消息 ' + toolMessages + ' 条，已计入消息内容；未单独提供 token 数。';
@@ -4026,6 +4070,11 @@ function toolStatusText(status, reason) {
     some_records_unverified: '部分条目未能核实', coverage_incomplete: '部分内容未完成检查',
     some_material_unreviewed: '部分材料未能检查',
     fields_unavailable: '读取字段不存在；请使用 JSON Pointer 路径（如 /rows）',
+    result_fields_unavailable: '所选字段不可读，可改用原文分页', result_fields_invalid: '请选择更少的字段',
+    result_read_range: '请调整起始位置或缩小单页范围', result_page_too_large: '请缩小原文页或字段范围',
+    result_access_denied: '回执读取权限未通过', result_unavailable: '当前会话没有可读取的回执原文',
+    result_integrity_failed: '回执原文未通过完整性校验', result_storage_unavailable: '暂时无法读取回执存储',
+    result_retention_truncated: '只保留了原文的开头和结尾', budget_blocked: '上下文预算不足，请缩小读取范围',
     no_new_evidence: '未获得新的证据或覆盖', finalization_budget: '工作预算已用尽，保留已有结果',
     context_budget_exhausted: '上下文超出工作输入限额', history_load_failed: '会话历史加载失败',
     model_timeout: '模型响应超时', model_network: '模型连接失败',

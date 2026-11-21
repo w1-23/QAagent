@@ -56,7 +56,7 @@ async def load_session_context(state: AgentState) -> dict:
         )
         # A durable answer carries newer working refs than a possibly interrupted
         # parent session save. Keep that host-owned state across context loading.
-        if state.get("continuation_context"):
+        if ctx.history_scope_authorized and state.get("continuation_context"):
             carried = state.get("context_working_state") or {}
             working = dict(result.get("context_working_state") or {})
             for key in ("dataset_refs", "source_refs", "script_refs", "run_refs"):
@@ -68,10 +68,17 @@ async def load_session_context(state: AgentState) -> dict:
             working.update({key: value for key, value in carried.items()
                             if key not in {"dataset_refs", "source_refs", "script_refs", "run_refs"}})
             result["context_working_state"] = working
-        if ctx.history_load_status == "failed":
+        if ctx.history_load_reason:
+            notices = {
+                "legacy_checkpoint_untrusted": "旧摘要无法验证，本轮使用仍可读取的原始对话。",
+                "raw_history_incomplete": "部分原始历史或工具证据已不可用，本轮保留可读内容。",
+                "source_integrity_failed": "历史检查点未通过完整性校验，本轮保留可读对话。",
+                "owner_scope_mismatch": "无法按当前账号与会话验证部分历史来源。",
+            }
             try:
-                emit_encoded("context_degraded", {"stage": "history_load", "status": "failed",
-                    "reason_code": "history_load_failed", "message": "本轮历史读取失败，不能依赖既往对话。"})
+                emit_encoded("context_degraded", {"stage": "history_load", "status": ctx.history_load_status,
+                    "reason_code": ctx.history_load_reason,
+                    "message": notices.get(ctx.history_load_reason, "本轮历史读取失败，不能依赖既往对话。")})
             except Exception:
                 pass
         try:
@@ -88,13 +95,12 @@ async def load_session_context(state: AgentState) -> dict:
                  evidence=bool(result.get("history_evidence_block")))
         except Exception:
             pass
-        result["history_load_status"] = ctx.history_load_status
         return result
     except Exception as exc:  # noqa: BLE001 - context failure must not break a chat
-        logger.warning("[SessionNodes:load] failed: %s", exc)
+        logger.warning("[SessionNodes:load] failed: %s", type(exc).__name__)
         try:
             from src.core.business_logger import blog
-            blog("load_failed", err=str(exc)[:200])
+            blog("load_failed", err=type(exc).__name__)
         except Exception:
             pass
         result["_trace"] = {"node": "session_load", "elapsed_ms": 0,
@@ -104,10 +110,11 @@ async def load_session_context(state: AgentState) -> dict:
         # while the model was answering from an empty conversation.
         result["history_load_status"] = "failed"
         result["history_load_error"] = type(exc).__name__
+        result["history_load_reason"] = "history_load_failed"
         try:
             emit_encoded("context_degraded", {
                 "stage": "history_load", "status": "failed",
-                "reason_code": type(exc).__name__,
+                "reason_code": result["history_load_reason"],
                 "message": "本轮未能装入历史对话与记忆；已按当前问题继续，"
                            "回答可能缺少既往上下文。"})
         except Exception:

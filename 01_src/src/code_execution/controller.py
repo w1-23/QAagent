@@ -23,7 +23,8 @@ from .logs import ExecutionLogs
 
 class ExecutionController:
     def __init__(self, repository, backend, *, staging_root: Path,
-                 worker_id: str, workspace_factory=TaskWorkspaceService, interval=0.25):
+                 worker_id: str, workspace_factory=TaskWorkspaceService, interval=0.25,
+                 base_dependency_versions=None):
         token(worker_id)
         root = Path(staging_root)
         if not root.is_absolute():
@@ -35,6 +36,7 @@ class ExecutionController:
         self.repository, self.backend = repository, backend
         self.staging_root, self.worker_id = root, worker_id
         self.workspace_factory, self.interval = workspace_factory, interval
+        self.base_dependency_versions = dict(base_dependency_versions or {})
         self.logs = ExecutionLogs(repository)
         from .resources import ExecutionResources
         self.resources = ExecutionResources(repository, staging_root=root, workspace_factory=workspace_factory)
@@ -217,8 +219,13 @@ class ExecutionController:
                         accepted = accept_outputs(request, execution_id=row["execution_id"],
                             fence=row["fence"], blobs=blobs, workspace_repository=workspace.repository)
                         accepted_result = accepted
-                        return {**observation, **accepted, "request_fingerprint": request.fingerprint,
-                                "network_policy": request.network_policy, "process_stopped": True}
+                        receipt = {**observation, **accepted, "request_fingerprint": request.fingerprint,
+                                   "network_policy": request.network_policy, "process_stopped": True}
+                        if self.base_dependency_versions and request.environment_id == "base":
+                            receipt["verified_environment"] = {"image_id": handle.image_id,
+                                "environment_id": request.environment_id, "revision": request.environment_revision,
+                                "dependency_versions": self.base_dependency_versions}
+                        return receipt
                     receipt = self.repository.complete_success(row["execution_id"], self.worker_id,
                         row["fence"], accept_result=accept, process_stopped=True,
                         on_terminal=self._terminal_callback(row, handle, lease))

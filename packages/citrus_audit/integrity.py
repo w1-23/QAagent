@@ -260,8 +260,11 @@ class IntegrityConfig:
     max_findings: int = 500
     decimal_tail_min_places: int = 4
     decimal_tail_digits: int = 3
+    selected_methods: tuple[str, ...] = METHODS
 
     def validate(self) -> None:
+        if not self.selected_methods or set(self.selected_methods) - set(METHODS):
+            raise ValueError("Invalid selected cross-file methods")
         for name in ("min_rows", "min_distinct", "block_columns", "max_column_pairs",
                      "max_block_windows", "max_block_candidates", "max_findings"):
             value = getattr(self, name)
@@ -388,10 +391,13 @@ def audit_numeric_reuse(tables: Sequence[IntegrityTable], *,
             raise ValueError("One source_id cannot identify different original file hashes")
         source_hashes[table.source_id] = table.source_sha256
     pairs = [(a, b) for a, b in combinations(ordered, 2) if a.source_id != b.source_id]
+    selected = frozenset(config.selected_methods)
+    block_methods = tuple(name for name in ("exact_block", "reordered_block") if name in selected)
+    column_enabled = bool(selected - {"exact_block", "reordered_block"})
     methods = {name: {"tested": 0, "matched": 0, "skipped": {}, "windows_scanned": 0} for name in METHODS}
     coverage: dict[str, Any] = {
         "table_pairs": len(pairs), "same_source_table_pairs_excluded": len(ordered) * (len(ordered) - 1) // 2 - len(pairs),
-        "column_pairs_total": sum(len(a.column_names) * len(b.column_names) for a, b in pairs),
+        "column_pairs_total": sum(len(a.column_names) * len(b.column_names) for a, b in pairs) if column_enabled else 0,
         "column_pairs_examined": 0, "block_windows_total": 0, "block_windows_scanned": 0,
         "block_candidate_pairs": 0, "block_candidates_examined": 0,
         "findings_omitted": 0, "limit_reasons": [], "methods": methods,
@@ -400,6 +406,8 @@ def audit_numeric_reuse(tables: Sequence[IntegrityTable], *,
     seen: set[str] = set()
 
     def skip(method: str, reason: str) -> None:
+        if method not in selected:
+            return
         counts = methods[method]["skipped"]
         counts[reason] = counts.get(reason, 0) + 1
 
@@ -440,7 +448,7 @@ def audit_numeric_reuse(tables: Sequence[IntegrityTable], *,
             "normal_explanations": list(NORMAL_EXPLANATIONS), "caution": CAUTION,
         })
 
-    for left, right in pairs:
+    for left, right in pairs if column_enabled else ():
         if coverage["column_pairs_examined"] >= config.max_column_pairs:
             break
         for lc in range(len(left.column_names)):
@@ -450,7 +458,7 @@ def audit_numeric_reuse(tables: Sequence[IntegrityTable], *,
                 if coverage["column_pairs_examined"] >= config.max_column_pairs:
                     break
                 coverage["column_pairs_examined"] += 1
-                aligned_methods = ("exact_column", "constant_offset", "constant_ratio", "affine")
+                aligned_methods = tuple(name for name in ("exact_column", "constant_offset", "constant_ratio", "affine") if name in selected)
                 if len(left.values) != len(right.values):
                     for method in (*aligned_methods, "reordered_column", "shared_decimal_tail"):
                         skip(method, "row_count_mismatch")
@@ -480,7 +488,7 @@ def audit_numeric_reuse(tables: Sequence[IntegrityTable], *,
                         if relation is not None:
                             emit(method, left, right, valid, valid, [lc], [rc], relation=relation)
                             matched = True
-                    if not matched:
+                    if not matched and "shared_decimal_tail" in selected:
                         methods["shared_decimal_tail"]["tested"] += 1
                         tail_rows, relationship = _decimal_tail(a, b, config)
                         if tail_rows:
@@ -488,10 +496,12 @@ def audit_numeric_reuse(tables: Sequence[IntegrityTable], *,
                             emit("shared_decimal_tail", left, right, positions, positions, [lc], [rc], relation=relationship)
                         else:
                             skip("shared_decimal_tail", relationship["skip"])
-                    else:
+                    elif matched:
                         skip("shared_decimal_tail", "stronger_relation_reported")
                 if reason:
                     skip("shared_decimal_tail", reason)
+                if "reordered_column" not in selected:
+                    continue
                 lr = [i for i in range(count) if left.values[i][lc] is not None]
                 rr = [i for i in range(count) if right.values[i][rc] is not None]
                 av, bv = [left.values[i][lc] for i in lr], [right.values[i][rc] for i in rr]
@@ -519,8 +529,9 @@ def audit_numeric_reuse(tables: Sequence[IntegrityTable], *,
         index = {"exact_block": defaultdict(list), "reordered_block": defaultdict(list)}
         indexes[table.key] = index
         nrows, ncols = len(table.values), len(table.column_names)
-        coverage["block_windows_total"] += max(0, nrows - height + 1) * max(0, ncols - width + 1) + max(0, ncols - width + 1)
-        for method in ("exact_block", "reordered_block"):
+        coverage["block_windows_total"] += max(0, ncols - width + 1) * (
+            (max(0, nrows - height + 1) if "exact_block" in selected else 0) + int("reordered_block" in selected))
+        for method in block_methods:
             if coverage["block_windows_scanned"] >= config.max_block_windows:
                 break
             for col in range(max(0, ncols - width + 1)):
@@ -555,7 +566,7 @@ def audit_numeric_reuse(tables: Sequence[IntegrityTable], *,
 
     for left, right in pairs:
         covered_blocks: list[tuple[int, ...]] = []
-        for method in ("exact_block", "reordered_block"):
+        for method in block_methods:
             li, ri = indexes[left.key][method], indexes[right.key][method]
             for signature in li:
                 if signature not in ri:
@@ -643,6 +654,9 @@ def audit_numeric_reuse(tables: Sequence[IntegrityTable], *,
     }
     source_coverage = [table.coverage() for table in ordered]
     for name, receipt in methods.items():
+        if name not in selected:
+            receipt.update(method_version=METHOD_VERSION, status='not_requested', reason='not_requested', limits=[])
+            continue
         limits = [reason for reason in coverage['limit_reasons'] if
                   reason == 'max_findings' or
                   (name in {'exact_block', 'reordered_block'} and reason in {'max_block_windows', 'max_block_candidates'}) or

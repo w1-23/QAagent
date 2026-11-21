@@ -231,6 +231,35 @@ def project_tool_message(message):
     return projected.model_copy(update={"additional_kwargs": metadata})
 
 
+def paired_history_indices(messages: list, *, excluded: set[int] | None = None) -> list[int]:
+    """Keep intact standalone history and contiguous tool batches with exact call IDs."""
+    excluded = excluded or set()
+    kept = []
+    index = 0
+    while index < len(messages):
+        message = messages[index]
+        if isinstance(message, ToolMessage):
+            index += 1
+            continue
+        if not isinstance(message, AIMessage) or not (message.tool_calls or message.invalid_tool_calls):
+            if index not in excluded:
+                kept.append(index)
+            index += 1
+            continue
+        ids = [call.get("id") for call in message.tool_calls]
+        end = index + 1
+        while end < min(len(messages), index + 1 + len(ids)) and isinstance(messages[end], ToolMessage):
+            end += 1
+        results = messages[index + 1:end]
+        if (not message.invalid_tool_calls and ids and all(ids)
+                and len(ids) == len(set(ids)) == len(results)
+                and {result.tool_call_id for result in results} == set(ids)
+                and excluded.isdisjoint(range(index, end))):
+            kept.extend(range(index, end))
+        index = end
+    return kept
+
+
 def historical_send_view(messages: list) -> list:
     """One output per input in the same order, suitable for row-ID checkpoints.
 

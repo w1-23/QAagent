@@ -23,6 +23,7 @@ import json
 import logging
 import re
 import sqlite3
+from tempfile import NamedTemporaryFile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -30,7 +31,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 QUEUE_DIRNAME = "_review_queue"
-MIN_CONTENT_CHARS = 2000
+MIN_CONTENT_CHARS = 1500
 MAX_ARCHIVE_BYTES = 32 * 1024 * 1024
 ALLOWED_STATUS = ("pending", "approved", "rejected", "ingested")
 
@@ -129,6 +130,10 @@ def ensure_schema() -> None:
                 conn.execute(f"ALTER TABLE corpus_candidates ADD COLUMN {name} {ddl}")
         conn.execute("CREATE INDEX IF NOT EXISTS ix_cand_status ON corpus_candidates(status, created_at)")
         conn.execute("CREATE INDEX IF NOT EXISTS ix_cand_doi ON corpus_candidates(doi)")
+        conn.execute("CREATE INDEX IF NOT EXISTS ix_cand_fetch_path ON corpus_candidates(source_kind, stored_path)")
+        conn.execute("CREATE TABLE IF NOT EXISTS corpus_fetch_discoveries ("
+                     "candidate_id INTEGER NOT NULL, user_id INTEGER NOT NULL, "
+                     "PRIMARY KEY(candidate_id, user_id))")
         # 旧版本遗留的批次表保留但不写入，避免历史证据丢失。
         conn.execute("""
             CREATE TABLE IF NOT EXISTS corpus_batches (
@@ -305,6 +310,38 @@ def _write_archive(candidate_key: str, *, filename: str, data: bytes,
     return target, _sha256_bytes(data)
 
 
+def _write_fetch_archive(key: str, filename: str, data: bytes, meta: dict) -> Path:
+    folder = _archive_root() / key
+    folder.mkdir(mode=0o700, exist_ok=True)
+    files = {filename: data, "meta.json": json.dumps(meta, ensure_ascii=False).encode()}
+    if meta.get("license_verified") is True:
+        evidence = {key: meta[key] for key in ("license", "license_verified", "license_evidence",
+                                               "sha256_of_saved_bytes", "url")}
+        files["license.json"] = json.dumps(evidence, ensure_ascii=False).encode()
+    for name, payload in files.items():
+        target = folder / name
+        if target.is_file():
+            continue
+        with NamedTemporaryFile(dir=folder, delete=False) as stream:
+            staged = Path(stream.name)
+            try:
+                stream.write(payload)
+                stream.flush()
+                try:
+                    target.hardlink_to(staged)
+                except FileExistsError:
+                    pass
+            finally:
+                staged.unlink(missing_ok=True)
+    return folder / filename
+
+
+def _record_discovery(conn, candidate_id: int, user_id: int) -> None:
+    if user_id > 0:
+        conn.execute("INSERT OR IGNORE INTO corpus_fetch_discoveries VALUES (?, ?)",
+                     (candidate_id, user_id))
+
+
 def _first_doi(*texts: str) -> str:
     pattern = re.compile(r"10\.\d{4,9}/[^\s\"'<>\],;)]+")
     for text in texts:
@@ -322,18 +359,19 @@ def _insert_or_bump(*, doi: str, title: str, journal: str, year: str, url: str,
     ensure_schema()
     now = _now()
     content_sha = _sha256_bytes(str(text or "").encode("utf-8"))
-    key_doi = str(doi or "").strip().lower()
     conn = _connect()
     try:
+        conn.execute("BEGIN IMMEDIATE")
         row = None
-        if key_doi:
+        if source_kind == "fetch_paper":
             row = conn.execute(
-                "SELECT * FROM corpus_candidates WHERE lower(doi) = ? ORDER BY id LIMIT 1",
-                (key_doi,)).fetchone()
-        if row is None:
+                "SELECT * FROM corpus_candidates WHERE source_kind = ? AND stored_path = ? ORDER BY id LIMIT 1",
+                (source_kind, stored_path)).fetchone()
+        else:
             row = conn.execute(
-                "SELECT * FROM corpus_candidates WHERE content_sha256 = ? ORDER BY id LIMIT 1",
-                (content_sha,)).fetchone()
+                "SELECT * FROM corpus_candidates WHERE source_kind = ? AND requested_by = ? "
+                "AND raw_sha256 = ? ORDER BY id LIMIT 1",
+                (source_kind, int(user_id), raw_sha256)).fetchone()
         if row is not None:
             providers = set(_loads_list(row["providers"]))
             providers.add(provider)
@@ -344,6 +382,8 @@ def _insert_or_bump(*, doi: str, title: str, journal: str, year: str, url: str,
                 "WHERE id=?",
                 (now, now, json.dumps(sorted(providers), ensure_ascii=False),
                  url, stored_path, row["id"]))
+            if source_kind == "fetch_paper":
+                _record_discovery(conn, row["id"], int(user_id))
             conn.commit()
             return {"id": row["id"], "status": row["status"], "deduped": True}
         cursor = conn.execute(
@@ -356,6 +396,8 @@ def _insert_or_bump(*, doi: str, title: str, journal: str, year: str, url: str,
              json.dumps([provider], ensure_ascii=False), len(str(text or "")), content_sha,
              stored_path, now, int(user_id), session_id, request_id, raw_format, conversion,
              raw_sha256, int(raw_bytes), stored_path, now, source_kind))
+        if source_kind == "fetch_paper":
+            _record_discovery(conn, int(cursor.lastrowid), int(user_id))
         conn.commit()
         return {"id": int(cursor.lastrowid), "status": "pending", "deduped": False}
     finally:
@@ -373,7 +415,8 @@ def _loads_list(text: str) -> list:
 # --------------------------------------------------------------------------- 采集入口
 
 def archive_fetch(winner: dict[str, Any], *, doi: str = "", title: str = "",
-                  session_id: str = "", request_id: str = "", user_id: int = 0) -> dict[str, Any] | None:
+                  session_id: str = "", request_id: str = "", user_id: int = 0,
+                  verified_license: str = "") -> dict[str, Any] | None:
     """抓取胜出结果 → 原始 Markdown 落盘（调用方必须传**未截断**的胜出正文）。"""
     try:
         if not isinstance(winner, dict):
@@ -398,12 +441,23 @@ def archive_fetch(winner: dict[str, Any], *, doi: str = "", title: str = "",
             conversion = (f"upstream_extract({winner_format})" if upstream
                           else "none(plain_text_passthrough)")
 
-        doi_value = (str(doi or "").strip().lower()
-                     or _first_doi(content[:8000], str(winner.get("title") or ""),
-                                   str(winner.get("url") or "")))
+        from urllib.parse import unquote, urlsplit
+        from citrus_refcheck.providers import norm_title, normalize_doi
+
+        url = str(winner.get("url") or "")
+        source_url = urlsplit(url)
+        doi_value = normalize_doi(doi) or normalize_doi(_first_doi(unquote(source_url.path)))
         paper_title = str(winner.get("title") or title or "").strip()
-        stored_key = _slug(doi_value or paper_title or _sha256_bytes(body.encode("utf-8"))[:12], 70)
-        payload = body.encode("utf-8")
+        normalized_body = body.replace("\r\n", "\n").replace("\r", "\n").rstrip("\n")
+        payload = normalized_body.encode("utf-8")
+        if len(payload) > MAX_ARCHIVE_BYTES:
+            return None
+        digest = _sha256_bytes(payload)
+        source_digest = _sha256_bytes(content.encode("utf-8"))
+        identity = doi_value or "\0".join((source_url._replace(fragment="").geturl(), norm_title(paper_title)))
+        # Presentation and newlines can vary between providers for the same text.
+        seed = "\0".join((identity, digest))
+        stored_key = "fetch_" + _sha256_bytes(seed.encode("utf-8"))
         meta = {
             "doi": doi_value,
             "title": paper_title,
@@ -412,23 +466,26 @@ def archive_fetch(winner: dict[str, Any], *, doi: str = "", title: str = "",
             "raw_format": raw_format,
             "conversion": conversion,
             "fetched_at": _now(),
-            "sha256_of_saved_bytes": _sha256_bytes(payload),
-            "sha256_of_source_text": _sha256_bytes(content.encode("utf-8")),
+            "sha256_of_saved_bytes": digest,
+            "sha256_of_source_text": source_digest,
             "bytes": len(payload),
-            "chars": len(body),
+            "chars": len(normalized_body),
             "session_id": session_id,
             "request_id": request_id,
         }
-        # 纯文本不冒充 Markdown：扩展名跟随真实格式，转换来源写在 meta.json 与 conversion 字段。
-        filename = "paper.md" if raw_format in ("markdown", "html") else "paper.txt"
-        path, digest = _write_archive(stored_key, filename=filename, data=payload, meta=meta)
-        return _insert_or_bump(
+        if verified_license:
+            meta.update(license=verified_license, license_verified=True, license_evidence="ncbi_pmc_oa")
+        # UTF-8 plain text is valid Markdown; the source format is kept in metadata.
+        path = _write_fetch_archive(stored_key, "paper.md", payload, meta)
+        archived = _insert_or_bump(
             doi=doi_value, title=paper_title, journal=str(winner.get("journal") or ""),
             year=str(winner.get("year") or ""), url=str(winner.get("url") or ""),
             source_kind="fetch_paper", provider=str(winner.get("format") or "fetch_paper"),
-            text=body, raw_format=raw_format, conversion=conversion,
+            text=normalized_body, raw_format=raw_format, conversion=conversion,
             stored_path=str(path), raw_sha256=digest, raw_bytes=len(payload),
             session_id=session_id, request_id=request_id, user_id=user_id)
+        archived["verified_license"] = (path.parent / "license.json").is_file()
+        return archived
     except Exception:
         logger.warning("corpus_review: 抓取原文归档失败（已忽略）", exc_info=True)
         return None

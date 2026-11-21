@@ -201,7 +201,7 @@ def _public(row, *, receipt=False):
 
 
 @contextmanager
-def _accepted_file(service, identity, execution_id, path):
+def _accepted_file(service, identity, execution_id, path, *, max_bytes=None):
     """Resolve only a real terminal acceptance through existing authorization."""
     from src.code_execution.protocol import ExecutionRequest, FileSnapshot
     from src.core.account_leases import acquire_account_lease
@@ -223,7 +223,8 @@ def _accepted_file(service, identity, execution_id, path):
         raise LookupError("code_accepted_output_required")
     ref = matches[0]
     FileSnapshot(**{key: ref[key] for key in ("path", "file_id", "version", "sha256", "size_bytes")})
-    if ref["size_bytes"] > request.limits.output_bytes:
+    if (ref["size_bytes"] > request.limits.output_bytes
+            or max_bytes is not None and ref["size_bytes"] > max_bytes):
         raise ValueError("code_output_size_mismatch")
     lease = acquire_account_lease(identity.owner_user_id, expected_epoch=request.account_epoch)
     try:

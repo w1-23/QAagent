@@ -71,6 +71,7 @@ class AgentState(TypedDict, total=False):
     coverage: dict
     turn_outcome: dict
     history_load_status: str
+    history_load_reason: str
     history_load_error: str
     execution_ledger: dict
     # Private, identity-bound Host receipt; never a client request field.

@@ -26,7 +26,7 @@ def _count(value):
 
 def build_context_snapshot(estimate, *, logical_call_id, attempt_id="", purpose="",
                            model="", epoch=0, change_reason="",
-                           history_load_status="unknown", input_limit=None,
+                           history_load_status="unknown", history_load_reason="", input_limit=None,
                            working_soft_tokens=None, working_target_tokens=None,
                            usage=None, status="estimated", error=""):
     """Build a self-contained event; missing counters remain unknown, never zero.
@@ -65,6 +65,9 @@ def build_context_snapshot(estimate, *, logical_call_id, attempt_id="", purpose=
         "source": str(purpose or ""), "model": str(model or ""), "epoch": epoch,
         "status": str(status), "change_reason": str(change_reason or ""),
         "history_load_status": history,
+        "history_load_reason": history_load_reason if history_load_reason in (
+            "legacy_checkpoint_untrusted", "raw_history_incomplete", "source_integrity_failed",
+            "owner_scope_mismatch", "history_load_failed") else "",
         "estimate_scope": estimate.get("estimate_scope", "full_request_estimate"),
         "estimate_method": estimate.get("estimate_method", "unknown"),
         "estimated_input_tokens": input_tokens, "estimated_tokens": input_tokens,

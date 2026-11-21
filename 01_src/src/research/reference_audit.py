@@ -135,22 +135,32 @@ def _create_inventory(owner, session_id, inventory, *, request_budget=1200):
     return get_audit(owner, session_id, audit_id)
 
 
-def _row(item):
-    entry = json.loads(item['entry'])
-    result = json.loads(item['result']) if item['result'] else None
+def _row(item, entry, result, verdict):
     # Keep the immutable source intact; flattened fields are compatibility only.
     return {**(result or {}), **entry, 'result': result, 'attempts': item['attempts'],
-            'status': result['status'] if result else 'not_checked'}
+            'status': result['status'] if result else 'not_checked', 'verdict': verdict}
 
 
 def _view(conn, audit, *, offset=0, limit=100):
     inventory = json.loads(audit['inventory'])
     raw = conn.execute('SELECT * FROM reference_records WHERE audit_id=? ORDER BY ordinal', (audit['id'],)).fetchall()
+    from citrus_refcheck.verdict import project_verdict
     counts = {}
+    verdict_counts = dict.fromkeys(('verified', 'correction_required', 'not_confirmed', 'benign_variant', 'coverage_unavailable'), 0)
+    row_data = []
     processed = retryable = stale = 0
     for item in raw:
         result = json.loads(item['result']) if item['result'] else None
         status = result['status'] if result else 'not_checked'
+        entry = json.loads(item['entry'])
+        verdict = project_verdict(entry, result, audit_id=audit['id']) if result else None
+        row_data.append((item, entry, result, verdict))
+        if verdict:
+            verdict_counts[verdict['decision']] += 1
+            verdict_counts['benign_variant'] += bool(verdict['benign_variants'])
+            source_coverage = verdict['coverage']
+            verdict_counts['coverage_unavailable'] += bool(source_coverage['failed_sources'] or source_coverage['omitted_sources']
+                                                           or not source_coverage['queried_sources'])
         counts[status] = counts.get(status, 0) + 1
         if result:
             processed += 1
@@ -164,7 +174,7 @@ def _view(conn, audit, *, offset=0, limit=100):
                     and not counts.get('network_error') and inventory['extraction']['status'] == 'complete')
     processing_complete = bool(total and not pending and not retryable)
     review_required = bool(inventory['extraction']['status'] != 'complete'
-                           or any(status != 'metadata_matched' for status in counts))
+                           or verdict_counts['correction_required'] or verdict_counts['not_confirmed'])
     terminal = processing_complete and not audit['cancelled']
     status = ('completed_with_review' if review_required else 'complete') if terminal else audit['status']
     has_budget = audit['requests_used'] < audit['request_limit']
@@ -185,7 +195,7 @@ def _view(conn, audit, *, offset=0, limit=100):
             'next_action': next_action, 'can_resume': bool(not terminal and has_budget and (pending or retryable)),
             'export_ready': True, 'retry_optional': retry_optional,
             'parser_version': inventory['parser_version'], 'rule_version': RULE_VERSION,
-            'extraction': inventory['extraction'], 'counts': counts,
+            'extraction': inventory['extraction'], 'counts': counts, 'verdict_counts': verdict_counts,
             'coverage': {'total': total, 'submitted': total, 'processed': processed,
                          'pending': pending, 'retryable': retryable, 'complete': complete,
                          'processing_complete': processing_complete,
@@ -193,8 +203,8 @@ def _view(conn, audit, *, offset=0, limit=100):
                          'source_sha256': inventory['source']['sha256']},
             'budget': {'request_limit': audit['request_limit'], 'requests_used': audit['requests_used'],
                        'requests_remaining': max(0, audit['request_limit'] - audit['requests_used'])},
-            'rows': [{**_row(item), 'attempt_history': history.get(item['ordinal'], [])}
-                     for item in raw[offset:offset + limit]],
+            'rows': [{**_row(item, entry, result, verdict), 'attempt_history': history.get(item['ordinal'], [])}
+                     for item, entry, result, verdict in row_data[offset:offset + limit]],
             'offset': offset, 'next_offset': offset + limit if offset + limit < total else None,
             'created_at': audit['created'], 'updated_at': audit['updated'],
             'summary': ('库存条目均已尝试，待人工复核解析或字段结果；请导出此 audit_id 的全量证据，无需反复 resume。'
@@ -278,8 +288,13 @@ def verify_record(claims, *, owner=0, session_id='', uncertain_fields=(), deadli
     doi, title = lit.normalize_doi(claims.get('doi')), _value(claims, 'title')
     arxiv_id = _value(claims, 'arxiv_id')
     records, errors, providers = [], {}, {}
+    planned_sources = set()
+    query_time = time.time()
     stopped = ''
     with lit.bounded_lookup(deadline=deadline, check=check, debit=debit) as context:
+        def plan(kind, source_names):
+            planned_sources.update(name + ':' + kind for name in source_names)
+
         def query(provider, kind, value, function):
             nonlocal stopped
             if check:
@@ -313,11 +328,13 @@ def verify_record(claims, *, owner=0, session_id='', uncertain_fields=(), deadli
                     context.evidence[-1]['candidate_count'] = len(found)
         try:
             if doi:
+                plan('doi', ('Crossref', 'OpenAlex', 'DataCite', 'Semantic Scholar'))
                 encoded = lit.quote(doi, safe='/')
                 for provider, function in (('Crossref', lit._crossref_work), ('OpenAlex', lit._openalex_work),
                                            ('DataCite', lit._datacite_work), ('Semantic Scholar', lit._s2_doi)):
                     query(provider, 'doi', doi, lambda fn=function: fn(encoded))
             elif arxiv_id:
+                plan('arxiv_id', ('arXiv', 'DataCite'))
                 query('arXiv', 'arxiv_id', arxiv_id, lambda: lit._arxiv_by_id(arxiv_id))
                 query('DataCite', 'arxiv_id', arxiv_id, lambda: lit._datacite_arxiv(arxiv_id))
             # A wrong identifier must not suppress the independent title path.
@@ -327,6 +344,7 @@ def verify_record(claims, *, owner=0, session_id='', uncertain_fields=(), deadli
                 or any(value['status'] == 'conflicting' for value in compare_fields(claims, item).values())
                 for item in exact)
             if title and (not doi or needs_title):
+                plan('title', ('Crossref', 'OpenAlex', 'Europe PMC', 'PubMed'))
                 for provider, function in (('Crossref', lit._crossref_search), ('OpenAlex', lit._openalex_search),
                                            ('Europe PMC', lit._epmc_search), ('PubMed', lit._pubmed_search)):
                     query(provider, 'title', title, lambda fn=function: fn(title))
@@ -334,7 +352,7 @@ def verify_record(claims, *, owner=0, session_id='', uncertain_fields=(), deadli
             stopped = exc.reason
         evidence = deepcopy(context.evidence)
     facts = {'records': records, 'providers': providers, 'errors': errors,
-             'http_evidence': evidence}
+             'http_evidence': evidence, 'planned_sources': sorted(planned_sources), 'query_time': query_time}
     return _project_verification(claims, facts, uncertain_fields=uncertain_fields, stopped=stopped)
 
 

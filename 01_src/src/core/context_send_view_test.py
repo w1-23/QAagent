@@ -56,11 +56,8 @@ class SendViewTests(unittest.TestCase):
     def view(self, summary, *, valid=None, working_state=None):
         manager = ContextManager(session_manager=FakeSession(summary, working_state),
                                  budget=ExplodingBudget())
-        context = (patch.object(checkpoint_restore, "validate_checkpoint",
-                                return_value=True) if valid is True else
-                   patch.object(checkpoint_restore, "validate_checkpoint",
-                                return_value=False) if valid is False else
-                   patch.object(checkpoint_restore, "validate_checkpoint"))
+        reason = "source_integrity_failed" if valid is False else None
+        context = patch.object(checkpoint_restore, "checkpoint_rejection", return_value=reason)
         with context:
             return asyncio.run(manager._build_send_view("s", self.raw, self.ids, "u2"))
 

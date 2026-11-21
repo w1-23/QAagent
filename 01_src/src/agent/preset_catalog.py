@@ -52,6 +52,10 @@ _TARGETS = MappingProxyType({
     "audit_research_images": "src.research.image_integrity_tools",
     "create_research_figure": "src.research.figure_tools",
     "run_research_figure_script": "src.research.figure_tools",
+    "propose_document_ingest": "src.shared_corpus.tool_adapter",
+    "prepare_document": "src.shared_corpus.tool_adapter",
+    "commit_document_index": "src.shared_corpus.tool_adapter",
+    "search_agent_corpus": "src.shared_corpus.tool_adapter",
 })
 
 
@@ -103,6 +107,12 @@ _PRESETS = (
     _Preset("audit_research_images", "research", "research_image_integrity", "session_artifact", ("account_files", "research_tools", "session"), ("report_json",)),
     _Preset("create_research_figure", "research", "research_artifacts", "session_artifact", ("research_tools", "session"), ("figure_package",)),
     _Preset("run_research_figure_script", "research", "research_artifacts", "session_artifact", ("session", "research_tools", "script_sandbox"), ("figure_package",)),
+    # Administrator-published shared literature; visibility is gated by the
+    # shared corpus runtime through the ``shared_corpus`` requirement.
+    _Preset("propose_document_ingest", "research", "shared_corpus_proposal", "account_record", ("shared_corpus",), ()),
+    _Preset("prepare_document", "research", "shared_corpus_prepare", "account_record", ("shared_corpus",), ()),
+    _Preset("commit_document_index", "research", "shared_corpus_build", "account_record", ("shared_corpus",), ()),
+    _Preset("search_agent_corpus", "rag", "shared_corpus_search", None, ("shared_corpus",), ()),
 )
 
 

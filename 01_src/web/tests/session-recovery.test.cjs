@@ -137,3 +137,49 @@ for (const failure of [404, 503, 'invalid', 'network']) {
     assertComposer(b);
   });
 }
+
+for (const order of ['restore first', 'page response first', 'restore response first']) {
+  test(`overlapping history visits preserve one replacement (${order})`, async () => {
+    const b = setup();
+    let page;
+    let pendingPage;
+    let pendingRestore;
+    // First-page recovery supersedes pagination for this session.
+    if (order === 'restore first') {
+      pendingRestore = b.ctx.restoreSessionHistory();
+      pendingPage = b.ctx.loadEarlierHistory();
+      assert.equal(histories(b).length, 1);
+    } else {
+      pendingPage = b.ctx.loadEarlierHistory();
+      page = histories(b)[0];
+      pendingRestore = b.ctx.restoreSessionHistory();
+      assert.equal(histories(b).length, 2);
+      assert.equal(page.opts.signal.aborted, true);
+    }
+    const current = histories(b).at(-1);
+    if (order === 'page response first') {
+      b.reply(page, {}, 404);
+      await pendingPage;
+      assert.equal(creations(b).length, 0);
+    }
+    b.reply(current, {}, 404);
+    await flush();
+    const ensure = b.ctx.ensureSession();
+    assert.equal(creations(b).length, 1);
+    b.reply(creations(b)[0], {session_id: 'replacement'});
+    await flush();
+    const replacement = histories(b).find(req => req.url.includes('/replacement/messages?'));
+    assert.ok(replacement);
+    b.reply(replacement, {messages: [], turns: []});
+    await flush();
+    const queue = b.requests.find(req => req.url.includes("/replacement/turn-queue"));
+    assert.ok(queue);
+    b.reply(queue, {turns: []});
+    if (order === 'restore response first') b.reply(page, {}, 404);
+    await Promise.all([pendingPage, pendingRestore, ensure]);
+    assert.equal(creations(b).length, 1);
+    assert.equal(b.ctx.sessionId, 'replacement');
+    assert.equal(b.ctx.localStorage.getItem('citrus_session_id_A'), 'replacement');
+    assertComposer(b);
+  });
+}

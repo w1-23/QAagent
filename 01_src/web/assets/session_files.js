@@ -151,12 +151,9 @@
 
   function retentionSentence(days) {
     var n = Math.floor(Number(days) || 0);
-    // The backend expires by per-file inactivity (last_accessed_at), not by a
-    // calendar age: opening the library, previewing, downloading or attaching a
-    // file to a turn all reset the clock. Keep the copy aligned with that.
     if (n > 0) {
-      return '账号资料库 · 跨会话可引用；打开资料库、预览、下载或引用文件都会重新计时，连续 ' +
-             n + ' 天未使用的文件会自动清理。';
+      return '浏览资料库不会续期。预览、下载、引用或计算只刷新所用文件的保留期限；连续 ' +
+             n + ' 天未使用且没有已保存项目引用的普通文件会自动清理。';
     }
     return '账号资料库 · 跨会话可引用；长期未使用的文件会自动清理。';
   }

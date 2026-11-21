@@ -3,7 +3,7 @@ name: data-audit
 description: 对上传表格按适用前提选择检查，给出原始坐标、原值、执行回执和覆盖缺口；按用户需要输出不改数据的标注副本。
 license: MIT
 metadata:
-  version: "2.0.0"
+  version: "2.1.0"
 ---
 
 # 数据审查
@@ -26,3 +26,46 @@ metadata:
 信号用于复核，不输出不端判决或合成风险分。原始词法尾数只使用实际保存的 token；Excel 数值的显示格式不能恢复尾零。旧 `decimal_ending_concentration` 为显式格式化诊断，不能解释成原始末位证据。序列必须保持原序，缺失打断窗口；跨列必须按共同原始行配对。
 
 大型/不支持文件或缺少可选读取器应报告实际限制。遇部分覆盖先说明缺口；不要静默丢弃坏行、补值、排序原序或运行全部规则弥补不确定性。
+
+### Explicit audit plans
+
+Pass `checks_json.audit_plan` with `schema: "audit-plan/1"`. Choose
+`experimental_quality` for ordinary quality checks or `research_integrity`
+for specific reuse and consistency questions. Existing source selection,
+sheet, numeric column, and reported summary parameters still apply.
+Select the desired `cross_file_methods` from the documented fixed catalogue.
+For `comparisons`, bind `left` and `right` to the exact `file_index`, `sheet`,
+and the requested coordinate selection. `sample_alignment` requires actual ordered `key_columns` on
+each side; no row-number identity inference. `finite_rectangle` requires
+explicit 1-based original `rows` on each side; disjoint coordinates are
+allowed, automatic unrestricted submatrix search is not performed. Supply
+two known `units` and an explicit `right_factor_to_left` for a conversion.
+`window_search` takes `left` and `right` with `file_index`, `sheet`, and 1–8
+non-overlapping `rectangles` per side. Each rectangle lists original `rows`
+and exact `columns`. Specify `window: {rows, columns}` (3–32 by 2–8), and
+optionally `max_windows`, `max_pairs`, and a reproducible `seed`. Candidate
+hashes are followed by exact, unit-aware checks. Report `windows_scanned`,
+`candidate_pairs_examined`, and `limit_reasons` when coverage is partial.
+All three methods report skipped or incomplete coverage separately from findings.
+
+### One-off Code Worker findings
+
+In `research_integrity` mode, bind the selected account files into the
+existing offline Code Workspace by ID and hash. Declare a JSON output under
+`/outputs/`. Pass only its `execution_id` and `path` as
+`checks_json.custom_findings` after successful Code Worker acceptance.
+Emit a JSON array of up to 20 records with these fields:
+
+- `schema` = `custom-audit-finding/1`, `method_id`, `method_version`
+- `source_refs` with `{file_id, sha256}` and `cells` with
+  `{file_id, sheet, row, column}` (original 1-based coordinates)
+- `parameters`, `numerical_evidence`, and `coverage` with integer counts
+  `requested`, `executed`, `skipped`, `truncated`, plus `reason`
+- `interpretation_scope` = `review_lead_only`
+
+The host obtains the script hash, offline runtime receipt, output hash and
+installed dependency versions from the Worker. It checks locations against
+its own selected table snapshots. Treat parameters, numerical results and
+coverage counts as script observations. A result with no admitted finding
+provides no finding-level coverage receipt. Use the existing review record
+for decisions. Scripts are one-off and have read-only original inputs.

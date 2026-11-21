@@ -138,7 +138,8 @@ class HostTools:
             from contextlib import nullcontext
             from .code_tools import CODE_TOOL_NAMES, code_execution_context
             binding = (code_execution_context(identity, call['id'])
-                       if call['name'] in CODE_TOOL_NAMES else nullcontext())
+                       if call['name'] in CODE_TOOL_NAMES or call['name'] == 'audit_uploaded_data'
+                       else nullcontext())
             with binding:
                 message = await _run_single_tool(tool, call, require_durable=True,
                                                  on_dispatch=dispatched)
@@ -174,13 +175,17 @@ class HostTools:
         if identity != self.identity:
             raise ValueError("publication_identity_mismatch")
         from src.graph.agent_operations import _emit_completed_tool_step, _capture_interaction_refs
-        from src.core.tool_result_view import first_delivery
+        from src.core.progress_bus import emit_encoded
+        from src.core.tool_result_view import delivery_issue, first_delivery
         message = execution.message
         self.messages[call["id"]] = message
         _emit_completed_tool_step(call, message, self.records)
         storage = message.additional_kwargs.get("result_storage") or {}
         if not storage.get("complete"):
-            # Do not keep working from an observation we cannot read back.
+            # The operation receipt and its model delivery settle separately.
+            emit_encoded("context_degraded", {"stage": "tool_delivery", "status": "degraded",
+                "reason_code": "result_storage_unavailable", "tool_call_id": message.tool_call_id,
+                "message": "操作已记录，但暂时无法核验回执原文。请先查看已有记录。"})
             raise RuntimeError("operation_result_not_persisted")
         from src.core.tool_results import pin_references
         if not pin_references(identity.session_id, [message.tool_call_id]):
@@ -191,6 +196,10 @@ class HostTools:
         self.web_results.extend(artifact.get("web_results") or [])
         delivered = first_delivery(message, call=call,
                                    reader_available="read_tool_result" in self.allowed_names)
+        issue = delivery_issue(delivered) if delivered is not message else None
+        if issue:
+            emit_encoded("context_degraded", {"stage": "tool_delivery", "status": "degraded",
+                "reason_code": issue[0], "tool_call_id": message.tool_call_id, "message": issue[1]})
         delivered.additional_kwargs["host_publication"] = dict(self.records[-1])
         self.messages[call["id"]] = delivered
         self.publish_resolutions()

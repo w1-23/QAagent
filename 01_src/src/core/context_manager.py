@@ -129,6 +129,8 @@ class LoadedContext:
     compacted: bool = False    # v8.4: 本轮是否触发过压缩（UI 展示用，摘要已在视图内）
     context_working_state: dict = field(default_factory=dict)
     history_load_status: str = "unknown"
+    history_load_reason: str = ""
+    history_scope_authorized: bool = False
 
     @property
     def has_history(self) -> bool:
@@ -223,41 +225,58 @@ class ContextManager:
 
         if self._session:
             try:
-                raw_messages, row_ids = await self._session.get_messages_with_ids(session_id)
+                from src.core.tracing import get_session_id, get_user_id
+                from src.core.account_leases import current_account_lease
+                lease = current_account_lease()
+                owner = lease.owner if lease is not None else get_user_id()
+                if (not owner or int(owner) != ctx.user_id or get_session_id() != session_id
+                        or not await asyncio.to_thread(self._session.session_belongs_to, session_id, owner)):
+                    ctx.history_load_status = "failed"
+                    ctx.history_load_reason = "owner_scope_mismatch"
+                    return ctx
+                ctx.history_scope_authorized = True
+                diagnostics = []
+                raw_messages, row_ids = await self._session.get_messages_with_ids(
+                    session_id, diagnostics=diagnostics)
                 try:
-                    checkpoint = self._session.get_checkpoint(session_id)
+                    checkpoint = await asyncio.to_thread(self._session.get_checkpoint, session_id, strict=True)
+                except (ValueError, TypeError):
+                    checkpoint = {}
+                    diagnostics.append("source_integrity_failed")
                 except Exception:
                     checkpoint = {}
-                ctx.context_working_state = dict(checkpoint.get("working_state") or {})
+                    diagnostics.append("history_load_failed")
                 view_msgs, compacted = await self._build_send_view(
-                    session_id, raw_messages, row_ids, query, checkpoint=checkpoint)
+                    session_id, raw_messages, row_ids, query, checkpoint=checkpoint,
+                    diagnostics=diagnostics)
+                ctx.context_working_state = dict(checkpoint.get("working_state") or {})
                 ctx.history_messages = view_msgs
                 ctx.compacted = compacted
-                ctx.history_load_status = "ok"
+                if diagnostics:
+                    ctx.history_load_reason = diagnostics[0]
+                ctx.history_load_status = ("degraded" if ctx.history_load_reason
+                                           else "loaded" if raw_messages else "empty")
                 logger.info(
                     f"[ContextManager] loaded {len(raw_messages)} raw msgs -> "
                     f"view {len(view_msgs)} msgs for session {session_id[:8]}"
                 )
-            except Exception as e:
+            except Exception as exc:
                 ctx.history_load_status = "failed"
-                logger.warning(f"[ContextManager] load history failed: {e}")
-                # AG-14: 历史加载失败不再静默 — 推送 context_degraded 供前端警示
-                try:
-                    from src.core.progress_bus import emit_encoded
-                    emit_encoded("context_degraded", {"reason": "history_unavailable"})
-                except Exception:
-                    pass
+                ctx.history_load_reason = ("owner_scope_mismatch" if isinstance(exc, PermissionError)
+                                           else "history_load_failed")
+                logger.warning("[ContextManager] load history failed: %s", type(exc).__name__)
+
+        if not ctx.history_scope_authorized:
+            return ctx
 
         # Durable account files are indexed independently from the transcript.
         # This small metadata catalog survives transcript compaction; contents
         # are fetched on demand through an ownership-checked tool.
-        if ctx.user_id > 0:
-            try:
-                from src.session.files import list_account_files
-                ctx.account_files = await asyncio.to_thread(
-                    list_account_files, ctx.user_id, touch=False)
-            except Exception as e:
-                logger.warning("[ContextManager] account file catalog unavailable: %s", e)
+        try:
+            from src.session.files import list_account_files
+            ctx.account_files = await asyncio.to_thread(list_account_files, ctx.user_id)
+        except Exception as exc:
+            logger.warning("[ContextManager] account file catalog unavailable: %s", type(exc).__name__)
 
         _db_ms = (time.perf_counter() - _t_db0) * 1000
         # v8.16.4: LTM ∥ hints 并行——hints 只依赖 (query, session_id, mode)，
@@ -334,6 +353,7 @@ class ContextManager:
         query: str,
         *,
         checkpoint: dict | None = None,
+        diagnostics: list[str] | None = None,
     ) -> tuple[list, bool]:
         """Build the model send view from raw history; never compact at load.
 
@@ -342,66 +362,71 @@ class ContextManager:
         stays recoverable through the authorized read tools. Legacy or invalid
         prose is not injected, and no model call occurs here.
         """
-        from src.core.model_context import historical_send_view
-        if not raw_messages:
-            return [], False
-        projected = historical_send_view(list(raw_messages))
-        if len(projected) != len(raw_messages) or len(row_ids) != len(raw_messages):
-            # Row IDs must remain aligned with their source messages.
-            return list(raw_messages), False
+        from src.core.model_context import historical_send_view, paired_history_indices
+        from src.core.checkpoint_restore import checkpoint_rejection, navigation_view, structured_checkpoint
+
         if checkpoint is None:
-            checkpoint = {}
-            if self._session:
-                try:
-                    checkpoint = self._session.get_checkpoint(session_id)
-                except Exception as exc:
-                    logger.warning("[ContextManager] checkpoint read failed: %s", exc)
-        cp_id = int(checkpoint.get("msg_id", 0) or 0)
-        cp_summary = checkpoint.get("summary", "") or ""
+            try:
+                checkpoint = self._session.get_checkpoint(session_id) if self._session else {}
+            except Exception:
+                checkpoint = {}
+                if diagnostics is not None:
+                    diagnostics.append("source_integrity_failed")
+        usable_rows = paired_history_indices(raw_messages)
+        row_alignment_valid = len(row_ids) == len(raw_messages)
+        if len(usable_rows) != len(raw_messages) or not row_alignment_valid:
+            if diagnostics is not None:
+                diagnostics.append("raw_history_incomplete")
+            row_alignment_valid = False
+        projected = historical_send_view([raw_messages[index] for index in usable_rows])
+
+        cutoff = checkpoint.get("msg_id") or 0
+        watermark = checkpoint.get("checkpoint_watermark") or 0
+        summary = checkpoint.get("summary") or ""
         working_state = checkpoint.get("working_state") or {}
-        # Old checkpoints predate completion/CAS guarantees. Recover their raw
-        # source history instead of trusting a possibly truncated fallback.
-        stored_watermark = int(checkpoint.get("checkpoint_watermark", 0) or 0)
-        usable = bool(cp_summary.strip() and cp_id and cp_id in row_ids
-                      and cp_id <= stored_watermark <= max(row_ids, default=0))
-        from src.core.checkpoint_restore import structured_checkpoint, validate_checkpoint
-        structured = structured_checkpoint(cp_summary)
-        if structured is not None:
-            usable = usable and self._session is not None and validate_checkpoint(
-                structured, self._session, session_id, cp_id)
-            if not usable:
-                # Invalid quotations, deleted evidence or mismatched raw rows
-                # cannot authorize hiding source history or exposing stale prose.
-                cp_summary = ""
-        else:
-            # Legacy/model prose is never authoritative: keep every raw row.
-            usable = False
-        view_msgs, view_ids = [], []
-        if structured is not None and usable:
-            # Only verified, explicitly bounded navigation is sent. The full
-            # inventory and host task state remain durable in the checkpoint.
-            from src.core.checkpoint_restore import navigation_view
-            view_msgs.append(SystemMessage(
-                content="<conversation_checkpoint>\n" + navigation_view(structured)
-                        + "\n</conversation_checkpoint>",
+        reason = None
+        navigation = ""
+        if (summary or cutoff) and row_alignment_valid and not diagnostics:
+            structured = structured_checkpoint(summary)
+            if structured is None or self._session is None:
+                reason = "legacy_checkpoint_untrusted"
+            elif type(cutoff) is not int or type(watermark) is not int:
+                reason = "source_integrity_failed"
+            elif not cutoff or cutoff not in row_ids or watermark > max(row_ids, default=0):
+                reason = "raw_history_incomplete"
+            elif cutoff > watermark:
+                reason = "legacy_checkpoint_untrusted"
+            else:
+                rejected_sources: set[str] = set()
+                reason = checkpoint_rejection(structured, self._session, session_id, cutoff,
+                                              rejected_sources=rejected_sources)
+                if rejected_sources:
+                    usable_rows = paired_history_indices(raw_messages, excluded={
+                        index for index, row_id in enumerate(row_ids) if str(row_id) in rejected_sources})
+                    projected = historical_send_view([raw_messages[index] for index in usable_rows])
+                if reason is None:
+                    try:
+                        navigation = navigation_view(structured)
+                    except (TypeError, AttributeError):
+                        reason = "source_integrity_failed"
+                    if not navigation:
+                        reason = "source_integrity_failed"
+        if reason and diagnostics is not None:
+            diagnostics.append(reason)
+        view_msgs = projected
+        if navigation:
+            view_msgs = [SystemMessage(
+                content="<conversation_checkpoint>\n" + navigation + "\n</conversation_checkpoint>",
                 additional_kwargs={"context_origin": "summary", "context_trusted": True,
-                                   "checkpoint_schema": structured.get("schema", "")}))
-            view_ids.append(0)
-        else:
-            cp_summary = ""
-        if not usable:
-            cp_id = 0
-        for message, mid in zip(projected, row_ids):
-            if mid > cp_id:
-                view_msgs.append(message)
-                view_ids.append(mid)
+                                   "checkpoint_schema": structured["schema"]},
+            )]
+            view_msgs.extend(message for message, mid in zip(projected, row_ids) if mid > cutoff)
         if working_state:
             import json
             view_msgs.insert(0, SystemMessage(
                 content="<context_working_state>\n" + json.dumps(working_state, ensure_ascii=False)
                         + "\n</context_working_state>",
                 additional_kwargs={"context_origin": "working_state", "context_trusted": True}))
-            view_ids.insert(0, 0)
         # Raw history is loaded verbatim. No load-time model compaction runs;
         # WorkingContextProjection is the sole physical summary path.
         return view_msgs, False
@@ -590,6 +615,7 @@ def finalize_load_result(
         "session_id": ctx.session_id,
         "history_summary": ctx.history_summary,
         "history_load_status": ctx.history_load_status,
+        "history_load_reason": ctx.history_load_reason,
         "compacted": ctx.compacted,
         "context_working_state": dict(ctx.context_working_state),
         "long_term_memory": ctx.long_term_memory,
@@ -606,7 +632,8 @@ def finalize_load_result(
 
     # 历史检索证据块（跨轮复用）——supervisor 装配时注入
     try:
-        block = session_manager.build_evidence_block(session_id, limit=2)
+        block = (session_manager.build_evidence_block(session_id, limit=2)
+                 if ctx.history_scope_authorized else None)
         if block:
             result["history_evidence_block"] = block
     except Exception as e:
@@ -630,6 +657,8 @@ def finalize_load_result(
     try:
         from src.core.progress_bus import emit_encoded
         emit_encoded("context_status", {
+            "history_load_status": ctx.history_load_status,
+            "history_load_reason": ctx.history_load_reason,
             "history_msgs": len(history_msgs),
             "history_chars": hist_chars,
             "estimate_scope": "history_text_only",

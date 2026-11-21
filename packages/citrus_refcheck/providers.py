@@ -96,7 +96,7 @@ def _crossref_record(item: dict, source: str = "Crossref") -> dict:
     authors = "; ".join(
         " ".join(filter(None, [a.get("given"), a.get("family")])) for a in (item.get("author") or [])
     )
-    return _rec(source,
+    record = _rec(source,
                 title=first_text(item.get("title")),
                 authors=authors,
                 year=str((issued[0] or [""])[0] or "") if issued else "",
@@ -109,6 +109,16 @@ def _crossref_record(item: dict, source: str = "Crossref") -> dict:
                 years=[{'kind': key, 'year': str(parts[0][0])}
                        for key in ('published-print', 'published-online', 'issued')
                        if (parts := (item.get(key) or {}).get('date-parts')) and parts[0]])
+    aliases = item.get('short-container-title')
+    if isinstance(aliases, list):
+        record['journal_aliases'] = [value for value in aliases if isinstance(value, str) and value.strip()][:8]
+    relations = item.get('relation')
+    if isinstance(relations, dict):
+        record['related_dois'] = [normalize_doi(ref.get('id'))
+            for kind, refs in relations.items() if kind in {'is-preprint-of', 'has-preprint', 'is-version-of', 'has-version'}
+            and isinstance(refs, list) for ref in refs[:12]
+            if isinstance(ref, dict) and ref.get('id-type') == 'doi' and ref.get('id')]
+    return record
 
 
 def _crossref_search(query: str, rows: int = 8) -> tuple[int | str, list[dict], str]:
