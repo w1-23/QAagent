@@ -1,6 +1,6 @@
 {
-  "baseline_commit": "16e662334afbb2d443bed42c4197e8baf593581a",
-  "baseline_tree": "0dfb7a6bd8e612abd1519c1a2ed0cd2fb23e9f06",
+  "baseline_commit": "75bc408b09d8eccb25ebfd5da8820797fb3e2d3e",
+  "baseline_tree": "7717a2e8901d3928ca769d96ab8bc43c1f321312",
   "candidate_branch": "feat/research-growth-integrated",
   "deployment": "linux-apptainer-research-growth-integrated",
   "inventory_scope": "Exact Git source tree blobs excluding this manifest.",
@@ -246,8 +246,8 @@
       "sha256": "39e94f1618d781d0267317c7c5fe1a34af64c127a699c53077470643c3fa92f6"
     },
     "01_src/src/agent/preset_tool_schemas.json": {
-      "bytes": 86991,
-      "sha256": "e3ee1ca0cd34d9695b8b792e326e34327bc6783e4ed3afdcf7c6c34c69b5e5dd"
+      "bytes": 86967,
+      "sha256": "b8e36b44a5629aa09fba094aa97c118c6f7d79ece817a92622d9918e421e3bb2"
     },
     "01_src/src/agent/recovery.py": {
       "bytes": 8034,
@@ -314,8 +314,8 @@
       "sha256": "8915cb78166c79bb10a19dc2b4cef7f08f61c191640c103d97aa5aa7b7f06e5f"
     },
     "01_src/src/api/main.py": {
-      "bytes": 317619,
-      "sha256": "53820133e6084229581d998ad5e2a476ac99a40ff2ea9578d5504d4faa267ccc"
+      "bytes": 319210,
+      "sha256": "6f0590bee97e37fcd870ef4510fd5d13022b01431c80c66419cb391af620e36c"
     },
     "01_src/src/api/navigation_task_rediscovery_test.py": {
       "bytes": 9968,
@@ -530,8 +530,8 @@
       "sha256": "5d9bb08b421bf0db45c4496d56f25b32362eaaec83f30b8f6e0f62ca034eb50b"
     },
     "01_src/src/core/corpus_review.py": {
-      "bytes": 31665,
-      "sha256": "1271ffe1a09d1ff0518f6a16ecdf380691a42a066d581d195407ba14788e67f9"
+      "bytes": 41270,
+      "sha256": "6e387d41ca3d98cd94353d26ce3d251cce4233e8bafbc358fa0b2d2986b4c337"
     },
     "01_src/src/core/corpus_source.py": {
       "bytes": 22480,
@@ -1506,8 +1506,8 @@
       "sha256": "b4bed190cfa99ed7220b9625aa17fc72efeca5178faaf96cd3bfe19b9a7be305"
     },
     "01_src/src/shared_corpus/catalog.py": {
-      "bytes": 37911,
-      "sha256": "96a1d6befbe3298183cd121703e738089155f115085f905a4a95112490c0c74b"
+      "bytes": 38113,
+      "sha256": "dba17c17efd2b085840187c5067c5716bbff8a2f1c3e8129d3a349803e987540"
     },
     "01_src/src/shared_corpus/chunks.py": {
       "bytes": 8279,
@@ -1525,9 +1525,13 @@
       "bytes": 3497,
       "sha256": "ebcb9f9fb19f94d41d2e1eb84ba9974ba3c1e263bc2283844315b1ad19a4562f"
     },
+    "01_src/src/shared_corpus/pmc.py": {
+      "bytes": 4324,
+      "sha256": "6f6b81ca48fb1f1ac5747f4b1b55c85512c0f7134d259be0f9f4911340dc46bd"
+    },
     "01_src/src/shared_corpus/prepare.py": {
-      "bytes": 21059,
-      "sha256": "994eb050b20fa55da2dfa4ba622e50f74f4eb3d9f44461aa422a924f4bbabc5e"
+      "bytes": 21520,
+      "sha256": "fa919d361c51cb6a880cf01d7962c52a233e7ffc0dc144b732c39f43096b67a2"
     },
     "01_src/src/shared_corpus/references.py": {
       "bytes": 1315,
@@ -1538,8 +1542,8 @@
       "sha256": "9d4bd5b0756a31c8545cf12c717abe19af5f4d02db9df8806971f0ef530f2087"
     },
     "01_src/src/shared_corpus/runtime.py": {
-      "bytes": 19193,
-      "sha256": "8d5ad5aa58a0b4218098f3138144636da9a9dd44c82a097fc2a4d7ec94477b29"
+      "bytes": 21013,
+      "sha256": "978121f2974b68a29682c6ab139843649479e671aa1e2fe2d1aafa77ec04efeb"
     },
     "01_src/src/shared_corpus/search.py": {
       "bytes": 10920,
@@ -1570,8 +1574,8 @@
       "sha256": "6cf11070c9dfd8df8af265e607afa9ef4e4021822fca6c4c39e9d67ce183364d"
     },
     "01_src/src/tools/deepseek_search_fetch.py": {
-      "bytes": 65187,
-      "sha256": "0206dc60688d73abddf5d4184c2adf97fb638ad8fc8586bf5bcf682c6707999a"
+      "bytes": 68790,
+      "sha256": "e5688b35b8d33c16f24d4294f8518d9145b5a16e97e0dc2310fd26731c755bff"
     },
     "01_src/src/tools/disease_diagnose.py": {
       "bytes": 4250,
@@ -1638,16 +1642,16 @@
       "sha256": "4d86649944ff25789b23db62cb43ce027d8457f101d880ec0099818c328caa48"
     },
     "01_src/web/admin.html": {
-      "bytes": 9065,
-      "sha256": "20a60687e1cf48569770d3a27c3df2f095483ee9e30d006f7fe85f82adb7a5dc"
+      "bytes": 10109,
+      "sha256": "2432f73475cdcf97aed393a75af8395930673e442e7925ea2e343dab9c02b20e"
     },
     "01_src/web/assets/admin.css": {
       "bytes": 10544,
       "sha256": "e50b9e762e9d69347f632df276a345bb38d4785ab0acf06990454b727e42e39a"
     },
     "01_src/web/assets/admin.js": {
-      "bytes": 32751,
-      "sha256": "439f8c93ea7e420aa5a2c93e25b831e41682db953110da04c5f2fcd6982d5293"
+      "bytes": 36081,
+      "sha256": "14dd8f979a18e7463e9b3db0f08ec8450567fefe3f8d3c7c36ea56a018093989"
     },
     "01_src/web/assets/app.css": {
       "bytes": 132832,
@@ -2620,5 +2624,5 @@
   },
   "schema": "citrusscholar.linux-source/1",
   "source": "Git index",
-  "source_tree_excluding_manifest": "8f4083dbf25f1ee3c5679a7e4e7108a4ec8e1f53"
+  "source_tree_excluding_manifest": "d934059a04a0c47e592f5b48cee6126d53e5fbeb"
 }

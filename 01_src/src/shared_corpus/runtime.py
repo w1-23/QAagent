@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+from concurrent.futures import Future
 from contextlib import closing, contextmanager
 from hashlib import sha256
 import json
@@ -9,6 +10,7 @@ import logging
 import os
 from pathlib import Path
 import sqlite3
+from threading import Thread
 import time
 
 from .activity import ActivityTracker, MAINTENANCE_MESSAGE, RETRY_AFTER
@@ -18,6 +20,7 @@ logger = logging.getLogger(__name__)
 CORPUS_ID = "shared_agent_literature"
 FAMILY_ID = "agent_literature"
 _runtime = None
+_HEALTH_TIMEOUT_SEC = 5
 
 
 def current_runtime():
@@ -83,6 +86,7 @@ class SharedCorpusRuntime:
         self.generation = None
         self.unavailable = False
         self._candidate = None
+        self._preflight_thread = None
         self.wake = asyncio.Event()
         self.loop = None
 
@@ -203,18 +207,56 @@ class SharedCorpusRuntime:
     def _checked_candidate(self, generation):
         from .search import HEALTH_QUERY
         handle = self._load(generation)
-        started = time.monotonic()
         try:
             rows = handle.search(HEALTH_QUERY, limit=12)
             if not rows:
                 raise ValueError("shared_health_query_empty")
             for row in rows:
                 self._document_span(row)
-            if time.monotonic() - started > 5:
-                raise TimeoutError("shared_health_query_timeout")
             return handle, rows
         except BaseException:
             handle.close()
+            raise
+
+    async def _check_candidate(self, generation):
+        deadline = time.monotonic() + _HEALTH_TIMEOUT_SEC
+        work = Future()
+        work.set_running_or_notify_cancel()
+
+        def check():
+            try:
+                candidate = self._checked_candidate(generation)
+            except BaseException as error:
+                work.set_exception(error)
+            else:
+                work.set_result(candidate)
+
+        def discard(completed):
+            if completed.exception() is None:
+                handle, _ = completed.result()
+                try:
+                    handle.close()
+                except Exception as error:
+                    logger.warning("Discarded shared handle could not close: %s", type(error).__name__)
+
+        # The preflight owns an independent read-only handle. Keep native reads
+        # outside the default executor so they cannot delay event-loop shutdown.
+        thread = Thread(target=check, name="shared-corpus-preflight", daemon=True)
+        thread.start()
+        self._preflight_thread = thread
+        result = asyncio.wrap_future(work)
+        try:
+            done, _ = await asyncio.wait((result,), timeout=max(0, deadline - time.monotonic()))
+            if not done or time.monotonic() >= deadline:
+                raise TimeoutError("shared_health_query_timeout")
+            return result.result()
+        except (TimeoutError, asyncio.CancelledError):
+            if result.done():
+                result.exception()
+            else:
+                result.cancel()
+            # Cancelling the wrapper cannot stop the running native call.
+            work.add_done_callback(discard)
             raise
 
     def _publish(self, job, handle, samples):
@@ -293,6 +335,9 @@ class SharedCorpusRuntime:
         if job["state"] == "building":
             self.journal.transition(job, "queued", error="interrupted_build")
             return
+        if self._preflight_thread is not None and self._preflight_thread.is_alive():
+            # A timed-out native read may still own model or index resources.
+            return
         if job["state"] == "queued":
             self.journal.transition(job, "building")
             job = self.journal.job(job["id"])
@@ -307,7 +352,7 @@ class SharedCorpusRuntime:
             raise RuntimeError("shared_build_requires_startup_recovery")
         if self._candidate is None or self._candidate[0] != job["id"]:
             try:
-                candidate = await self._run_host_work(self._checked_candidate, job["generation"])
+                candidate = await self._check_candidate(job["generation"])
             except Exception as error:
                 self.journal.transition(job, "failed", error=type(error).__name__)
                 return

@@ -244,7 +244,7 @@
       "type": "function",
       "function": {
         "name": "deepseek_fetch_paper",
-        "description": "Race candidate sources for ONE paper and return a single winning full text.\n\nSupply DOI/PMID/title discovered from the public web and any candidate URLs.\nThe tool checks publisher HTML, PMC HTML/XML, Europe PMC XML and open-access\nPDF candidates where an identifier exposes them. Individual failures are\nOnly the first source that passes the minimal validity check is returned; other\nsources are cancelled or never started, and late results are discarded, so one\ncall yields at most one body. For several papers call the tool once per paper.\nDOI/PMID identify papers; they are not document formats. Never supply private\nlocal text.",
+        "description": "Race candidate sources for ONE paper and return a single winning full text.\n\nSupply DOI/PMID/title discovered from the public web and any candidate URLs.\nThe tool checks publisher HTML, PMC HTML/XML, Europe PMC XML and open-access\nPDF candidates where an identifier exposes them.\nOnly the first source that passes the minimal validity check is returned; other\nsources are cancelled or never started, and late results are discarded, so one\ncall yields at most one body. For several papers call the tool once per paper.\nDOI/PMID identify papers; they are not document formats. Never supply private\nlocal text.",
         "parameters": {
           "properties": {
             "doi": {

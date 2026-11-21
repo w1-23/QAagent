@@ -91,11 +91,12 @@
       <div class="audit-pager"><button class="button secondary" id="olderButton">更早记录</button><span id="auditPageLabel"></span><button class="button secondary" id="newerButton">更新记录</button></div>
     </section>
     <section class="panel">
-      <div class="panel-heading corpus-heading"><div><h2>文献候审库</h2><p>只保存原始资料（抓取到的 Markdown 原文、用户上传的原始文件）；不切块、不向量化、不建索引、不激活语料。人工核验后决定是否保留。</p></div>
+      <div class="panel-heading corpus-heading"><div><h2>文献候审库</h2><p>查看抓取原文与共享上传资料。抓取不到全文的条目可在这里补录。</p></div>
         <div class="corpus-actions">
           <label class="corpus-filter">状态
             <select id="corpusStatus">
               <option value="pending">待审</option>
+              <option value="fulltext_missing">待补全文</option>
               <option value="approved">已保留</option>
               <option value="rejected">已拒绝</option>
               <option value="all">全部</option>
@@ -106,6 +107,10 @@
       </div>
       <p class="corpus-summary" id="corpusSummary">正在加载…</p>
       <div class="audit-list" id="corpusList"><p class="muted">正在加载…</p></div>
+      <div class="audit-pager" id="corpusPager" hidden>
+        <button class="button secondary" id="corpusNewest" type="button">最新记录</button>
+        <button class="button secondary" id="corpusOlder" type="button">更早记录</button>
+      </div>
     </section>
     <p class="footnote">管理页面只对已登录管理员开放。审计记录按服务配置保留；临时密码和邀请码只在生成后显示一次，请通过安全渠道交付。</p>
   </main>
@@ -123,6 +128,20 @@
       </div>
     </form>
   </div>
+  <dialog class="admin-modal-card" id="corpusFulltextDialog" aria-labelledby="corpusFulltextTitle">
+    <form id="corpusFulltextForm">
+      <h2 id="corpusFulltextTitle">补录完整正文</h2>
+      <p class="muted" id="corpusFulltextPaper"></p>
+      <label class="admin-modal-field">UTF-8 的 Markdown 或纯文本文件，最多 8 MiB
+        <input id="corpusFulltextFile" type="file" accept=".md,.txt" required>
+      </label>
+      <div class="admin-error" id="corpusFulltextError" role="alert"></div>
+      <div class="actions admin-modal-actions">
+        <button class="button secondary" id="corpusFulltextCancel" type="button">取消</button>
+        <button class="button primary" id="corpusFulltextSubmit" type="submit">保存全文</button>
+      </div>
+    </form>
+  </dialog>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </body>
 </html>

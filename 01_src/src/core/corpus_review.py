@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+from contextlib import closing
 import hashlib
 import html as html_module
 import json
@@ -33,6 +34,7 @@ logger = logging.getLogger(__name__)
 QUEUE_DIRNAME = "_review_queue"
 MIN_CONTENT_CHARS = 1500
 MAX_ARCHIVE_BYTES = 32 * 1024 * 1024
+MISSING_FULLTEXT = "fulltext_missing"
 ALLOWED_STATUS = ("pending", "approved", "rejected", "ingested")
 
 _schema_ready = False
@@ -87,6 +89,8 @@ _EXTRA_COLUMNS = {
     "fetched_at": "TEXT NOT NULL DEFAULT ''",
     "archive_state": "TEXT NOT NULL DEFAULT 'archived'",
     "origin": "TEXT NOT NULL DEFAULT ''",
+    "pmid": "TEXT NOT NULL DEFAULT ''",
+    "title_key": "TEXT NOT NULL DEFAULT ''",
 }
 
 
@@ -97,6 +101,7 @@ def ensure_schema() -> None:
     _db_path().parent.mkdir(parents=True, exist_ok=True)
     conn = _connect()
     try:
+        conn.execute("BEGIN IMMEDIATE")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS corpus_candidates (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -130,6 +135,8 @@ def ensure_schema() -> None:
                 conn.execute(f"ALTER TABLE corpus_candidates ADD COLUMN {name} {ddl}")
         conn.execute("CREATE INDEX IF NOT EXISTS ix_cand_status ON corpus_candidates(status, created_at)")
         conn.execute("CREATE INDEX IF NOT EXISTS ix_cand_doi ON corpus_candidates(doi)")
+        conn.execute("CREATE INDEX IF NOT EXISTS ix_cand_pmid ON corpus_candidates(pmid) WHERE pmid<>''")
+        conn.execute("CREATE INDEX IF NOT EXISTS ix_cand_title_key ON corpus_candidates(title_key) WHERE title_key<>''")
         conn.execute("CREATE INDEX IF NOT EXISTS ix_cand_fetch_path ON corpus_candidates(source_kind, stored_path)")
         conn.execute("CREATE TABLE IF NOT EXISTS corpus_fetch_discoveries ("
                      "candidate_id INTEGER NOT NULL, user_id INTEGER NOT NULL, "
@@ -317,6 +324,7 @@ def _write_fetch_archive(key: str, filename: str, data: bytes, meta: dict) -> Pa
     if meta.get("license_verified") is True:
         evidence = {key: meta[key] for key in ("license", "license_verified", "license_evidence",
                                                "sha256_of_saved_bytes", "url")}
+        evidence["url"] = meta.get("license_source_url") or meta["url"]
         files["license.json"] = json.dumps(evidence, ensure_ascii=False).encode()
     for name, payload in files.items():
         target = folder / name
@@ -351,12 +359,90 @@ def _first_doi(*texts: str) -> str:
     return ""
 
 
+def _fetch_identity_row(conn, doi: str, pmid: str, title: str, title_key: str,
+                        *, missing_only: bool = False, raw_sha256: str = ""):
+    params = ()
+    scope = "source_kind='fetch_paper'"
+    if missing_only:
+        scope += " AND archive_state='fulltext_missing'"
+    if raw_sha256:
+        scope += " AND raw_sha256=?"
+        params = (raw_sha256,)
+    for column, value in (("doi", doi), ("pmid", pmid)):
+        if value:
+            row = conn.execute(
+                f"SELECT * FROM corpus_candidates WHERE {scope} AND {column}=? "
+                "AND (?='' OR doi='' OR doi=?) AND (?='' OR pmid='' OR pmid=?) "
+                "ORDER BY (archive_state='fulltext_missing'), id LIMIT 1", (*params, value, doi, doi, pmid, pmid)).fetchone()
+            if row is not None:
+                return row
+    if not title_key:
+        return None
+    # Distinct cited identifiers take precedence over a coinciding title.
+    rows = conn.execute(
+        f"SELECT * FROM corpus_candidates WHERE {scope} "
+        "AND (title_key=? OR (title_key='' AND title=? COLLATE NOCASE)) "
+        "ORDER BY (archive_state='fulltext_missing'), id",
+        (*params, title_key, title))
+    return next((row for row in rows
+                 if (not doi or not row["doi"] or row["doi"] == doi)
+                 and (not pmid or not row["pmid"] or row["pmid"] == pmid)), None)
+
+
+def record_missing_fulltext(*, doi: str, pmid: str, title: str, url: str) -> dict | None:
+    """Keep public bibliographic identifiers after all full-text sources fail."""
+    from urllib.parse import quote, urlsplit
+    from citrus_refcheck.providers import norm_title, normalize_doi
+    from src.shared_corpus.prepare import public_text
+
+    doi = normalize_doi(doi) or ""
+    if not re.fullmatch(r"10\.\d{4,9}/[^\s<>]{1,240}", doi):
+        doi = ""
+    pmid = pmid if re.fullmatch(r"[1-9][0-9]{0,11}", pmid) else ""
+    title = public_text(title)
+    title_key = norm_title(title)
+    source = urlsplit(url)
+    url = (source._replace(query="", fragment="").geturl()
+           if source.scheme in {"http", "https"} and source.hostname and not source.username else "")
+    if len(url) > 2048:
+        url = ""
+    if not (doi or pmid or (title_key and url)):
+        return None
+    if not url and doi:
+        url = "https://doi.org/" + quote(doi, safe="/")
+    if not url and pmid:
+        url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
+    ensure_schema()
+    now = _now()
+    with closing(_connect()) as conn, conn:
+        conn.execute("BEGIN IMMEDIATE")
+        row = _fetch_identity_row(conn, doi, pmid, title, title_key)
+        if row is not None:
+            if row["archive_state"] != MISSING_FULLTEXT:
+                return {"retention_status": "already_archived"}
+            conn.execute(
+                "UPDATE corpus_candidates SET updated_at=?, last_seen_at=?, frequency=frequency+1, "
+                "doi=coalesce(nullif(doi,''),?), pmid=coalesce(nullif(pmid,''),?), "
+                "title=coalesce(nullif(title,''),?), title_key=coalesce(nullif(title_key,''),?), "
+                "url=coalesce(nullif(url,''),?) WHERE id=?", (now, now, doi, pmid, title, title_key, url, row["id"]))
+            return {"retention_status": MISSING_FULLTEXT, "deduped": True}
+        conn.execute(
+            "INSERT INTO corpus_candidates (created_at, updated_at, last_seen_at, doi, pmid, title, "
+            "title_key, url, source_kind, frequency, archive_state, origin) "
+            "VALUES (?,?,?,?,?,?,?,?,'fetch_paper',1,?,'fetch_unavailable')",
+            (now, now, now, doi, pmid, title, title_key, url, MISSING_FULLTEXT))
+        return {"retention_status": MISSING_FULLTEXT, "deduped": False}
+
+
 def _insert_or_bump(*, doi: str, title: str, journal: str, year: str, url: str,
                     source_kind: str, provider: str, text: str, raw_format: str,
                     conversion: str, stored_path: str, raw_sha256: str, raw_bytes: int,
                     session_id: str = "", request_id: str = "",
-                    user_id: int = 0) -> dict[str, Any]:
+                    user_id: int = 0, pmid: str = "", verified_license: bool = False) -> dict[str, Any]:
+    from citrus_refcheck.providers import norm_title
+
     ensure_schema()
+    title_key = norm_title(title) if source_kind == "fetch_paper" else ""
     now = _now()
     content_sha = _sha256_bytes(str(text or "").encode("utf-8"))
     conn = _connect()
@@ -367,6 +453,12 @@ def _insert_or_bump(*, doi: str, title: str, journal: str, year: str, url: str,
             row = conn.execute(
                 "SELECT * FROM corpus_candidates WHERE source_kind = ? AND stored_path = ? ORDER BY id LIMIT 1",
                 (source_kind, stored_path)).fetchone()
+            if row is None:
+                row = _fetch_identity_row(conn, doi, pmid, title, title_key, raw_sha256=raw_sha256)
+                if row is not None and row["stored_path"] != stored_path and verified_license:
+                    conn.execute(
+                        "UPDATE corpus_candidates SET stored_path=?, fulltext_path=?, fetched_at=? WHERE id=?",
+                        (stored_path, stored_path, now, row["id"]))
         else:
             row = conn.execute(
                 "SELECT * FROM corpus_candidates WHERE source_kind = ? AND requested_by = ? "
@@ -386,16 +478,32 @@ def _insert_or_bump(*, doi: str, title: str, journal: str, year: str, url: str,
                 _record_discovery(conn, row["id"], int(user_id))
             conn.commit()
             return {"id": row["id"], "status": row["status"], "deduped": True}
+        if source_kind == "fetch_paper":
+            missing = _fetch_identity_row(conn, doi, pmid, title, title_key, missing_only=True)
+            if missing is not None:
+                conn.execute(
+                    "UPDATE corpus_candidates SET updated_at=?, last_seen_at=?, frequency=frequency+1, "
+                    "doi=coalesce(nullif(?,''),doi), pmid=coalesce(nullif(?,''),pmid), "
+                    "title=coalesce(nullif(?,''),title), title_key=coalesce(nullif(?,''),title_key), "
+                    "journal=?, year=?, url=?, providers=?, char_count=?, content_sha256=?, "
+                    "fulltext_path=?, raw_format=?, conversion=?, raw_sha256=?, raw_bytes=?, "
+                    "stored_path=?, fetched_at=?, archive_state='archived', origin='fetch_paper' WHERE id=?",
+                    (now, now, doi, pmid, title, title_key, journal, year, url,
+                     json.dumps([provider]), len(text), content_sha, stored_path, raw_format,
+                     conversion, raw_sha256, raw_bytes, stored_path, now, missing["id"]))
+                _record_discovery(conn, missing["id"], int(user_id))
+                conn.commit()
+                return {"id": missing["id"], "status": missing["status"], "deduped": True}
         cursor = conn.execute(
             "INSERT INTO corpus_candidates (created_at, updated_at, status, doi, title, journal, year, "
             "url, source_kind, providers, char_count, content_sha256, fulltext_path, frequency, "
             "last_seen_at, requested_by, session_id, request_id, raw_format, conversion, "
-            "raw_sha256, raw_bytes, stored_path, fetched_at, archive_state, origin) "
-            "VALUES (?,?,'pending',?,?,?,?,?,?,?,?,?,?,1,?,?,?,?,?,?,?,?,?,?,'archived',?)",
+            "raw_sha256, raw_bytes, stored_path, fetched_at, archive_state, origin, pmid, title_key) "
+            "VALUES (?,?,'pending',?,?,?,?,?,?,?,?,?,?,1,?,?,?,?,?,?,?,?,?,?,'archived',?,?,?)",
             (now, now, doi, title, journal, year, url, source_kind,
              json.dumps([provider], ensure_ascii=False), len(str(text or "")), content_sha,
              stored_path, now, int(user_id), session_id, request_id, raw_format, conversion,
-             raw_sha256, int(raw_bytes), stored_path, now, source_kind))
+             raw_sha256, int(raw_bytes), stored_path, now, source_kind, pmid, title_key))
         if source_kind == "fetch_paper":
             _record_discovery(conn, int(cursor.lastrowid), int(user_id))
         conn.commit()
@@ -414,9 +522,9 @@ def _loads_list(text: str) -> list:
 
 # --------------------------------------------------------------------------- 采集入口
 
-def archive_fetch(winner: dict[str, Any], *, doi: str = "", title: str = "",
+def archive_fetch(winner: dict[str, Any], *, doi: str = "", title: str = "", pmid: str = "",
                   session_id: str = "", request_id: str = "", user_id: int = 0,
-                  verified_license: str = "") -> dict[str, Any] | None:
+                  verified_license: str = "", license_source_url: str = "") -> dict[str, Any] | None:
     """抓取胜出结果 → 原始 Markdown 落盘（调用方必须传**未截断**的胜出正文）。"""
     try:
         if not isinstance(winner, dict):
@@ -425,7 +533,7 @@ def archive_fetch(winner: dict[str, Any], *, doi: str = "", title: str = "",
         if len(content.strip()) < MIN_CONTENT_CHARS:
             return None
         winner_format = str(winner.get("format") or "")
-        raw_format = sniff_format(content, winner_format)
+        raw_format = "plain_text" if winner_format == "pmc_cloud_text" else sniff_format(content, winner_format)
         if raw_format == "html":
             body, conversion = html_to_markdown(content), "html_to_markdown"
         elif raw_format == "markdown":
@@ -460,6 +568,7 @@ def archive_fetch(winner: dict[str, Any], *, doi: str = "", title: str = "",
         stored_key = "fetch_" + _sha256_bytes(seed.encode("utf-8"))
         meta = {
             "doi": doi_value,
+            "pmid": pmid,
             "title": paper_title,
             "url": str(winner.get("url") or ""),
             "winner_format": str(winner.get("format") or ""),
@@ -474,7 +583,10 @@ def archive_fetch(winner: dict[str, Any], *, doi: str = "", title: str = "",
             "request_id": request_id,
         }
         if verified_license:
-            meta.update(license=verified_license, license_verified=True, license_evidence="ncbi_pmc_oa")
+            from src.shared_corpus.pmc import PMC_CLOUD_EVIDENCE, PMC_CLOUD_METADATA_URL
+            if PMC_CLOUD_METADATA_URL.fullmatch(license_source_url):
+                meta.update(license=verified_license, license_verified=True, license_evidence=PMC_CLOUD_EVIDENCE,
+                            license_source_url=license_source_url)
         # UTF-8 plain text is valid Markdown; the source format is kept in metadata.
         path = _write_fetch_archive(stored_key, "paper.md", payload, meta)
         archived = _insert_or_bump(
@@ -483,12 +595,53 @@ def archive_fetch(winner: dict[str, Any], *, doi: str = "", title: str = "",
             source_kind="fetch_paper", provider=str(winner.get("format") or "fetch_paper"),
             text=normalized_body, raw_format=raw_format, conversion=conversion,
             stored_path=str(path), raw_sha256=digest, raw_bytes=len(payload),
-            session_id=session_id, request_id=request_id, user_id=user_id)
+            session_id=session_id, request_id=request_id, user_id=user_id, pmid=pmid,
+            verified_license=(path.parent / "license.json").is_file())
         archived["verified_license"] = (path.parent / "license.json").is_file()
         return archived
     except Exception:
         logger.warning("corpus_review: 抓取原文归档失败（已忽略）", exc_info=True)
         return None
+
+
+def supplement_fulltext(candidate_id: int, data: bytes, *, admin_user_id: int) -> dict:
+    """Attach an administrator-supplied UTF-8 original to the existing record."""
+    from src.shared_corpus.prepare import MAX_DOCUMENT_CHARS, MAX_SOURCE_BYTES
+
+    if len(data) > MAX_SOURCE_BYTES:
+        raise ValueError("正文超过共享文献库的大小上限。")
+    try:
+        text = data.decode("utf-8-sig").replace("\r\n", "\n").replace("\r", "\n").rstrip("\n")
+    except UnicodeDecodeError as exc:
+        raise ValueError("请提供 UTF-8 编码的 Markdown 或纯文本文件。") from exc
+    payload = text.encode("utf-8")
+    if "\x00" in text or len(text.strip()) < MIN_CONTENT_CHARS:
+        raise ValueError(f"请提供完整正文，至少 {MIN_CONTENT_CHARS} 个字符。")
+    if len(text) >= MAX_DOCUMENT_CHARS:
+        raise ValueError("正文超过共享文献库的大小上限。")
+    digest = _sha256_bytes(payload)
+    ensure_schema()
+    with closing(_connect()) as conn, conn:
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute("SELECT * FROM corpus_candidates WHERE id=?", (candidate_id,)).fetchone()
+        if row is None:
+            raise KeyError(candidate_id)
+        if row["origin"] == "admin_fulltext" and row["raw_sha256"] == digest and row["status"] != "rejected":
+            return _row_to_public(row)
+        if row["status"] != "pending" or row["archive_state"] != MISSING_FULLTEXT:
+            raise FileExistsError(candidate_id)
+        now = _now()
+        path = _write_fetch_archive(f"manual_{candidate_id}_{digest}", "paper.md", payload, {
+            "title": row["title"], "doi": row["doi"], "pmid": row["pmid"], "url": row["url"],
+            "origin": "admin_fulltext", "uploaded_by": int(admin_user_id), "uploaded_at": now,
+            "sha256_of_saved_bytes": digest, "bytes": len(payload), "chars": len(text),
+        })
+        conn.execute(
+            "UPDATE corpus_candidates SET updated_at=?, char_count=?, content_sha256=?, "
+            "fulltext_path=?, raw_format='markdown', conversion='none(passthrough)', "
+            "raw_sha256=?, raw_bytes=?, stored_path=?, archive_state='archived', origin='admin_fulltext' "
+            "WHERE id=?", (now, len(text), digest, str(path), digest, len(payload), str(path), candidate_id))
+        return _row_to_public(conn.execute("SELECT * FROM corpus_candidates WHERE id=?", (candidate_id,)).fetchone())
 
 
 def consent_enabled(user_id: int) -> bool:
@@ -594,7 +747,7 @@ def _row_to_public(row: sqlite3.Row, *, with_preview: bool = False) -> dict[str,
         "decided_at": row["decided_at"],
         "note": row["note"],
     }
-    for column in ("raw_format", "conversion", "raw_bytes", "fetched_at", "archive_state"):
+    for column in ("raw_format", "conversion", "raw_bytes", "fetched_at", "archive_state", "origin", "pmid"):
         try:
             item[column] = row[column]
         except (IndexError, KeyError):
@@ -629,7 +782,10 @@ def list_candidates(*, status: str = "pending", limit: int = 50,
     try:
         params: list[Any] = []
         where = []
-        if status and status != "all":
+        if status == MISSING_FULLTEXT:
+            where.extend(("archive_state=?", "status='pending'"))
+            params.append(MISSING_FULLTEXT)
+        elif status and status != "all":
             where.append("status = ?")
             params.append(status)
         if before_id:
@@ -680,6 +836,11 @@ def decide(candidate_id: int, action: str, *, admin_user_id: int, note: str = ""
     marks = ",".join("?" for _ in allowed_from)
     conn = _connect()
     try:
+        conn.execute("BEGIN IMMEDIATE")
+        if action == "approve" and conn.execute(
+                "SELECT 1 FROM corpus_candidates WHERE id=? AND archive_state=?",
+                (candidate_id, MISSING_FULLTEXT)).fetchone():
+            raise ValueError("请先补录完整正文。")
         cursor = conn.execute(
             f"UPDATE corpus_candidates SET status=?, decided_by=?, decided_at=?, updated_at=?, note=? "
             f"WHERE id=? AND status IN ({marks})",

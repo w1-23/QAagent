@@ -382,7 +382,6 @@ _LOGIN_MARKERS = (
     "checking your browser", "enable javascript", "page not found",
     "404 not found", "登录后", "订阅后", "购买本文", "无权限访问",
 )
-_METADATA_FORMATS = {"identifier_metadata", "oa_pdf_metadata"}
 
 
 def _normalize_title(value: str) -> str:
@@ -455,45 +454,14 @@ def _local_paper_exists(doi: str, title: str) -> bool:
     return doi in dois or bool(matches and (not doi or "" in matches))
 
 
-def _pmc_open_license(source_url: str) -> str:
-    """Read the licence for this exact PMC article from the official OA service."""
-    from xml.etree import ElementTree
-    from src.shared_corpus.rights import TRUSTED_LICENSES, license_token
-
-    parsed = urlsplit(source_url)
-    if parsed.scheme != "https" or parsed.netloc not in {"pmc.ncbi.nlm.nih.gov", "www.ebi.ac.uk"}:
-        return ""
-    route = (r"/articles/(PMC[0-9]+)/?" if parsed.netloc == "pmc.ncbi.nlm.nih.gov"
-             else r"/europepmc/webservices/rest/(PMC[0-9]+)/fullTextXML")
-    article = re.fullmatch(route, parsed.path)
-    if article is None:
-        return ""
-    pmcid = article[1]
-    try:
-        with requests.get("https://www.ncbi.nlm.nih.gov/pmc/utils/oa/oa.fcgi", params={"id": pmcid},
-                          timeout=(2, 3), stream=True, allow_redirects=False) as response:
-            if response.status_code != 200:
-                return ""
-            data = response.raw.read(32_769, decode_content=True)
-        if len(data) > 32_768 or b"<!" in data:
-            return ""
-        root = ElementTree.fromstring(data.decode("utf-8"))
-    except (requests.RequestException, OSError, UnicodeError, ElementTree.ParseError):
-        return ""
-    for record in root.findall("./records/record"):
-        licence = license_token(record.get("license"))
-        if (record.get("id") == pmcid and record.get("retracted", "").casefold() == "no"
-                and licence in TRUSTED_LICENSES):
-            return licence
-    return ""
-
-
-def _retain_paper(winner: dict, *, doi: str = "", title: str = "") -> dict | None:
+def _retain_paper(winner: dict, *, doi: str = "", title: str = "", pmid: str = "",
+                  official: tuple[dict, str, str] | None = None) -> dict | None:
     """Deduplicate a complete online paper before enqueuing its full text."""
     try:
         from src.core import corpus_review
         from src.core.progress_bus import get_turn_scope
         from src.core.tracing import get_user_id
+        from src.shared_corpus.pmc import licensed_full_text
         from src.shared_corpus.runtime import current_runtime
         from citrus_refcheck.providers import normalize_doi
 
@@ -507,10 +475,22 @@ def _retain_paper(winner: dict, *, doi: str = "", title: str = "") -> dict | Non
         if runtime is not None and _local_paper_exists(doi, title):
             return {"retention_status": "already_local"}
         session_id, request_id = get_turn_scope()
-        # Only the host may attest the licence. Provider page text never supplies it.
-        licence = _pmc_open_license(str(winner.get("url") or "")) if runtime is not None else ""
-        archived = corpus_review.archive_fetch(winner, doi=doi, title=title, session_id=session_id,
-                                               request_id=request_id, user_id=owner, verified_license=licence)
+        licence, evidence_url = "", ""
+        if runtime is not None:
+            official = official or licensed_full_text(str(winner.get("url") or ""), doi=doi, pmid=pmid,
+                                                      max_bytes=corpus_review.MAX_ARCHIVE_BYTES)
+            if official is not None:
+                source, licence, evidence_url = official
+                if len(source["content"].strip()) >= corpus_review.MIN_CONTENT_CHARS:
+                    doi, title = source["doi"], source["title"]
+                    if _local_paper_exists(doi, title):
+                        return {"retention_status": "already_local"}
+                    winner = source
+                else:
+                    licence, evidence_url = "", ""
+        archived = corpus_review.archive_fetch(winner, doi=doi, title=title, pmid=pmid, session_id=session_id,
+                                               request_id=request_id, user_id=owner, verified_license=licence,
+                                               license_source_url=evidence_url)
         if archived is None:
             return {"retention_status": "archive_unavailable"}
         if runtime is not None and archived["status"] in {"pending", "approved"}:
@@ -520,6 +500,23 @@ def _retain_paper(winner: dict, *, doi: str = "", title: str = "") -> dict | Non
                 "deduped": archived["deduped"]}
     except Exception as error:
         logger.warning("Online paper retention unavailable: %s", type(error).__name__)
+        return {"retention_status": "archive_unavailable"}
+
+
+def _retain_missing_paper(*, doi: str, pmid: str, title: str, url: str) -> dict | None:
+    from citrus_refcheck.providers import normalize_doi
+    from src.core import corpus_review
+    from src.core.tracing import get_user_id
+    from src.shared_corpus.runtime import current_runtime
+
+    if not get_user_id():
+        return None
+    try:
+        if current_runtime() is not None and _local_paper_exists(normalize_doi(doi), title):
+            return {"retention_status": "already_local"}
+        return corpus_review.record_missing_fulltext(doi=doi, pmid=pmid, title=title, url=url)
+    except Exception as error:
+        logger.warning("Missing paper metadata retention unavailable: %s", type(error).__name__)
         return {"retention_status": "archive_unavailable"}
 
 
@@ -561,8 +558,34 @@ def _classify_fetch_page(item: dict, target_doi: str = "", target_title: str = "
     return "valid", "ok"
 
 
+def _matched_paper_metadata(attempts: list[dict], doi: str, pmid: str, title: str) -> dict:
+    from citrus_refcheck.providers import normalize_doi, norm_title
+
+    for item in attempts:
+        if item.get("format") != "identifier_metadata" or not item.get("ok") or item.get("truncated"):
+            continue
+        try:
+            data = re.sub(r"^```(?:json)?\s*|\s*```$", "", str(item.get("content") or "").strip())
+            records = json.loads(data)["resultList"]["result"]
+            for record in records:
+                found_doi = normalize_doi(record.get("doi"))
+                found_pmid = str(record.get("pmid") or "")
+                found_title = str(record.get("title") or "")
+                if doi or pmid:
+                    if (doi and doi != found_doi) or (pmid and pmid != found_pmid):
+                        continue
+                elif not title or norm_title(title) != norm_title(found_title):
+                    continue
+                pmcid = str(record.get("pmcid") or "")
+                url = f"https://pmc.ncbi.nlm.nih.gov/articles/{pmcid}/" if re.fullmatch(r"PMC[0-9]+", pmcid) else ""
+                return {"title": found_title, "doi": found_doi, "pmid": found_pmid, "url": url}
+        except (KeyError, ValueError, TypeError, AttributeError):
+            continue
+    return {}
+
+
 def _pmcid_expansion(item: dict) -> list[tuple[str, str]]:
-    """Derive PMC HTML / Europe PMC XML / OA-PDF routes from a metadata record."""
+    """Derive PMC HTML and Europe PMC XML routes from a metadata record."""
     try:
         metadata_text = str(item.get("content", "")).strip()
         metadata_text = re.sub(r"^```(?:json)?\s*|\s*```$", "", metadata_text, flags=re.I)
@@ -582,7 +605,6 @@ def _pmcid_expansion(item: dict) -> list[tuple[str, str]]:
         return [
             (f"https://pmc.ncbi.nlm.nih.gov/articles/{pmcid}/", "pmc_html"),
             (f"https://www.ebi.ac.uk/europepmc/webservices/rest/{pmcid}/fullTextXML", "europe_pmc_xml"),
-            (f"https://www.ncbi.nlm.nih.gov/pmc/utils/oa/oa.fcgi?id={pmcid}", "oa_pdf_metadata"),
         ]
     except Exception:
         return []
@@ -636,7 +658,7 @@ def _race_candidates(candidates: list[tuple[str, str]], deadline: float,
             if started_at is not None:
                 result["elapsed_ms"] = round((time.monotonic() - started_at) * 1000)
             attempts.append(result)
-            if kind in _METADATA_FORMATS:
+            if kind == "identifier_metadata":
                 expansion = [pair for pair in _pmcid_expansion(result)
                              if pair[0] not in {value for value, _ in queue}
                              and pair[0] not in {v for v, _ in inflight.values()}]
@@ -692,7 +714,7 @@ def deepseek_fetch_paper(doi: str = "", pmid: str = "", title: str = "",
 
     Supply DOI/PMID/title discovered from the public web and any candidate URLs.
     The tool checks publisher HTML, PMC HTML/XML, Europe PMC XML and open-access
-    PDF candidates where an identifier exposes them. Individual failures are
+    PDF candidates where an identifier exposes them.
     Only the first source that passes the minimal validity check is returned; other
     sources are cancelled or never started, and late results are discarded, so one
     call yields at most one body. For several papers call the tool once per paper.
@@ -745,13 +767,47 @@ def deepseek_fetch_paper(doi: str = "", pmid: str = "", title: str = "",
     winner = _race_candidates(candidates, deadline, doi_value, title.strip(), attempts)
     from src.core.web_failure_ledger import record_fetch_failures
     record_fetch_failures(attempts, doi=doi_value, title=title)
-    elapsed_ms = round((time.monotonic() - started) * 1000)
     abstract_only = [a for a in attempts if a.get("validity") == "abstract_only"]
-    review_candidate = _retain_paper(winner, doi=doi_value, title=title) if winner else None
+    official = None
+    if winner is None:
+        # If the web provider could not read PMC, try the official text object directly.
+        from citrus_refcheck.providers import normalize_doi
+        from src.core.corpus_review import MAX_ARCHIVE_BYTES, MIN_CONTENT_CHARS
+        from src.shared_corpus.pmc import licensed_full_text
+        sources = [item["url"] for item in attempts if item.get("format") in {"pmc_html", "europe_pmc_xml"}]
+        sources.extend(url for url, _ in candidates if url.startswith(("https://pmc.ncbi.nlm.nih.gov/articles/",
+                                                                       "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC")))
+        pmc_url = next(iter(sources), "")
+        if pmc_url:
+            official = licensed_full_text(pmc_url, doi=normalize_doi(doi_value), pmid=pmid_value,
+                                          max_bytes=MAX_ARCHIVE_BYTES)
+            if official is not None:
+                paper = official[0]
+                if (len(paper["content"].strip()) >= MIN_CONTENT_CHARS
+                        and (doi_value or pmid_value or not title or _titles_similar(paper["title"], title))):
+                    winner = {**paper, "ok": True, "validity": "valid"}
+                    attempts.append(winner)
+                else:
+                    official = None
+    elapsed_ms = round((time.monotonic() - started) * 1000)
+    if winner is not None:
+        review_candidate = _retain_paper(winner, doi=doi_value, title=title, pmid=pmid_value,
+                                         **({"official": official} if official else {}))
+    else:
+        partial = abstract_only[0] if abstract_only else {}
+        from citrus_refcheck.providers import normalize_doi
+        metadata = _matched_paper_metadata(attempts, normalize_doi(doi_value), pmid_value, title)
+        source_url = str(partial.get("url") or next((url for url, kind in candidates
+                                                   if kind != "identifier_metadata"), ""))
+        review_candidate = _retain_missing_paper(
+            doi=metadata.get("doi") or doi_value, pmid=metadata.get("pmid") or pmid_value,
+            title=metadata.get("title") or title or str(partial.get("title") or ""),
+            url=source_url or str(metadata.get("url") or ""))
     lines: list[str] = []
     if winner is not None:
+        summary = "PMC Cloud fallback" if official else "Parallel source race"
         lines.append(
-            f"Parallel source race: 1 source won out of {len(attempts)} attempt(s); "
+            f"{summary}: 1 source won out of {len(attempts)} attempt(s); "
             f"elapsed {elapsed_ms} ms. Only the winning full text is returned; "
             "other successful sources are not concatenated.")
         for index, item in enumerate(attempts, 1):
@@ -792,6 +848,8 @@ def deepseek_fetch_paper(doi: str = "", pmid: str = "", title: str = "",
             lines.append(_fetch_attempt_line(index, item))
         web_rows = []
         fetch_status = "failed"
+    if winner is None and review_candidate:
+        lines.append(f"Literature review candidate: {json.dumps(review_candidate)}")
     body_item = winner or (abstract_only[0] if abstract_only else {})
     stats = {"mode": "race", "status": fetch_status, "elapsed_ms": elapsed_ms,
              "attempts": len(attempts),

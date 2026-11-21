@@ -291,6 +291,7 @@ class Catalog:
             "source_kind": str(_row_value(row, "source_kind", "") or
                                _row_value(row, "origin", "") or ""),
             "status": str(_row_value(row, "status", "") or ""),
+            "archive_state": str(_row_value(row, "archive_state", "") or ""),
             "stored_path": str(_row_value(row, "stored_path", "") or ""),
             "raw_sha256": str(_row_value(row, "raw_sha256", "") or ""),
             "content_sha256": str(_row_value(row, "content_sha256", "") or ""),
@@ -334,6 +335,8 @@ class Catalog:
         candidate = self._load_candidate(cid)
         if candidate["status"] == "rejected":
             raise ValueError("candidate_rejected")
+        if candidate.get("archive_state") == "fulltext_missing":
+            raise ValueError("candidate_fulltext_missing")
         evidence = _evidence(gap_evidence)
         now = time.time()
         with self._write() as connection:

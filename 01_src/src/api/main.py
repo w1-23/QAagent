@@ -1373,6 +1373,37 @@ async def admin_corpus_candidate(candidate_id: int, request: Request):
     return item
 
 
+@app.post("/api/v2/admin/corpus/candidates/{candidate_id}/fulltext")
+async def admin_corpus_fulltext(candidate_id: int, request: Request):
+    admin = require_admin(request)
+    from src.core import corpus_review
+    from src.shared_corpus.orchestrator import schedule
+    from src.shared_corpus.prepare import MAX_SOURCE_BYTES
+    from src.shared_corpus.runtime import current_runtime
+
+    if request.headers.get("content-type") != "application/octet-stream":
+        raise HTTPException(415, "请提交 UTF-8 Markdown 或纯文本文件。")
+    data = bytearray()
+    async for chunk in request.stream():
+        if len(data) + len(chunk) > MAX_SOURCE_BYTES:
+            raise HTTPException(413, "正文文件不能超过 8 MiB。")
+        data.extend(chunk)
+    owner = int(admin["user_id"])
+    try:
+        item = await asyncio.to_thread(corpus_review.supplement_fulltext, candidate_id,
+                                       bytes(data), admin_user_id=owner)
+    except KeyError:
+        raise HTTPException(404, "候选不存在。")
+    except FileExistsError:
+        raise HTTPException(409, "候选状态已变化，请刷新列表。")
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from error
+    runtime = current_runtime()
+    if runtime is not None:
+        await asyncio.to_thread(schedule, runtime, candidate_id, owner)
+    return {"candidate": {key: item[key] for key in ("id", "status", "archive_state", "origin")}}
+
+
 @app.post("/api/v2/admin/corpus/candidates/{candidate_id}/approve")
 async def admin_corpus_approve(candidate_id: int, request: Request, req: CorpusReviewNote | None = None):
     admin = require_admin(request)
@@ -1383,6 +1414,8 @@ async def admin_corpus_approve(candidate_id: int, request: Request, req: CorpusR
             admin_user_id=int(admin.get("id") or 0), note=(req.note if req else ""))
     except KeyError:
         raise HTTPException(status_code=404, detail="候选不存在。")
+    except ValueError as error:
+        raise HTTPException(409, str(error)) from error
     return result
 
 

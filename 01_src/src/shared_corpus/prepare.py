@@ -170,6 +170,10 @@ def load_archive_metadata(candidate: dict[str, Any],
         record = json.loads(payload.decode("utf-8"))
         if not isinstance(record, dict):
             return {}
+        if candidate.get("source_kind") == "fetch_paper":
+            # Fetch rights are attested only by the sidecar bound to the saved bytes.
+            for key in ("license", "license_verified", "license_evidence", "license_source_url"):
+                record.pop(key, None)
         evidence = _read_license(source.parent / "license.json", candidate.get("raw_sha256"))
         if evidence:
             record.update({key: evidence[key] for key in ("license", "license_verified", "license_evidence")})
@@ -185,11 +189,14 @@ def _read_license(path: Path, digest: str) -> dict[str, Any]:
     except (PreparationError, OSError, UnicodeDecodeError, ValueError):
         return {}
     if (not isinstance(record, dict) or record.get("sha256_of_saved_bytes") != digest
-            or record.get("license_evidence") != "ncbi_pmc_oa"
             or not isinstance(record.get("url"), str)
             or rights.evaluate_source_rights(record)["status"] != "trusted"):
         return {}
-    return record
+    from .pmc import PMC_CLOUD_EVIDENCE, PMC_CLOUD_METADATA_URL
+    source = record.get("license_evidence")
+    if source == "ncbi_pmc_oa" or (source == PMC_CLOUD_EVIDENCE and PMC_CLOUD_METADATA_URL.fullmatch(record["url"])):
+        return record
+    return {}
 
 
 def document_identity(candidate: dict[str, Any], content_sha256: str
