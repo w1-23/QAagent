@@ -37,7 +37,7 @@ def runtime(monkeypatch, tmp_path):
     files.init_store()
     password = "Fixture-only-8043!"
     owner = auth.create_local_account("queue-owner", password)
-    auth.create_local_account("queue-other", password)
+    other_owner = auth.create_local_account("queue-other", password)
     sid = "queue-http-session"
     asyncio.run(sessions.get_or_create_session(sid, owner_user_id=owner))
     queue.ensure_schema()
@@ -86,6 +86,8 @@ def runtime(monkeypatch, tmp_path):
     app.middleware("http")(main.account_auth_guard)
     root = "/api/v2/session/{session_id}"
     for path, handler, method in (
+        ("/api/v2/sessions", main.list_sessions, "GET"),
+        (root + "/messages", main.session_messages, "GET"),
         (root + "/turn-queue", main.enqueue_chat_turn, "POST"),
         (root + "/turn-queue", main.list_chat_turns, "GET"),
         (root + "/turn-queue/{client_request_id}", main.cancel_chat_turn, "DELETE"),
@@ -102,7 +104,7 @@ def runtime(monkeypatch, tmp_path):
         try:
             yield SimpleNamespace(client=client, sid=sid, started=started, released=released,
                                   owner=owner, path=f"/api/v2/session/{sid}/turn-queue",
-                                  asking=asking, held=held, hold_cleanup=hold_cleanup,
+                                  other_owner=other_owner, asking=asking, held=held, hold_cleanup=hold_cleanup,
                                   other=auth.login("queue-other", password)[1])
         finally:
             for lease in held.values():

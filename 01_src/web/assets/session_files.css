@@ -88,10 +88,9 @@
   border: 0;
   background: transparent;
   text-align: left;
-  cursor: pointer;
+  cursor: default;
   min-width: 0;
 }
-.session-file-open:hover { background: rgba(0, 0, 0, 0.035); }
 .session-file-badge {
   align-self: flex-start;
   font-size: 10px;
@@ -117,6 +116,68 @@
   font-size: 11px;
   color: var(--muted-text, #6b7684);
 }
+.session-file-last {
+  font-size: 10.5px;
+  color: var(--muted-text, #6b7684);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* U3: explicit Preview and a Reference pill are the only row-level actions;
+   every secondary operation (info, download, export, copy SVG, jump, delete
+   uploaded files) lives in the ⋯ menu. Interactive targets are 44px so touch
+   and keyboard users hit the intended control. */
+body .session-files-panel .session-file-actions {
+  gap: 4px;
+  padding: 4px 6px 4px 0;
+}
+.session-file-preview-btn,
+.session-file-ref-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border-hairline, #e2e6ea);
+  border-radius: 999px;
+  background: var(--bg-surface, #fff);
+  color: var(--text-primary, #26352c);
+  font: inherit;
+  font-size: 12.5px;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.session-file-preview-btn { border-radius: 9px; }
+.session-file-preview-btn:hover,
+.session-file-ref-pill:hover {
+  border-color: color-mix(in srgb, var(--success, #4f8d5e) 44%, var(--border-hairline, #e2e6ea));
+}
+.session-file-ref-pill {
+  border-color: color-mix(in srgb, var(--success, #4f8d5e) 36%, var(--border-hairline, #e2e6ea));
+  background: color-mix(in srgb, var(--success, #4f8d5e) 9%, var(--bg-surface, #fff));
+  color: var(--text-primary, #26352c);
+  font-weight: 500;
+}
+.session-file-preview-btn:focus-visible,
+.session-file-ref-pill:focus-visible,
+body .session-files-panel .session-file-act:focus-visible,
+.sf-load-more:focus-visible,
+.sf-sheet-tab:focus-visible {
+  outline: 2px solid var(--accent, #d97706);
+  outline-offset: 2px;
+}
+body .session-files-panel .session-file-act {
+  min-width: 44px;
+  min-height: 44px;
+}
+.session-file-more button {
+  min-height: 44px;
+  padding: 10px 12px;
+  white-space: nowrap;
+}
+.session-file-more button.danger { color: var(--error, #c76b4b); }
 .session-file-actions {
   display: flex;
   align-items: center;
@@ -332,6 +393,39 @@
   color: #6b7684;
 }
 
+/* U3: table previews render in client-side batches. The footer keeps the
+   status line and the “show more” button stable so keyboard focus survives
+   each batch; it never claims to be server-side pagination. */
+.sf-table-wrap { min-width: 100%; }
+.sf-table-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.sf-table-status {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #6b7684;
+}
+.sf-load-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid #d3dae2;
+  border-radius: 9px;
+  background: #f7f9fc;
+  color: #2b4d7d;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.sf-load-more:hover { border-color: #d9821b; background: #fdf1e2; }
+.sf-load-more[hidden] { display: none; }
+
 /* 会话资料库：文件卡片采用轻量列表样式，与聊天中的生成文件卡片保持一致。 */
 .session-files-panel {
   background: var(--bg-surface, #fff);
@@ -362,6 +456,9 @@
   flex-wrap: wrap;
 }
 .sf-sheet-tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   border: 1px solid #d3dae2;
   background: #f7f9fc;
   padding: 4px 10px;

@@ -6,12 +6,13 @@
   <meta name="robots" content="noindex,nofollow">
   <title>图表工作台 · CitrusScholar</title>
   <link rel="stylesheet" href="/assets/app.css?v=32">
-  <link rel="stylesheet" href="/assets/figures.css?v=10">
+  <link rel="stylesheet" href="/assets/figures.css?v=11">
   <link rel="stylesheet" href="/assets/guide.css?v=3">
   <script src="/assets/figures/edit_model.js?v=2" defer></script>
   <script src="/assets/figures/scene_projection.js?v=2" defer></script>
   <script src="/assets/figures/hit_geometry.js?v=1" defer></script>
-  <script src="/assets/figures.js?v=14" defer></script>
+  <script src="/assets/xlsx.full.min.js?v=1" defer></script>
+  <script src="/assets/figures.js?v=16" defer></script>
   <script src="/assets/guide.js?v=4" defer></script>
 </head>
 <body class="figure-app">
@@ -40,7 +41,7 @@
       <h1 id="projectTitle">未打开图件</h1>
     </div>
     <div class="toolbar-actions" aria-label="工作台操作">
-      <button class="icon-button" id="toggleLeft" aria-label="显示或收起图件与对象" aria-controls="leftSidebar" aria-expanded="true" title="图件与对象"><svg class="icon"><use href="#i-sidebar"/></svg></button>
+      <button class="icon-button" id="toggleLeft" aria-label="打开或收起图件抽屉" aria-controls="leftSidebar" aria-expanded="false" title="图件与对象"><svg class="icon"><use href="#i-sidebar"/></svg></button>
       <span class="tool-divider" aria-hidden="true"></span>
       <button class="icon-button" id="undoButton" disabled title="撤销本地修改（Ctrl/⌘ + Z）" aria-label="撤销"><svg class="icon"><use href="#i-undo"/></svg></button>
       <button class="icon-button" id="redoButton" disabled title="重做本地修改（Ctrl/⌘ + Shift + Z）" aria-label="重做"><svg class="icon"><use href="#i-redo"/></svg></button>
@@ -57,13 +58,13 @@
           <a id="downloadTiff" aria-disabled="true" download>TIFF <span>图像</span></a>
         </div>
       </details>
-      <button class="icon-button" id="toggleRight" aria-label="显示或收起检查面板" aria-controls="rightSidebar" aria-expanded="true" title="属性与画布"><svg class="icon flipped"><use href="#i-sidebar"/></svg></button>
+      <button class="icon-button" id="toggleRight" aria-label="打开或收起上下文检查面板" aria-controls="rightSidebar" aria-expanded="false" title="属性与画布"><svg class="icon flipped"><use href="#i-sidebar"/></svg></button>
       <a class="back-link" href="/">返回问答</a>
     </div>
   </header>
 
-  <main class="workbench is-left-open is-right-open" id="workbench">
-    <aside class="asset-sidebar" id="leftSidebar" aria-label="图件与对象">
+  <main class="workbench" id="workbench">
+    <aside class="asset-sidebar" id="leftSidebar" aria-label="图件与对象" hidden>
       <section class="project-section">
         <div class="sidebar-heading"><h2>图件<span class="count" id="figureCount"></span></h2><button class="icon-button small" id="refreshButton" title="刷新图件" aria-label="刷新图件"><svg class="icon"><use href="#i-refresh"/></svg></button></div>
         <button class="button import-toggle" id="importToggle" aria-expanded="false" aria-controls="importPanel"><svg class="icon"><use href="#i-plus"/></svg>从资料库导入</button>
@@ -71,6 +72,11 @@
           <div class="import-source">
             <label class="import-field" for="dataFileSelect"><span>数据表格</span><select id="dataFileSelect" aria-describedby="schemaStatus"></select></label>
             <p class="import-status" id="schemaStatus" role="status"></p>
+          </div>
+          <div class="import-preview" id="importPreview" hidden>
+            <div class="import-preview-heading"><strong>数据预览</strong><small id="importPreviewMeta"></small></div>
+            <pre class="import-preview-body" id="importPreviewBody"></pre>
+            <p class="import-preview-note" id="importPreviewNote"></p>
           </div>
           <fieldset id="importMapping" class="import-mapping" disabled>
             <legend>设置图件</legend>
@@ -87,8 +93,18 @@
           </fieldset>
           <p class="import-help">按数据含义选择变量；仅在已知实验组别时设置分组。复杂组合图可在问答中描述。</p>
           <div class="import-action"><button class="button primary" id="importButton" disabled>导入并出图</button><span>创建为新图件</span></div>
+          <div class="import-confirm" id="importConfirm" hidden>
+            <p id="importConfirmSummary"></p>
+            <div class="import-confirm-actions">
+              <button type="button" class="button primary" id="importConfirmButton">确认创建图件</button>
+              <button type="button" class="button secondary" id="importCancelButton">取消</button>
+            </div>
+          </div>
         </div>
         <ul class="project-list" id="projectList"><li class="list-empty">正在加载图件…</li></ul>
+        <div class="project-list-footer" id="projectListFooter" hidden>
+          <button type="button" class="button secondary" id="loadMoreProjects">加载更早图件</button>
+        </div>
       </section>
       <section class="object-section">
         <div class="sidebar-heading"><h2>图内对象<span class="count" id="objectCount"></span></h2></div>
@@ -136,7 +152,7 @@
       <footer class="stage-status"><p class="edit-status" id="editStatus" role="status" aria-live="polite">未打开图件</p><span class="view-note" id="hitStatus" role="status">Alt 点击切换重叠对象 · 滚轮平移</span></footer>
     </section>
 
-    <aside class="inspector-sidebar" id="rightSidebar" aria-label="属性和画布">
+    <aside class="inspector-sidebar" id="rightSidebar" aria-label="属性和画布" hidden>
       <div class="inspector-tabs" role="tablist" aria-label="检查面板">
         <button role="tab" id="propertiesTab" aria-selected="true" aria-controls="propertiesSection" class="is-active">属性</button>
         <button role="tab" id="canvasTab" aria-selected="false" aria-controls="canvasSection" tabindex="-1">画布</button>
@@ -167,6 +183,16 @@
       <div class="inspector-bottom"><button class="button danger" id="deleteButton" disabled>删除当前图件</button></div>
     </aside>
   </main>
+  <dialog class="workbench-dialog" id="unsavedDialog" aria-labelledby="unsavedTitle" aria-describedby="unsavedMessage">
+    <h2 id="unsavedTitle">修改尚未保存</h2>
+    <p id="unsavedMessage"></p>
+    <p class="dialog-error" id="unsavedError" role="alert" hidden></p>
+    <div class="dialog-actions">
+      <button type="button" class="button primary" id="unsavedSave">保存并继续</button>
+      <button type="button" class="button danger" id="unsavedDiscard">放弃修改</button>
+      <button type="button" class="button secondary" id="unsavedCancel">取消</button>
+    </div>
+  </dialog>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </body>
 </html>

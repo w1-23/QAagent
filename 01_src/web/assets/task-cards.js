@@ -128,7 +128,15 @@
     return {entry: entry, key: key, status: status};
   }
   function createProcessView(options) {
-    var projection = root.CitrusTaskState.createProcess(), rows = new Map(), groups = new Map(), settled = false;
+    var projection = root.CitrusTaskState.createProcess(), rows = new Map(), groups = new Map(), settled = false, paused = false;
+    function isRunning(item) { return item.kind === 'action' && ['running', 'resuming'].indexOf(item.data.status) >= 0; }
+    function activeTool() {
+      if (settled || paused) return '';
+      var active = projection.entries.filter(isRunning).pop();
+      if (!active) return '';
+      var data = active.data;
+      return options.clean(data.display_name || options.toolName(data.tool_name || data.name)) || '工具执行中';
+    }
     // Public model paragraphs and real operations are the complete transcript.
     // Stage labels and inferred plans are not conversation content.
     var host = node('div', 'research-process-timeline'); options.container.appendChild(host);
@@ -209,10 +217,11 @@
       var hostIndex = 0, activeRows = new Set(), activeGroups = new Set(), group = null, groupIndex = 0, groupOperations = new Set(), groupFailed = 0, groupAttempts = 0;
       function finishGroup() {
         if (!group) return;
-        var text = '使用了 ' + groupOperations.size + ' 个工具';
-        if (groupAttempts > groupOperations.size) text += ' · 共 ' + groupAttempts + ' 次尝试';
+        var executing = group.active && !paused && !settled;
+        group.summary.classList.toggle('is-running', !!executing);
+        var text = '使用了 ' + groupOperations.size + ' 个工具 · 共 ' + groupAttempts + ' 次尝试';
         if (groupFailed) text += ' · ' + groupFailed + ' 次失败';
-        group.summary.textContent = text;
+        group.summary.textContent = executing ? '执行中 · ' + group.active + ' · ' + text : text;
       }
       projection.entries.forEach(function (item) {
         var row = rows.get(item.id);
@@ -235,7 +244,7 @@
             var list = node('div', 'research-action-list'); disclosure.appendChild(heading); disclosure.appendChild(list);
             group = {element: disclosure, summary: heading, body: list}; groups.set(item.id, group);
           }
-          activeGroups.add(item.id); groupIndex = 0; groupOperations.clear(); groupFailed = 0; groupAttempts = 0;
+          activeGroups.add(item.id); groupIndex = 0; groupOperations.clear(); groupFailed = 0; groupAttempts = 0; group.active = '';
           place(host, group.element, hostIndex++);
         }
         var data = item.data, status = data.status || 'running';
@@ -251,13 +260,14 @@
           : status === 'partial' ? 'is-partial' : ['skipped', 'cancelled', 'not_run'].indexOf(status) >= 0 ? 'is-skipped' : 'is-failed');
         var running = ['running', 'resuming'].indexOf(status) >= 0;
         if (resolution) row.className = 'term-line is-resolved';
-        if (settled && running) row.className = 'term-line is-unconfirmed';
-        if (!settled && running) row.setAttribute('aria-current', 'step');
+        if ((settled || paused) && running) row.className = 'term-line is-unconfirmed';
+        if (running) group.active = options.clean(data.display_name || options.toolName(data.tool_name || data.name)) || '科研任务';
+        if (!settled && !paused && running) row.setAttribute('aria-current', 'step');
         row.dataset.toolCallId = data.tool_call_id || ''; row.dataset.stepId = data.step_id || '';
         row.dataset.attempt = item.attempt; row.dataset.operationId = operationId;
         var title = options.clean(data.display_name || options.toolName(data.tool_name || data.name) || '科研任务');
         var text = title + ' · ' + (resolution ? resolution.resolution === 'repaired' ? '已修复' : '已由后续结果替代'
-          : running ? settled ? '未记录结束状态' : '处理中' : options.statusText(status, data.reason_code));
+          : running ? settled ? '未记录结束状态' : paused ? '当前状态待确认' : '处理中' : options.statusText(status, data.reason_code));
         var rawSummary = data.summary || data.result_summary || (data.outcome || {}).summary;
         var summary = /^\s*[\[{]/.test(rawSummary || '') ? '执行结果已记录' : options.clean(rawSummary);
         var hint = options.clean(data.action_hint);
@@ -283,7 +293,8 @@
         }
       });
     }
-    return {element: host, projection: projection,
+    return {element: host, projection: projection, activeTool: activeTool,
+      pause: function (value) { if (paused !== value) { paused = value; draw(); } },
       note: function (text, id, metadata) {
         var clean = (metadata && metadata.public_note && options.publicNote ? options.publicNote : options.clean)(text);
         if (clean) { projection.note(clean, id, metadata); draw(); }

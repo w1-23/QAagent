@@ -158,29 +158,54 @@ test('a confirmed rejection never overwrites a concurrently edited draft', async
   assert.equal(messages(b).length, 0);
 });
 
-test('an ambiguous gateway failure keeps the optimistic turn and reconciles the same request id', async () => {
+for (const [status, error] of [[502, null], [500, {detail: {code: 'internal_error', message: 'upstream failed'}}], [408, null], [202, {unexpected: true}]]) {
+  test(`ambiguous admission HTTP ${status} keeps the optimistic turn and reconciles the original ID`, async () => {
+    const b = mounted(browser());
+    b.ctx._selectedAttachments = [];
+    b.ctx._selectedAccountFileRefs = [];
+    b.ctx.turnRail = rail();
+    input(b).value = '网络不确定';
+    await b.ctx.sendMsg();
+    await flush();
+    const post = posts(b)[0];
+    const body = JSON.parse(post.opts.body);
+    b.reply(post, error, status);
+    await flush();
+    assert.equal(messages(b).length, 2, 'ambiguous outcome keeps the optimistic turn');
+    assert.deepEqual(b.ctx.turnRail.drops, [], 'pending rail entry is preserved');
+    const lookup = '/api/v2/session/session/task-by-request/' + body.client_request_id;
+    const read = b.requests.filter(r => r.url === lookup).pop();
+    assert.ok(read, 'reconciles by the original client_request_id');
+    const botContent = messages(b)[1].querySelector('.content');
+    assert.equal(botContent.dataset.requestId, body.client_request_id);
+    b.reply(read, entry({client_request_id: body.client_request_id, job_id: 'root-7'}));
+    await flush();
+    assert.equal(posts(b).length, 1, 'reconciliation never re-posts the turn');
+    assert.match(b.get('chat-container').querySelector('.turn-queue-state').textContent, /排队中/);
+  });
+
+}
+
+test('rejection of an older message does not restore it over a newer send', async () => {
   const b = mounted(browser());
   b.ctx._selectedAttachments = [];
   b.ctx._selectedAccountFileRefs = [];
-  b.ctx.turnRail = rail();
-  input(b).value = '网络不确定';
-  await b.ctx.sendMsg();
+  input(b).value = '第一条消息';
+  b.ctx.sendMsg();
   await flush();
-  const post = posts(b)[0];
-  const body = JSON.parse(post.opts.body);
-  b.reply(post, null, 502);
+  input(b).value = '第二条消息';
+  b.ctx.sendMsg();
   await flush();
-  assert.equal(messages(b).length, 2, 'ambiguous outcome keeps the optimistic turn');
-  assert.deepEqual(b.ctx.turnRail.drops, [], 'pending rail entry is preserved');
-  const lookup = '/api/v2/session/session/task-by-request/' + body.client_request_id;
-  const read = b.requests.filter(r => r.url === lookup).pop();
-  assert.ok(read, 'reconciles by the original client_request_id');
-  const botContent = messages(b)[1].querySelector('.content');
-  assert.equal(botContent.dataset.requestId, body.client_request_id);
-  b.reply(read, entry({client_request_id: body.client_request_id, job_id: 'root-7'}));
+  assert.equal(messages(b).length, 4);
+  const newer = messages(b).slice(2);
+  b.reply(posts(b)[0], {detail: {code: 'invalid_query'}}, 400);
   await flush();
-  assert.equal(posts(b).length, 1, 'reconciliation never re-posts the turn');
-  assert.match(b.get('chat-container').querySelector('.turn-queue-state').textContent, /排队中/);
+  assert.equal(input(b).value, '');
+  assert.equal(messages(b).length, 2);
+  assert.equal(messages(b)[0], newer[0], 'newer user bubble remains');
+  assert.equal(messages(b)[1], newer[1], 'newer assistant bubble remains');
+  assert.equal(JSON.parse(posts(b)[1].opts.body).query, '第二条消息');
+  assert.equal(posts(b).length, 2);
 });
 
 test('selecting and removing an attachment returns focus to the composer', () => {
@@ -253,6 +278,13 @@ test('timeline keeps failed and retried attempts distinct, then freezes without 
   assert.match(summary.textContent, /共 2 次尝试/);
   view.action({tool_call_id: 't3', operation_id: 'op2', logical_key: 'op2', attempt: 1,
     status: 'running', display_name: '统计'});
+  assert.match(summary.textContent, /执行中 · 统计.*2 个工具.*3 次尝试.*1 次失败/);
+  assert.equal(summary.classList.contains('is-running'), true);
+  view.pause(true);
+  assert.equal(summary.classList.contains('is-running'), false);
+  assert.match(summary.textContent, /2 个工具.*3 次尝试.*1 次失败/);
+  view.pause(false);
+  assert.equal(summary.classList.contains('is-running'), true);
   view.terminal('completed');
   assert.equal(view.element.classList.contains('is-terminal'), true);
   const frozen = view.element.querySelectorAll('.term-line');

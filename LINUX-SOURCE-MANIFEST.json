@@ -1,8 +1,8 @@
 {
   "baseline_commit": "27cbab9afe59b8512828282107ecb8c6826c0218",
   "baseline_tree": "18d24f48224c5fca5326c7c48d56f0781b137ae5",
-  "candidate_branch": "fix/8043-lan-context",
-  "deployment": "linux-apptainer-lan-context-8043-candidate",
+  "candidate_branch": "integrate/8043-product-lan",
+  "deployment": "linux-apptainer-8043-product-lan-integration",
   "historic_manifest_metadata": {
     "manifest_at_baseline_sha256": "1d2b1888bdd6b0a7dc52dbc8ab1e828b4fa6388443e8f8e038062f49e1f117f3",
     "member_count": 614
@@ -298,8 +298,8 @@
       "sha256": "04822d2960c2fbcc63662e3293280d050e9dd4ac6058420643c71720faab48c0"
     },
     "01_src/src/api/chat_turn_queue_http_test.py": {
-      "bytes": 14167,
-      "sha256": "e6d9440b3cb3eb7da42cab300f27775624b67d2b9bcb0d91a4bfad2ac8b735f8"
+      "bytes": 14323,
+      "sha256": "62415a305910868e756dbeb39b7328a78484a9245aef3b47ba0e3b90d15ac5e1"
     },
     "01_src/src/api/figure_router.py": {
       "bytes": 20574,
@@ -322,8 +322,8 @@
       "sha256": "e043d0bdd82d642c01dabcd641e9dce3d1f5aa3226dc8b7d571559f87c5ed214"
     },
     "01_src/src/api/navigation_task_rediscovery_test.py": {
-      "bytes": 10384,
-      "sha256": "d23461744e5ace29fd9f30057661fcbec184ff655af97a5276b43a126a7dedaa"
+      "bytes": 9968,
+      "sha256": "34c376f613d38a9a5e2235dd29ecf3104168a5fd04994b66064cb394a5df7444"
     },
     "01_src/src/api/reference_router.py": {
       "bytes": 10079,
@@ -686,12 +686,12 @@
       "sha256": "5285a5109b570c55c8e12fa36b385c62f17fabcf6082370847efd22a8347d1c6"
     },
     "01_src/src/core/tool_result_delivery_test.py": {
-      "bytes": 12688,
-      "sha256": "338fae291998cdc72a1bbaeb7f54ac08fb20bbf3c383225b79bccad487376920"
+      "bytes": 18326,
+      "sha256": "0b6082e928fee010d9bd42c4bfbd8ca1551512546d6977377ee969a4bac1e96f"
     },
     "01_src/src/core/tool_result_view.py": {
-      "bytes": 5030,
-      "sha256": "011d449dd3fc992107425ffeeaf2157b2faa99bae2b013e734079536a220c4c2"
+      "bytes": 7154,
+      "sha256": "d50e6622f59752e260df1be51caddb455c5291716a533e424fef4ab0c16c43f2"
     },
     "01_src/src/core/tool_results.py": {
       "bytes": 18328,
@@ -1590,12 +1590,12 @@
       "sha256": "439f8c93ea7e420aa5a2c93e25b831e41682db953110da04c5f2fcd6982d5293"
     },
     "01_src/web/assets/app.css": {
-      "bytes": 130519,
-      "sha256": "c9a36b0477a756438389228ef25519251cf5b5df786a8dbe0979b402cf724163"
+      "bytes": 132672,
+      "sha256": "dadb4f5a9a8a62aa540bd3b0921cfe556309e48517667e0ab904f22c991caba5"
     },
     "01_src/web/assets/app.js": {
-      "bytes": 321721,
-      "sha256": "f975c11465a976569ad5ed3c359ae157c1ca8ab8a748caa4ce434dbcc53a1456"
+      "bytes": 328474,
+      "sha256": "2fd02c1e388015f0fda853a76d9cb4b1e822ff130a0d9b2467d509d9ab5a284f"
     },
     "01_src/web/assets/avatars/01.webp": {
       "bytes": 9024,
@@ -1694,12 +1694,12 @@
       "sha256": "9ae00933a1680bee099faceaea3ad0f8da6b38c9c65254b00c418516733fb719"
     },
     "01_src/web/assets/figures.css": {
-      "bytes": 23583,
-      "sha256": "7092ff1657dd87533ab1adea49e9f7c9d5edf9caffeb4f6cd07141acb89133b6"
+      "bytes": 26169,
+      "sha256": "0c5c878e72ab703bde46858b82d22f1017f85b0ed39465041d1d1525420622f3"
     },
     "01_src/web/assets/figures.js": {
-      "bytes": 110514,
-      "sha256": "fed8f494a9b8c0cf0277c7fbb8ce0cf6db695f89ff427bb61e1ac5bd58de57a4"
+      "bytes": 129545,
+      "sha256": "18bff7657fe3bb002aeb9290d3634f9bc77061c7b7b94b8381d49eae9f85621f"
     },
     "01_src/web/assets/figures/edit_model.js": {
       "bytes": 1917,
@@ -1782,12 +1782,12 @@
       "sha256": "e03dd807c8e466c4d1d3c1ccaa031a41cdd2174544b41c83d206ab4969e66c5c"
     },
     "01_src/web/assets/session_files.css": {
-      "bytes": 13404,
-      "sha256": "cb78d3992ce4a0240fd8cc2d2c7128974ac642168c852be86c32df2ed5984852"
+      "bytes": 16290,
+      "sha256": "a214b0dd24dff3bd2d63d79656661eb64397d8327d9fefe7cb16f1c986a03f46"
     },
     "01_src/web/assets/session_files.js": {
-      "bytes": 59063,
-      "sha256": "77a58ab817ed00c308f523394a086a2966cfc552396f8abe920d5dae8e682bc0"
+      "bytes": 75367,
+      "sha256": "8b79738747543fe54488bb7797f7b04f9b0f65d6c0dbd92e0541633fb4d09c03"
     },
     "01_src/web/assets/skill-picker.css": {
       "bytes": 1688,
@@ -1798,16 +1798,16 @@
       "sha256": "45ec25a7ce06eb96662b2e297288de747cdeca411cb2b5512ae22b4ef1343d4e"
     },
     "01_src/web/assets/task-cards.js": {
-      "bytes": 20055,
-      "sha256": "01a19cadd64a3c9eb089e66c49135a624cd7b4e84ef51192712533add713130d"
+      "bytes": 20968,
+      "sha256": "21d89b672cf0bf886b500caecb6452a1bca7d61e404ebfe200149585ac0532e0"
     },
     "01_src/web/assets/task-controls.js": {
       "bytes": 14609,
       "sha256": "2094957ac73adcf815482d3dcf77f68a464a75a5bb3d43ea47f07a5bf374d4c4"
     },
     "01_src/web/assets/task-state.js": {
-      "bytes": 20175,
-      "sha256": "51838cd9838c9d6dabdbfea7e4659e1e29fc019444705e9dcbe038a4b81639bd"
+      "bytes": 23858,
+      "sha256": "ac5b097b9c8e3602445611fa3e468db864fd5fab319a9b96101aefbaf3b9b349"
     },
     "01_src/web/assets/task-transport.js": {
       "bytes": 8250,
@@ -1846,28 +1846,40 @@
       "sha256": "ac8d774d39bb05a527f87912e2c283e237e3633120b31acf20bc6eef0e19eede"
     },
     "01_src/web/figures.html": {
-      "bytes": 14682,
-      "sha256": "7f71897f33ef691512c15a67beeeae489d41b88e5d9fbede113f1b5c52bf7d18"
+      "bytes": 16319,
+      "sha256": "9cf6bbfa1134cfc91e41d6a175f3953e2db62dd0bc5622c7de45d7b79aa0909b"
     },
     "01_src/web/index.html": {
-      "bytes": 42447,
-      "sha256": "167349aa05b828ffb3ba73c09edc07d88e1c9209ecf3d083bf6bdb5dee614751"
+      "bytes": 42930,
+      "sha256": "e8c1a365bdd5acf369e79a9d5ad7e3cdf0243752560cc9bf8be8c2fe69702e73"
     },
     "01_src/web/integrity-review.html": {
       "bytes": 2165,
       "sha256": "63490939f36fe925e8bea51e11fcd57aa5f14a4876f9cfec6fbd3760218a3306"
     },
     "01_src/web/tests/chat-queue.test.cjs": {
-      "bytes": 20729,
-      "sha256": "55b3b292a0219c0374de998b73e67c4a47f6ae78d938502ecacba270aac4a673"
+      "bytes": 21008,
+      "sha256": "147ed5dff26880d13adaa12d6d9018b4a890d03bed3ccb648eb58244faa629a4"
     },
     "01_src/web/tests/clipboard-attachments.test.cjs": {
       "bytes": 4764,
       "sha256": "d79a51dc99aa389d5a90bc0fbe65c1f2551d222e4cd23a906effb629c5723528"
     },
     "01_src/web/tests/composer-timeline-ux.test.cjs": {
-      "bytes": 11468,
-      "sha256": "fa05ba495c8a3a6398ccda38c99e54cf8bc3c884b3c684f8ad88498e16d6396a"
+      "bytes": 12935,
+      "sha256": "5a8adf71640e2a92bde5980c802c609176c471b100e892ad83cfdfa95895bca9"
+    },
+    "01_src/web/tests/experience-chromium.py": {
+      "bytes": 17173,
+      "sha256": "a8281f34fbd5c28992dade223873d72ceaa5ee6f29a5fd7eef69b8783a7525c2"
+    },
+    "01_src/web/tests/experience-fixture.js": {
+      "bytes": 8684,
+      "sha256": "9cdb5651e1453e533231515528cc8d263df9acccd6239e2858205817dc35c3fd"
+    },
+    "01_src/web/tests/figures-focus.test.cjs": {
+      "bytes": 5901,
+      "sha256": "4ee5438c37c5a7c438074be25fc2a62f3586d2f7cd9b82e955f60c9331c3e5ba"
     },
     "01_src/web/tests/frontend-harness.cjs": {
       "bytes": 10152,
@@ -1881,6 +1893,10 @@
       "bytes": 6270,
       "sha256": "11dea31a0d1fde6f3d1350178aaca694e2b3ee92ef9547a511dbeb34129a3106"
     },
+    "01_src/web/tests/session-files-preview.test.cjs": {
+      "bytes": 19774,
+      "sha256": "1916116b78cac30a822c81fe7c2a5d3346236578850d8b0e3751ba804e4ec3ac"
+    },
     "01_src/web/tests/session-recovery.test.cjs": {
       "bytes": 5992,
       "sha256": "ad302bc8b8d62c4a60ee06bf0dd5412702afa1dd4076028a2fb15f6a65bfeff9"
@@ -1888,6 +1904,10 @@
     "01_src/web/tests/task-observation.test.cjs": {
       "bytes": 7428,
       "sha256": "0a49de5a9fab5dc72d6f2b482046d28825836d9dbe182d7032e75d7eb989b54d"
+    },
+    "01_src/web/tests/wait-context.test.cjs": {
+      "bytes": 4765,
+      "sha256": "738dd0e5c10c399a7cf43f2b64f75a6cb6940418ea5e34c40edef9e2ceeaa550"
     },
     "02_config/config.yaml": {
       "bytes": 11511,
@@ -2511,6 +2531,6 @@
     }
   },
   "schema": "citrusscholar.linux-source/1",
-  "source": "CitrusScholar LAN HTTPS, unified context and stability candidate",
-  "source_tree_excluding_manifest": "44398330b330d3ecf09400e74d6c2f7acacef6c2"
+  "source": "CitrusScholar 8043 product and LAN candidate integration",
+  "source_tree_excluding_manifest": "95b7d1ae71dc9bc1ca7ee382f6aa1c772e383fa2"
 }

@@ -147,7 +147,8 @@ function resetAccountState() {
   _historyMsgs = []; _historyTurns = null; _historyHasMore = false;
   roundHistory = []; _restoredGroups = null; _restoredRefPool = null;
   _sessions = []; _sessionsVisible = 20; _citationsRetry = 0;
-  _ctxData = null; _sentSnapshots = [];
+  _ctxData = null; _ctxSelection = null; _sentSnapshots = [];
+  if (window.resetSessionFiles) window.resetSessionFiles();
   currentRoundId = 0; currentQuery = ''; totalTokens = 0;
   _agentTokenBuffer = ''; _agentTokenName = '';
   window._fullTextFromDone = {}; window._remapAppliedRounds = {};
@@ -164,6 +165,7 @@ function resetAccountState() {
   ['attachment-list', 'session-list', 'sidebar-content', 'workspace-list',
     'ctxDetail', 'ctxSent', 'ctxItems', 'ctxSummary', 'ctxSuggestions',
     'ctxInTokens', 'ctxInNote', 'ctxOutTokens', 'ctxOutNote', 'ctxBarLabel', 'ctx-pct', 'ctxCompressed',
+    'ctxScope', 'ctxModel', 'ctxBar', 'ctxGridNote', 'ctxCacheNote', 'ctxAttempts', 'ctxInputLimit', 'ctxBudgetItems',
     'accountMemoryContent', 'accountMemoryStatus', 'accountPreferenceStatus',
     'settingsAvatarError', 'settingsAvatarLabel', 'authAvatarError', 'authAvatarLabel',
     'authNotice', 'authError', 'recoverError', 'recoverNotice', 'passwordChangeStatus', 'recoveryStatus', 'recoveryCodesList',
@@ -191,8 +193,10 @@ function resetAccountState() {
   var banner = document.getElementById('degraded-banner'); if (banner) banner.remove();
   closeSessionMenu(); closeSettingsModal(); setPreferenceFormValues({});
   ['ctxDrawer', 'ctxBackdrop'].forEach(function(id) {
-    var node = document.getElementById(id); if (node) node.classList.remove('open');
+    var node = document.getElementById(id); if (node) { node.classList.remove('open'); if (id === 'ctxDrawer') node.inert = true; }
   });
+  var ctxTrigger = document.getElementById('ctxCircleBtn');
+  if (ctxTrigger) ctxTrigger.setAttribute('aria-expanded', 'false');
   if (citationCount) citationCount.textContent = '0';
   var count = document.getElementById('session-count'); if (count) count.textContent = '0';
   renderAttachmentSelection(); renderReviewConsent(); setSendDisabled(false);
@@ -2459,8 +2463,8 @@ function queueStateLabel(entry) {
     awaiting_input: '等待你的选择', settling: '正在保存结果', terminal: '已结束',
     reconcile_required: '状态待核对'};
   var label = names[entry.state] || '等待确认';
-  if (entry.state === 'queued' && Number(entry.queue_position) > 1)
-    label += ' · 前面还有 ' + (Number(entry.queue_position) - 1) + ' 条';
+  if (entry.state === 'queued' && Number(entry.queue_position) > 0)
+    label += ' · 第 ' + Number(entry.queue_position) + ' 位';
   return label;
 }
 
@@ -2490,6 +2494,7 @@ function selectActiveTurn() {
   activeTurnCancel = chosen && chosen.cancel ? chosen.cancel : null;
   currentJobId = chosen && chosen.store.state.job_id ? chosen.store.state.job_id : '';
   window._currentJobId = currentJobId;
+  selectTurnContext(chosen);
   refreshTaskComposer();
   return chosen;
 }
@@ -2966,7 +2971,25 @@ function restoreSessionCitations() {
 }
 
 /* ─── Context Drawer ─── */
-var _ctxData = null;
+var _ctxData = null, _ctxSelection = null;
+function selectTurnContext(active) {
+  // A queued admission has no model call yet. Keep the last measured call in
+  // view until the running turn actually emits its own snapshot.
+  var source = active && active.store.state.context_snapshot;
+  if (!source) {
+    for (var i = turnQueueBindings.length - 1; i >= 0; i--) {
+      var candidate = turnQueueBindings[i];
+      if (candidate.owns() && candidate.store.state.context_snapshot) {
+        source = candidate.store.state.context_snapshot; break;
+      }
+    }
+  }
+  if (!source) return;
+  var scope = active && active.store.state.context_snapshot === source && !CitrusTaskState.isTerminal(active.store.state) ? 'active' : 'previous';
+  if (_ctxSelection && _ctxSelection.source === source && _ctxSelection.scope === scope && _ctxSelection.epoch === authEpoch && _ctxSelection.sid === sessionId) return;
+  _ctxSelection = {source: source, scope: scope, epoch: authEpoch, sid: sessionId};
+  renderContextPanel(Object.assign({}, source, {view_scope: scope}));
+}
 var CTX_BTN_R = 15;
 var CTX_BTN_CIRCUM = 2 * Math.PI * CTX_BTN_R;
 
@@ -2978,8 +3001,20 @@ function toggleCtxDrawer() {
   backdrop.classList.toggle('open');
   // Keep the popover focused on available estimates and measured usage.
   // Raw request/history inspection belongs in the admin tools.
-  if (willOpen) renderContextPanel(_ctxData || {});
+  drawer.inert = !willOpen;
+  var trigger = document.getElementById('ctxCircleBtn');
+  trigger.setAttribute('aria-expanded', String(willOpen));
+  if (willOpen) {
+    renderContextPanel(_ctxData || {});
+    drawer.querySelector('button').focus();
+  } else trigger.focus();
 }
+document.addEventListener('keydown', function (event) {
+  var drawer = document.getElementById('ctxDrawer');
+  if (event.key === 'Escape' && drawer && drawer.classList.contains('open') && !event.defaultPrevented) {
+    event.preventDefault(); toggleCtxDrawer();
+  }
+});
 
 function _ctxLevelClass(pct) {
   if (pct < 0.70) return 'low';
@@ -2998,16 +3033,27 @@ function _updateCtxBtnRing(pct) {
 }
 
 function _ctxCacheNote(provider) {
-  var parts = [];
-  [['cache_read', '缓存读取'], ['cache_write', '缓存写入'], ['cache_uncached', '未缓存']].forEach(function(pair) {
-    var value = provider[pair[0]];
-    value = _ctxTokenNumber(value);
-    if (value != null) {
-      parts.push(pair[1] + ' ' + value.toLocaleString());
-    }
+  var read = _ctxTokenNumber(provider.cache_read), write = _ctxTokenNumber(provider.cache_write), miss = _ctxTokenNumber(provider.cache_uncached);
+  if (read == null && write == null && miss == null) return '服务商未提供';
+  var parts = [['读取', read], ['写入', write], ['未缓存', miss]].map(function (pair) {
+    return pair[0] + '：' + (pair[1] == null ? '未提供' : pair[1].toLocaleString());
   });
-  return parts.length ? '；' + parts.join(' · ') + ' tokens（仅已报告项）' : '；缓存统计未提供';
+  return (read == null || write == null || miss == null ? '部分数据。' : '') + parts.join('；') + '。' +
+    (read != null && miss != null && read + miss > 0 ? ' 读取占比 ' + _ctxPercent(read, read + miss) + '（读取 ÷ [读取 + 未缓存]）' : ' 无法计算读取占比。');
 }
+function _ctxCells(rows, total, count) {
+  if (!(total > 0)) return [];
+  var offset = 0;
+  return rows.filter(function (row) { return row.value > 0; }).map(function (row) {
+    var start = Math.round(offset / total * count);
+    offset += row.value;
+    return {row: row, count: Math.round(offset / total * count) - start};
+  });
+}
+var CTX_CHANGES = {initial: '首次装配', initial_attempt: '首次调用', retry: '重试同一调用',
+  protocol_fallback: '调整请求协议', tools_changed: '工具定义变化', request_layout_changed: '请求布局变化',
+  working_set_compacted: '上下文整理', history_compacted: '历史压缩', instructions_changed: '指令变化',
+  tool_results_added: '工具结果增加', final_synthesis: '最终综述', prepared_payload_changed: '请求内容变化', epoch_changed: '上下文阶段变化'};
 function _ctxTokenNumber(value) {
   return (typeof value === 'number' || typeof value === 'string' && value.trim() !== '') &&
     Number.isFinite(Number(value)) && Number(value) >= 0 ? Number(value) : null;
@@ -3019,7 +3065,7 @@ function _ctxPercent(value, max) {
 }
 // Fixed identities match request_context.estimate_request(), never model prose.
 var CTX_COMPONENTS = [
-  ['messages', '消息内容', '用户、助手和工具结果的消息内容；包括已装配的摘要与引用。'],
+  ['messages', '消息内容（含工具结果）', '用户、助手和工具结果的消息内容；包括已装配的摘要与引用。'],
   ['system', '系统提示', '当前请求中的系统与开发者指令；技能内容若已装配，也计入所在消息。'],
   ['tool_arguments', '调用参数', '当前消息中序列化的工具调用参数。'],
   ['tool_schemas', '工具定义', '实际绑定到本次模型请求的工具定义。'],
@@ -3042,12 +3088,15 @@ function _ctxBreakdown(data, est, fullRequest) {
 }
 function renderContextPanel(data) {
   _ctxData = data || {};
+  var fullRequest = _ctxData.estimate_scope === 'full_request_estimate';
   var estimate = _ctxTokenNumber(_ctxData.estimated_tokens);
   var hasEstimate = estimate != null;
   var est = hasEstimate ? estimate : 0;
   var max = _ctxTokenNumber(_ctxData.model_window); // A working budget is not a model window.
-  var pct = max > 0 ? est / max : 0;
+  var pct = fullRequest && max > 0 ? est / max : 0;
   _updateCtxBtnRing(pct);
+  var drawer = document.getElementById('ctxDrawer');
+  if (drawer && !drawer.classList.contains('open')) return;
 
   var emptyEl = document.getElementById('ctx-empty');
   var bodyEl = document.getElementById('ctx-body');
@@ -3061,7 +3110,9 @@ function renderContextPanel(data) {
   var inNote = document.getElementById('ctxInNote');
   var hasProviderIn = providerIn != null;
   if (inEl) inEl.textContent = hasProviderIn ? providerIn.toLocaleString() : '—';
-  if (inNote) inNote.textContent = '服务商实测 · 此调用尝试' + _ctxCacheNote(provider);
+  if (inNote) inNote.textContent = '服务商实测 · 此调用尝试';
+  var cache = document.getElementById('ctxCacheNote');
+  if (cache) cache.textContent = _ctxCacheNote(provider);
   var outTokens = _ctxTokenNumber(provider.output_tokens);
   var outEl = document.getElementById('ctxOutTokens');
   var outNote = document.getElementById('ctxOutNote');
@@ -3072,31 +3123,31 @@ function renderContextPanel(data) {
     if (card) card.hidden = index === 0 ? !hasProviderIn : outTokens == null;
   });
   var usageBlock = document.getElementById('ctxUsageBlock');
-  if (usageBlock) usageBlock.hidden = !hasProviderIn && outTokens == null;
+  if (usageBlock) usageBlock.hidden = !_ctxData.attempt_id;
 
   var bar = document.getElementById('ctxBar');
   var barLabel = document.getElementById('ctxBarLabel');
-  var fullRequest = _ctxData.estimate_scope === 'full_request_estimate';
   var breakdown = _ctxBreakdown(_ctxData, est, fullRequest);
+  var capacityKnown = fullRequest && max > 0;
   if (bar) {
-    bar.replaceChildren();
-    bar.style.width = '100%';
-    bar.className = 'ctx-bar-inner' + (fullRequest ? '' : ' is-partial');
-    // Overflow scales only the drawing to its container; labels retain true values.
-    var scale = Math.max(max || 0, est), remaining = max > 0 ? Math.max(0, max - est) : 0;
-    var segments = hasEstimate ? breakdown.rows.filter(function(row) { return row.value > 0; }) : [];
-    segments.concat(hasEstimate && remaining > 0 ? [{key: 'free', label: fullRequest ? '窗口余量（估算）' : '未计量部分', value: remaining, slot: -1}] : []).forEach(function(row) {
-      var segment = document.createElement('span');
-      segment.className = 'ctx-segment ctx-slot-' + row.slot;
-      segment.dataset.key = row.key;
-      segment.style.width = (scale > 0 ? row.value / scale * 100 : 0) + '%';
-      segment.tabIndex = 0;
-      var label = row.key === 'free' && !fullRequest ? '未计量部分；完整请求剩余空间未知'
-        : row.label + '：约 ' + row.value.toLocaleString() + ' tokens，占窗口 ' + _ctxPercent(row.value, max);
-      segment.setAttribute('aria-label', label);
-      segment.title = label;
-      bar.appendChild(segment);
-    });
+    var remaining = capacityKnown ? Math.max(0, max - est) : 0;
+    var rows = breakdown.rows.concat(remaining ? [{key: 'free', label: '窗口余量（估算）', value: remaining, slot: -1}] : []);
+    var cells = hasEstimate ? _ctxCells(rows, est + remaining, 192) : [];
+    var signature = JSON.stringify(cells);
+    if (bar.dataset.signature !== signature) {
+      bar.dataset.signature = signature;
+      var fragment = document.createDocumentFragment();
+      cells.forEach(function (group) {
+        for (var i = 0; i < group.count; i++) {
+          var cell = document.createElement('span');
+          cell.className = 'ctx-cell ctx-slot-' + group.row.slot;
+          cell.title = group.row.label + '：约 ' + group.row.value.toLocaleString() + ' tokens';
+          fragment.appendChild(cell);
+        }
+      });
+      bar.replaceChildren(fragment);
+    }
+    bar.hidden = !cells.length;
   }
   var estimateName = _ctxData.estimate_scope === 'historical_estimate' ? '历史估算' : fullRequest ? '当前完整输入估算'
     : _ctxData.estimate_scope === 'history_text_only' ? '会话文本估算'
@@ -3105,16 +3156,22 @@ function renderContextPanel(data) {
     ? estimateName + ' ' + est.toLocaleString() + (max > 0 ? ' / ' + max.toLocaleString() + ' tokens' : ' tokens · 模型窗口未知')
     : '上下文估算暂不可用';
   var scopeEl = document.getElementById('ctxScope');
-  if (scopeEl) scopeEl.textContent = _ctxData.logical_call_id
-    ? '调用 ' + String(_ctxData.logical_call_id).slice(0, 12) + (_ctxData.attempt_id ? ' · 尝试 ' + String(_ctxData.attempt_id).slice(0, 12) : ' · 未准入')
-    : hasEstimate ? '历史估算 · 未记录完整调用快照' : '尚未记录模型调用快照';
-  if (bar && bar.parentNode) {
-    bar.parentNode.hidden = !hasEstimate;
-    bar.parentNode.setAttribute('aria-valuenow', String(Math.min(pct * 100, 100)));
-    bar.parentNode.setAttribute('aria-valuetext', (fullRequest ? '估算输入占窗口 ' : '已知文本占窗口 ') + _ctxPercent(est, max));
+  var attempts = _ctxData.observed_attempts || [];
+  var index = attempts.findIndex(function (row) { return row.logical_call_id === _ctxData.logical_call_id && row.attempt_id === _ctxData.attempt_id; });
+  if (scopeEl) {
+    scopeEl.textContent = _ctxData.logical_call_id
+      ? (_ctxData.view_scope === 'previous' ? '最近一次调用' : '本轮调用') + (index >= 0 ? ' · 记录 ' + (index + 1) + ' / ' + attempts.length : _ctxData.attempt_id ? '' : ' · 尚未发送')
+      : hasEstimate ? '历史估算 · 未记录完整调用快照' : '尚未记录模型调用快照';
+    scopeEl.title = _ctxData.logical_call_id ? '调用 ' + _ctxData.logical_call_id + (_ctxData.attempt_id ? ' / ' + _ctxData.attempt_id : '') : '';
   }
+  var model = document.getElementById('ctxModel');
+  if (model) model.textContent = _ctxData.model || '模型未知';
+  var limit = document.getElementById('ctxInputLimit');
+  if (limit) limit.textContent = '工作输入限额：' + (_ctxTokenNumber(_ctxData.input_limit) == null ? '未提供' : Number(_ctxData.input_limit).toLocaleString() + ' tokens');
+  var gridNote = document.getElementById('ctxGridNote');
+  if (gridNote) gridNote.textContent = !hasEstimate ? '' : capacityKnown ? (est > max ? '输入已超过窗口；方格仅表示输入构成。' : '每格约占模型窗口的 1/192；精确数字见下方。') : '方格只表示已估算输入的构成，不代表模型窗口占比。';
   var pctEl = document.getElementById('ctx-pct');
-  if (pctEl) pctEl.textContent = hasEstimate && max > 0 ? '约 ' + _ctxPercent(est, max) : '—';
+  if (pctEl) pctEl.textContent = hasEstimate && capacityKnown ? '约 ' + _ctxPercent(est, max) : '—';
   var kindEl = document.getElementById('ctxTotalKind');
   if (kindEl) kindEl.textContent = !hasEstimate ? '等待请求统计' : !(max > 0) ? '模型窗口未知' : fullRequest ? '输入占模型窗口' : '历史估算，完整占用未知';
 
@@ -3122,6 +3179,7 @@ function renderContextPanel(data) {
   if (itemsEl) {
     itemsEl.replaceChildren();
     itemsEl.hidden = !hasEstimate;
+    itemsEl.setAttribute('aria-label', '上下文分类估算；百分比以' + (capacityKnown ? '模型窗口' : '估算输入') + '为分母');
     var rows = breakdown.rows.concat([{key: 'free', label: fullRequest ? '窗口余量（估算）' : '剩余空间（未知）',
       value: fullRequest && max > 0 ? Math.max(0, max - est) : null, slot: -1,
       note: '模型窗口减去估算输入；输出预留和工作输入限额另列，不代表可继续发送的额度。'}]);
@@ -3137,7 +3195,7 @@ function renderContextPanel(data) {
       var value = document.createElement('span'); value.className = 'ctx-item-value'; value.setAttribute('role', 'cell');
       value.textContent = row.value != null ? row.value.toLocaleString() : row.key === 'free' ? '未知' : '未提供';
       var percent = document.createElement('span'); percent.className = 'ctx-item-percent'; percent.setAttribute('role', 'cell');
-      percent.textContent = _ctxPercent(row.value, max);
+      percent.textContent = _ctxPercent(row.value, capacityKnown ? max : row.key === 'free' ? null : est);
       el.appendChild(name); el.appendChild(value); el.appendChild(percent); itemsEl.appendChild(el);
     });
   }
@@ -3149,15 +3207,28 @@ function renderContextPanel(data) {
         (breakdown.inconsistent ? ' 分类合计与总量不一致，暂按总量显示。' : '') +
         (max > 0 && est > max ? ' 输入估算已超过模型窗口。' : '');
     var historyLabels = {success: '已装配', loaded: '已装配', empty: '无历史记录', degraded: '降级装配', failed: '加载失败', unknown: '装配状态未知'};
-    var changes = {initial: '首次装配', initial_attempt: '首次调用', retry: '重试同一调用',
-      protocol_fallback: '调整请求协议', tools_changed: '工具定义变化',
-      request_layout_changed: '请求布局变化（消息或工具定义调整）',
-      working_set_compacted: '上下文整理', history_compacted: '历史压缩',
-      instructions_changed: '指令变化', tool_results_added: '工具结果增加',
-      final_synthesis: '转入最终综述、移除工具定义', prepared_payload_changed: '请求内容变化', epoch_changed: '上下文阶段变化'};
     sumEl.textContent += ' 历史：' + (historyLabels[_ctxData.history_load_status] || historyLabels.unknown) + '。';
-    if (changes[_ctxData.change_reason]) sumEl.textContent += ' 变化原因：' + changes[_ctxData.change_reason] + '。';
-    if (_ctxData.error) sumEl.textContent += ' 调用状态：' + publicTaskStage(_ctxData.error) + '。';
+    if (CTX_CHANGES[_ctxData.change_reason]) sumEl.textContent += ' 变化：' + CTX_CHANGES[_ctxData.change_reason] + '。';
+    var toolMessages = _ctxTokenNumber(_ctxData.tool_message_count);
+    if (toolMessages != null) sumEl.textContent += ' 工具结果消息 ' + toolMessages + ' 条，已计入消息内容；未单独提供 token 数。';
+    if (_ctxData.status === 'failed') sumEl.textContent += ' 本次调用失败。';
+  }
+  var audit = document.getElementById('ctxAttempts'), auditBlock = document.getElementById('ctxAuditBlock');
+  if (audit && auditBlock) {
+    auditBlock.hidden = !attempts.length;
+    audit.replaceChildren();
+    attempts.forEach(function (row, i) {
+      var item = document.createElement('li');
+      var estimate = _ctxTokenNumber(row.estimated_tokens), previous = _ctxTokenNumber(i ? attempts[i - 1].estimated_tokens : null);
+      var delta = previous != null && estimate != null ? estimate - previous : null;
+      var labels = {admitted: '已受理', estimated: '已估算', running: '执行中', complete: '已完成', failed: '失败', cancelled: '已停止'};
+      item.textContent = (CTX_CHANGES[row.change_reason] || '模型请求') + ' · ' + (labels[row.status] || '状态待确认') +
+        (estimate == null ? ' · 估算未提供' : ' · 发送前估算 ' + estimate.toLocaleString() + ' tokens') +
+        (delta != null ? '（' + (delta > 0 ? '+' : '') + delta.toLocaleString() + '）' : '');
+      item.title = '调用 ' + row.logical_call_id + ' / 尝试 ' + row.attempt_id;
+      if (i === index) item.setAttribute('aria-current', 'step');
+      audit.appendChild(item);
+    });
   }
   var budgetItems = document.getElementById('ctxBudgetItems');
   var budgetBlock = document.getElementById('ctxBudgetBlock');
@@ -3481,8 +3552,50 @@ function createResearchProcessPanel(goal) {
   var body = document.createElement('div'); body.className = 'research-process-body'; panel.appendChild(body);
   var label = document.createElement('span'); label.className = 'research-task-status';
   label.setAttribute('role', 'status'); label.setAttribute('aria-live', 'polite');
-  // Timing/context bookkeeping is independent from the conversational transcript.
-  var elapsed = document.createElement('span');
+  var line = document.createElement('div'); line.className = 'research-task-line';
+  var orbit = document.createElement('span'); orbit.className = 'research-task-orbit'; orbit.setAttribute('aria-hidden', 'true');
+  for (var i = 0; i < 3; i++) orbit.appendChild(document.createElement('i'));
+  var elapsed = document.createElement('span'); elapsed.className = 'research-task-elapsed'; elapsed.setAttribute('aria-live', 'off');
+  line.appendChild(orbit); line.appendChild(label); line.appendChild(elapsed);
+  panel.insertBefore(line, body);
+  var timer = null, lastLabel = '', presentation = null;
+  function stopClock() { if (timer !== null) { clearInterval(timer); timer = null; } }
+  function timeText(seconds) {
+    return seconds < 60 ? seconds + ' 秒' : Math.floor(seconds / 60) + ' 分 ' + seconds % 60 + ' 秒';
+  }
+  function tick() {
+    if (!ownsDetails()) { stopClock(); return; }
+    if (!document.hidden && presentation && presentation.start > 0) {
+      var text = '· ' + timeText(Math.max(0, Math.floor(Date.now() / 1000 - presentation.start)));
+      if (elapsed.textContent !== text) elapsed.textContent = text;
+    }
+  }
+  function syncTask(state, entry, ui) {
+    var next = CitrusTaskState.waitingView(state, entry, Object.assign({activeTool: view.activeTool()}, ui));
+    var wasActive = presentation && (presentation.kind === 'waiting' || presentation.kind === 'tool');
+    view.pause(['stopping', 'disconnected', 'awaiting_input', 'settling'].indexOf(next.kind) >= 0 ||
+      !!(entry && ['queued', 'claimed', 'reconcile_required'].includes(entry.state)));
+    if (next.kind === 'waiting' && view.activeTool()) next.kind = 'tool';
+    var same = presentation && presentation.kind === next.kind && presentation.start === next.start && presentation.finish === next.finish;
+    presentation = next;
+    line.dataset.state = next.kind;
+    var labels = {waiting: '正在处理', tool: '正在处理', awaiting_input: '等待你的选择',
+      settling: '正在保存', stopping: '已请求停止；等待服务端确认',
+      disconnected: '连接中断，任务可能仍在后台运行', completed: '已完成',
+      partial: '部分完成', failed: '未完成', cancelled: '已停止'};
+    var text = labels[next.kind] || '';
+    if ((text || label.textContent === lastLabel || wasActive) && label.textContent !== text) label.textContent = text;
+    lastLabel = text;
+    if (same) return;
+    var active = next.kind === 'waiting' || next.kind === 'tool';
+    if (active && next.start > 0) {
+      tick(); if (timer === null) timer = setInterval(tick, 1000);
+    } else {
+      stopClock();
+      elapsed.textContent = active ? '· 等待开始时间' : next.start > 0 && next.finish >= next.start
+        ? '· 用时 ' + timeText(Math.floor(next.finish - next.start)) : '';
+    }
+  }
   function ownsDetails() { return epoch === authEpoch && sid === sessionId && chatContainer.contains(panel); }
   var view = CitrusTaskCards.createProcessView({container: body, clean: publicTaskStage, publicNote: publicTaskNote,
     toolName: displayToolName, statusText: toolStatusText, owns: ownsDetails,
@@ -3497,7 +3610,6 @@ function createResearchProcessPanel(goal) {
       return result;
     },
     elapsed: function (ms) { return (Math.max(0, Number(ms) || 0) / 1000).toFixed(1) + ' 秒'; }});
-  panel.appendChild(label);
   function note(text, id, metadata) {
     if (!metadata || metadata.visibility !== 'public' || metadata.origin !== 'model' || metadata.internal === true || metadata.private === true) return;
     view.note(text, id, Object.assign({}, metadata, {public_note: true}));
@@ -3529,14 +3641,15 @@ function createResearchProcessPanel(goal) {
     // status/plan/thinking/section/context events are never promoted to prose.
   }
   function terminal(status) {
-    var names = {completed: '', partial: '部分完成', cancelled: '已停止', failed: '未完成'};
+    var names = {completed: '已完成', partial: '部分完成', cancelled: '已停止', failed: '未完成'};
     if (!Object.prototype.hasOwnProperty.call(names, status)) return false;
-    label.textContent = names[status]; view.terminal();
+    stopClock(); line.dataset.state = status; label.textContent = names[status]; view.terminal();
     panel.classList.toggle('has-failure', status === 'failed');
     return true;
   }
   return {element: panel, label: label, elapsed: elapsed, body: body,
-    note: note, receive: receive, terminal: terminal, answerVisible: answerVisible, projection: view.projection};
+    note: note, receive: receive, terminal: terminal, answerVisible: answerVisible, projection: view.projection,
+    syncTask: syncTask, stopClock: stopClock};
 }
 
 
@@ -3546,15 +3659,15 @@ function createResearchProcessPanel(goal) {
 /* ─── Chat ─── */
 /* v8.10: 反馈栏默认不随气泡创建（回答生成完成后由 appendFeedback 追加，主流时序）；
    历史恢复的 bot 消息同样不带反馈 */
-function addMessage(role, html, before) {
+function addMessage(role, html, before, fresh) {
   var div = document.createElement('div');
-  div.className = 'message ' + role;
+  div.className = 'message ' + role + (fresh ? ' message-enter' : '');
   div.dataset.messageRole = role;
   div.innerHTML = '<div class="avatar"></div><div class="content">' + html + '</div>';
   if (role === 'user') renderAvatarImage(div.querySelector('.avatar'), currentAccount, 'message-avatar-image', '我的头像');
   else renderAgentAvatar(div.querySelector('.avatar'));
   chatContainer.insertBefore(div, before || null);
-  if (!before) chatContainer.scrollTop = chatContainer.scrollHeight;
+  if (fresh && !before) chatContainer.scrollTop = chatContainer.scrollHeight;
   return div.querySelector('.content');
 }
 
@@ -3956,9 +4069,7 @@ async function sendMsg(isFollowUp) {
     return;
   }
   _composerNotice = '';
-  var _requestStartedAt = performance.now();
   mascotSay('planning');
-  var _turnTotalMs = 0;
   var _firstTokenElapsedMs = null;
   var visualizeForRequest = visualizationEnabled;
   var filesForRequest = _selectedAttachments.slice();
@@ -3977,14 +4088,13 @@ async function sendMsg(isFollowUp) {
   currentRoundId++;
   var requestRoundId = currentRoundId;
   currentQuery = query;
-  renderContextPanel({max_tokens: _ctxMaxTokens(), request_id: clientRequestId, session_id: requestSessionId});
 
   // v8.4.11: 新发送清理停止提示，恢复输入框占位
   var stopMsg = document.getElementById('stop-msg');
   if (stopMsg) stopMsg.style.display = 'none';
   userInput.placeholder = '有什么想做的？';
   var userMessageContent = addMessage('user', escapeHtml(query) +
-    (filesForRequest.length + fileRefsForRequest.length ? '<div class="sent-attachment-count">已附加 ' + (filesForRequest.length + fileRefsForRequest.length) + ' 个文件</div>' : ''));
+    (filesForRequest.length + fileRefsForRequest.length ? '<div class="sent-attachment-count">已附加 ' + (filesForRequest.length + fileRefsForRequest.length) + ' 个文件</div>' : ''), null, true);
   var _sentPreviewStart = _sentAttachmentPreviewUrls.length;
   appendSentAttachmentPreviews(userMessageContent, filesForRequest);
   // Only URLs created for this optimistic row are revoked if admission fails.
@@ -3995,7 +4105,7 @@ async function sendMsg(isFollowUp) {
   if (window.turnRail && window.turnRail.addPending) window.turnRail.addPending(clientRequestId, query);
   userInput.value = '';
 
-  var botContent = addMessage('bot', '');
+  var botContent = addMessage('bot', '', null, true);
   // P0-A: 实时气泡带与历史恢复相同的轮次锚点（同一套归属规则，文件/跳转可定位）
   if (botContent) { botContent.dataset.requestId = clientRequestId; botContent.dataset.sessionId = requestSessionId; }
   var botMessage = botContent && botContent.closest ? botContent.closest('.message') : botContent.parentNode;
@@ -4050,15 +4160,14 @@ async function sendMsg(isFollowUp) {
   // never supplies a business terminal state; replay confirms that state.
   function stopCurrentTurn(reason) {
     if (reason === 'account' || reason === 'switch') {
-      if (activeTurnComposer === myBinding) activeTurnComposer = null;
-      composerRunning = false;
+      if (activeTurnComposer === myBinding) { activeTurnComposer = null; composerRunning = false; }
       isCancelled = true;
       clearQueuePoll();
       if (unsubscribeBinding) { unsubscribeBinding(); unsubscribeBinding = null; }
       if (taskTransport) taskTransport.stop();
       if (taskControls) taskControls.dispose();
       if (taskStore) taskStore.clear();
-      clearTimeout(spinnerTimeout); clearInterval(_elapsedTimer);
+      clearTimeout(spinnerTimeout); processPanel.stopClock();
       if (reason === 'account' && requestAbortController) requestAbortController.abort();
       unregisterTurnBinding(myBinding);
       return;
@@ -4076,7 +4185,7 @@ async function sendMsg(isFollowUp) {
       if (hasTerminalEvent || _turnDisconnected) return;
       if (taskStore.state.question && taskStore.state.question.status === 'pending') {
         _turnDisconnected = true; clearTimeout(spinnerTimeout);
-        statusLabel.textContent = '等待你的选择';
+        syncWaiting();
         if (ownsControls()) setSendDisabled(false);
         if (taskStore.state.job_id) taskTransport.follow(taskStore.state.job_id);
         return;
@@ -4098,7 +4207,7 @@ async function sendMsg(isFollowUp) {
     isCancelled = true;
     _turnDisconnected = true;
     if (activeTurnComposer && activeTurnComposer.cancel === stopCurrentTurn) activeTurnComposer.stopping = true;
-    clearTimeout(spinnerTimeout); clearInterval(_elapsedTimer);
+    clearTimeout(spinnerTimeout); processPanel.stopClock();
     var ac = requestAbortController; requestAbortController = null;
     if (ac) {
       ac.abort(); if (currentAbortController === ac) currentAbortController = null;
@@ -4141,7 +4250,7 @@ async function sendMsg(isFollowUp) {
   var taskStore = CitrusTaskState.create({onEvent: handleEvent, request_id: clientRequestId, session_id: requestSessionId});
   var taskTransport = CitrusTaskTransport.create({store: taskStore, fetch: accountFetch, owns: ownsTurn,
     onSnapshot: reconcileTaskSnapshot,
-    onError: function(error) { if (ownsControls()) showBanner(error.message || '任务状态暂时无法读取。'); }
+    onError: function () { if (ownsTurn()) { _turnDisconnected = true; syncWaiting(); } }
   });
   var taskControls = CitrusTaskControls.create({container: botContent, store: taskStore, transport: taskTransport, owns: ownsTurn,
     onChange: function () { if (ownsControls()) refreshTaskComposer(); }});
@@ -4152,12 +4261,17 @@ async function sendMsg(isFollowUp) {
     dispose: function (reason) { stopCurrentTurn(reason || 'switch'); },
     cancelQueued: function () { cancelQueuedEntry(); }
   };
+  function syncWaiting() {
+    processPanel.syncTask(taskStore.state, queueEntry, {hasAnswer: !!fullText.trim(),
+      disconnected: _turnDisconnected, stopping: myBinding.stopping});
+  }
   registerTurnBinding(myBinding);
   var unsubscribeBinding = taskStore.subscribe(function () {
     if (!ownsTurn()) return;
     myBinding.following = !!queueFollowedJobId;
     selectActiveTurn();
     renderQueueStatus();
+    syncWaiting();
   });
   refreshTaskComposer();
   var questionCard = CitrusTaskControls.createQuestion({container: botContent, store: taskStore, transport: taskTransport, owns: ownsTurn,
@@ -4167,7 +4281,9 @@ async function sendMsg(isFollowUp) {
 
   function reconcileTaskSnapshot(job) {
     if (!ownsTurn()) return;
+    _turnDisconnected = false;
     processPanel.receive('snapshot', job);
+    syncWaiting();
     if (taskStore.state.question && taskStore.state.question.status === 'pending' && !CitrusTaskState.displayStatus(job)) {
       statusLabel.textContent = '等待你的选择';
       if (ownsControls()) { clearTimeout(spinnerTimeout); setSendDisabled(false); }
@@ -4179,7 +4295,6 @@ async function sendMsg(isFollowUp) {
       }
       return;
     }
-    if (taskStore.state.context_snapshot) renderContextPanel(taskStore.state.context_snapshot);
     if (_pendingPermission && _pendingPermission.job_id === taskStore.state.job_id && Array.isArray(job.approvals)) {
       var pendingApproval = job.approvals.find(function(approval) { return approval.approval_id === _pendingPermission.approval_id; });
       if (!pendingApproval || pendingApproval.status !== 'pending') {
@@ -4204,21 +4319,6 @@ async function sendMsg(isFollowUp) {
     }
   }
 
-  var _elapsedTimer = null;
-
-  function elapsedText(ms) {
-    var seconds = Math.max(0, Math.floor((Number(ms) || 0) / 1000));
-    return seconds < 60 ? seconds + ' 秒' : Math.floor(seconds / 60) + ' 分 ' + (seconds % 60) + ' 秒';
-  }
-  function startElapsedTimer() {
-    if (_elapsedTimer) clearInterval(_elapsedTimer);
-    _elapsedTimer = setInterval(function() {
-      if (!ownsTurn()) { clearInterval(_elapsedTimer); return; }
-      statusElapsed.textContent = '用时 ' + elapsedText(performance.now() - _requestStartedAt);
-    }, 1000);
-    statusElapsed.textContent = '用时 0 秒';
-  }
-
   function applyTurnEnvelope(data) {
     var env = data && data.turn_envelope;
     var status = CitrusTaskState.displayStatus(data);
@@ -4238,7 +4338,7 @@ async function sendMsg(isFollowUp) {
   }
 
   function clearStatus() {
-    if (_elapsedTimer) { clearInterval(_elapsedTimer); _elapsedTimer = null; }
+    processPanel.stopClock();
     // Admission errors have no business envelope. Keep an honest, expandable
     // panel rather than making this turn's process UI disappear.
     statusDiv.classList.remove('is-running'); statusDiv.classList.add('is-done');
@@ -4247,15 +4347,14 @@ async function sendMsg(isFollowUp) {
 
   function finishStatus() {
     if (!ownsTurn()) return;
-    if (_elapsedTimer) { clearInterval(_elapsedTimer); _elapsedTimer = null; }
+    processPanel.stopClock();
     // Receipt failure/cancel requests are not a business terminal state.
     if (!hasTerminalEvent) {
-      statusLabel.textContent = isCancelled ? '已请求停止；状态待确认' : '状态待确认';
+      syncWaiting();
       return;
     }
-    var totalMs = _turnTotalMs > 0 ? _turnTotalMs : (performance.now() - _requestStartedAt);
-    statusElapsed.textContent = '用时 ' + elapsedText(totalMs);
     processPanel.terminal(_turnDisplayStatus);
+    syncWaiting();
   }
 
   function loadTurnGeneratedFiles(data) {
@@ -4366,8 +4465,9 @@ async function sendMsg(isFollowUp) {
           preAnswerText += data.content;
           break;
         }
-        if (!isAnswerStarted) {
-          _firstTokenElapsedMs = performance.now() - _requestStartedAt;
+        if (!isAnswerStarted && String(data.content || '').trim()) {
+          var executionStart = queueEntry && !queueEntry.active_child_job_id && Number(queueEntry.started_at);
+          _firstTokenElapsedMs = executionStart > 0 ? Math.max(0, Date.now() - executionStart * 1000) : null;
           isAnswerStarted=true; clearTimeout(spinnerTimeout); mascotSay('generating');
           // The first visible answer chunk collapses the trace independently
           // of the authoritative task status; users can reopen it at any time.
@@ -4389,8 +4489,7 @@ async function sendMsg(isFollowUp) {
       case 'context_usage':
         if (data.request_id && data.request_id !== clientRequestId) break;
         if (data.session_id && data.session_id !== requestSessionId) break;
-        if (taskStore.state.context_snapshot) renderContextPanel(taskStore.state.context_snapshot);
-        break;
+        break; // The selected task store owns the context drawer.
       case 'status':
         if (data.stage === 'awaiting_input' || data.status === 'awaiting_input') {
           statusLabel.textContent = '等待你的选择'; clearTimeout(spinnerTimeout); setSendDisabled(false);
@@ -4523,7 +4622,6 @@ async function sendMsg(isFollowUp) {
         hasTerminalEvent = true;
         _turnDisconnected = false;
         clearStageLine();
-        _turnTotalMs = Number(data.total_elapsed_ms) || 0;   // 服务端实测整轮耗时
         // One authoritative reducer: the server TurnEnvelope owns the terminal
         // state. Local tool rows never promote a partial turn to completed.
         var _terminal = applyTurnEnvelope(data);
@@ -4602,7 +4700,7 @@ async function sendMsg(isFollowUp) {
           ub.onclick=function(){userInput.value=currentQuery;sendMsg()};
           uc.appendChild(ub);botContent.appendChild(uc);
         }
-        botContent.appendChild(createElapsedBadge(_firstTokenElapsedMs != null ? _firstTokenElapsedMs : (performance.now() - _requestStartedAt)));
+        if (_firstTokenElapsedMs != null) botContent.appendChild(createElapsedBadge(_firstTokenElapsedMs));
         if (data.session_id) sessionId=data.session_id;if(sessionId)localStorage.setItem(sessionStorageKey(),sessionId);
         window.dispatchEvent(new Event('citrus:turn-finished'));
         appendMessageActions(botContent, 'assistant', fullText.replace(/__NEED_COMPLEX__/g, ''));
@@ -4631,9 +4729,7 @@ async function sendMsg(isFollowUp) {
         else { finishStatus(); showBanner('回答提前中断，当前内容可能不完整。'); }
         loadTurnGeneratedFiles(data);
         break;
-      case 'heartbeat':
-        if (!hasTerminalEvent) statusElapsed.textContent = '用时 ' + elapsedText(data.elapsed_ms || performance.now() - _requestStartedAt);
-        break;
+      case 'heartbeat': break; // Execution time is derived from the server start stamp.
       default: break;
     }
   }
@@ -4708,9 +4804,10 @@ async function sendMsg(isFollowUp) {
     var node = queueStatusNode();
     if (!node) return;
     var entry = queueEntry;
-    if (entry.state === 'terminal' && !entry.clear_reason) {
-      node.remove(); queueStatusEl = null; return;
+    if (!['queued', 'claimed', 'reconcile_required'].includes(entry.state)) {
+      node.hidden = true; return;
     }
+    node.hidden = false;
     node.replaceChildren();
     var text = document.createElement('span');
     text.className = 'turn-queue-status';
@@ -4725,8 +4822,6 @@ async function sendMsg(isFollowUp) {
       cancel.onclick = function () { cancelQueuedEntry(); };
       node.appendChild(cancel);
     }
-    if (entry.state === 'queued' || entry.state === 'claimed')
-      statusLabel.textContent = queueStateLabel(entry);
   }
 
   function clearQueuePoll() { if (queuePollTimer) { clearTimeout(queuePollTimer); queuePollTimer = null; } }
@@ -4764,7 +4859,6 @@ async function sendMsg(isFollowUp) {
         followSubmittedRequest();
       }
     }, 300000);
-    startElapsedTimer();
     taskTransport.followContinuation(observer);
     selectActiveTurn();
   }
@@ -4775,7 +4869,7 @@ async function sendMsg(isFollowUp) {
     if (!ownsTurn() || hasTerminalEvent) return;
     if (entry.clear_reason === 'cancelled') {
       isCancelled = true; hasTerminalEvent = true; _turnDisplayStatus = 'cancelled';
-      clearTimeout(spinnerTimeout); clearInterval(_elapsedTimer);
+      clearTimeout(spinnerTimeout); processPanel.stopClock();
       processPanel.terminal('cancelled');
       answerDiv.style.display = ''; answerDiv.textContent = '已取消，这条消息不会执行。';
       statusLabel.textContent = '已取消';
@@ -4811,6 +4905,7 @@ async function sendMsg(isFollowUp) {
     }
     renderQueueStatus();
     maybeFollowObserver();
+    syncWaiting();
     if (entry.state === 'terminal') onQueueTerminal(entry);
     else scheduleQueuePoll();
     return true;
@@ -4819,31 +4914,27 @@ async function sendMsg(isFollowUp) {
   function restoreDraft(message) {
     clearTimeout(spinnerTimeout); clearStatus();
     isCancelled = true; hasTerminalEvent = true;
-    if (!userInput.value) userInput.value = query;
+    if (requestRoundId === currentRoundId && !userInput.value) userInput.value = query;
     answerDiv.style.display = ''; answerDiv.textContent = '';
     showBanner(message);
     setSendDisabled(false);
-    userInput.focus();
+    if (requestRoundId === currentRoundId) userInput.focus();
   }
 
-  // A 4xx, or a 5xx carrying an application refusal, proves the server did not
-  // admit this request. A bare 5xx/gateway failure is ambiguous: it may already
-  // be in the queue, so keep the optimistic row and reconcile the same id.
-  function admissionRejectionConfirmed(status, body) {
-    if (status >= 400 && status < 500) return true;
-    if (status >= 500 && body && (body.code || body.detail && (body.detail.code || body.detail.message))) return true;
-    return false;
+  // A timeout or server-side error cannot prove the POST did not commit,
+  // even when the response has a JSON error body. Reconcile the original ID.
+  function admissionRejectionConfirmed(status) {
+    return status >= 400 && status < 500 && status !== 408 && status !== 499;
   }
 
   function handleAdmissionError(status, body) {
     var detail = body && body.detail && typeof body.detail === 'object' ? body.detail : {};
     var code = detail.code || (body && body.code);
-    if (!admissionRejectionConfirmed(status, body)) { reconcileQueueAdmission(); return; }
+    if (!admissionRejectionConfirmed(status)) { reconcileQueueAdmission(); return; }
     requestSubmitted = false;
     var message = status === 401 ? '请先登录后继续。'
       : status === 413 ? '附件过大或数量超限，请调整后重试。'
       : status === 429 || code === 'turn_queue_full' ? '待处理消息已达上限，请稍后再试。'
-      : status === 503 || code === 'turn_queue_unavailable' ? '消息队列暂不可用，请稍后重试。'
       : code === 'turn_payload_conflict' ? '相同请求标识已用于不同内容；请重新发送为新请求。'
       : code === 'skill_selection_changed' ? '所选技能已变更或不可用，请打开“＋”刷新技能目录后重新选择。'
       : code === 'account_closed' ? '账户已停用，不能接受新请求。'
@@ -4913,7 +5004,6 @@ async function sendMsg(isFollowUp) {
     if (!ownsTurn()) return;
     fullText = ''; preAnswerText = ''; isAnswerStarted = false; isFinalAnswerArmed = false;
     renderPending = false; _turnDisconnected = false; _turnDisplayStatus = ''; _turnEnvelope = null;
-    _turnTotalMs = 0; _requestStartedAt = performance.now();
     answerDiv.style.display = ''; answerDiv.innerHTML = '';
     statusLabel.textContent = ''; statusElapsed.textContent = '';
     statusDiv.className = 'research-process'; hasTerminalEvent = false;
@@ -4948,13 +5038,12 @@ async function sendMsg(isFollowUp) {
         try { body = await response.json(); } catch (_) {}
         if (!ownsTurn() || streamAbortController.signal.aborted) return;
         if (!response.ok) { handleAdmissionError(response.status, body); return; }
-        if (!body) { reconcileQueueAdmission(); return; }
-        adoptTurnEntry(body);
+        if (!adoptTurnEntry(body)) reconcileQueueAdmission();
       } catch (err) {
         if (!ownsTurn() || requestAbortController !== streamAbortController || streamAbortController.signal.aborted) return;
         if (!requestSubmitted) {
           clearTimeout(spinnerTimeout); clearStatus();
-          if (!userInput.value) userInput.value = query;
+          if (requestRoundId === currentRoundId && !userInput.value) userInput.value = query;
           showBanner('发送未完成，内容已保留，请重试。');
           stopCurrentTurn('switch');
           removeOptimisticTurn();
@@ -5784,11 +5873,18 @@ function projectHistoryTrace(process, trace) {
 
 function bindHistoryTask(turn, content, answer, process, ownsContext, useComposer) {
   var epoch = authEpoch, sid = sessionId, round = currentRoundId, armed = false, streamedAnswer = '', closed = false;
-  var binding = null, entry = turn.queueEntry, queuePoll = null, observed = '', queueStatus;
+  var binding = null, entry = turn.queueEntry, queuePoll = null, observed = '', queueStatus, disconnected = false;
+  var hasSavedAnswer = !!String(turn.answer && turn.answer.content || '').trim();
+  function syncWaiting() {
+    process.syncTask(store.state, entry, {hasAnswer: hasSavedAnswer || !!streamedAnswer.trim(),
+      disconnected: disconnected, stopping: !!(binding && binding.stopping)});
+  }
   function owns() { return !closed && epoch === authEpoch && sid === sessionId && chatContainer.contains(content); }
   function ownsComposer() { return owns() && activeTurnComposer === binding; }
   function projectContext() {
-    if (owns() && ownsContext && round === currentRoundId && store.state.context_snapshot) renderContextPanel(store.state.context_snapshot);
+    if (!binding && owns() && ownsContext && round === currentRoundId && store.state.context_snapshot) {
+      renderContextPanel(Object.assign({}, store.state.context_snapshot, {view_scope: 'previous'}));
+    }
   }
   function questionLabel() {
     if (!store.state.question || CitrusTaskState.isTerminal(store.state)) return;
@@ -5797,6 +5893,7 @@ function bindHistoryTask(turn, content, answer, process, ownsContext, useCompose
     if (label) process.label.textContent = label;
   }
   function reconcileControls() {
+    if (binding && owns()) selectActiveTurn();
     if (!ownsComposer()) return;
     var state = store.state, terminal = CitrusTaskState.isTerminal(state);
     var approvals = terminal ? [] : state.approvals;
@@ -5810,21 +5907,21 @@ function bindHistoryTask(turn, content, answer, process, ownsContext, useCompose
     approvals.forEach(function(item) {
       if (item.status === 'pending' && (!_pendingPermission || _pendingPermission.approval_id !== item.approval_id)) showPermissionCard(Object.assign({job_id: state.job_id}, item));
     });
-    selectActiveTurn();
   }
   function snapshot(job) {
     if (!owns()) return;
+    disconnected = false;
     process.receive('snapshot', job);
     answer.dataset.displayStatus = store.state.display_status;
     if (!process.terminal(store.state.display_status)) {
-      var labels = {queued: '任务排队中', running: '任务执行中', detached: '任务在后台执行', cancel_requested: '停止请求待确认'};
+      var labels = {queued: '任务排队中', detached: '任务在后台执行'};
       if (labels[store.state.status]) process.label.textContent = labels[store.state.status];
     }
-    projectContext(); questionLabel(); reconcileControls();
+    projectContext(); questionLabel(); syncWaiting(); reconcileControls();
   }
   function dispose() {
     if (closed) return;
-    closed = true; clearTimeout(queuePoll); transport.stop(); controls.dispose(); questionCard.dispose(); store.clear();
+    closed = true; process.stopClock(); clearTimeout(queuePoll); transport.stop(); controls.dispose(); questionCard.dispose(); store.clear();
     composerRunning = false;
     unregisterTurnBinding(binding);
   }
@@ -5832,6 +5929,7 @@ function bindHistoryTask(turn, content, answer, process, ownsContext, useCompose
     if (reason === 'account' || reason === 'switch') { dispose(); return; }
     if (!ownsComposer() || CitrusTaskState.isTerminal(store.state)) return;
     binding.stopping = true;
+    syncWaiting();
     refreshTaskComposer();
     // stopCurrentTask posts once to this exact job; observation confirms stop.
     if (store.state.job_id) transport.follow(store.state.job_id);
@@ -5856,11 +5954,11 @@ function bindHistoryTask(turn, content, answer, process, ownsContext, useCompose
       }).catch(function () {});
     }
     if (type === 'request_user_input' || type === 'question' || type === 'done') questionLabel();
-    if (type === 'heartbeat' && !CitrusTaskState.isTerminal(store.state) && data.elapsed_ms != null) process.elapsed.textContent = '用时 ' + (Math.max(0, Number(data.elapsed_ms) || 0) / 1000).toFixed(0) + ' 秒';
+    syncWaiting();
     reconcileControls();
   }});
   var transport = CitrusTaskTransport.create({store: store, fetch: accountFetch, owns: owns, onSnapshot: snapshot,
-    onError: function () { if (owns() && !CitrusTaskState.isTerminal(store.state)) process.label.textContent = '状态待确认'; }});
+    onError: function () { if (owns()) { disconnected = true; syncWaiting(); } }});
   var controls = CitrusTaskControls.create({container: content, store: store, transport: transport, owns: owns,
     onChange: function() { if (binding) reconcileControls(); }});
   var questionCard = CitrusTaskControls.createQuestion({container: content, store: store, transport: transport, owns: owns,
@@ -5879,6 +5977,7 @@ function bindHistoryTask(turn, content, answer, process, ownsContext, useCompose
     if (!owns() || entry.state === 'terminal' && entryNow.state !== 'terminal') return;
     entry = entryNow;
     if (binding) binding.queueEntry = entry;
+    queueStatus.hidden = !['queued', 'claimed', 'reconcile_required'].includes(entry.state);
     queueStatus.replaceChildren();
     var label = document.createElement('span');
     label.textContent = entry.state === 'terminal' && entry.clear_reason === 'cancelled' ? '已取消' : queueStateLabel(entry);
@@ -5905,6 +6004,7 @@ function bindHistoryTask(turn, content, answer, process, ownsContext, useCompose
       content.dataset.jobId = job;
       transport.followContinuation(job);
     }
+    syncWaiting();
     selectActiveTurn();
   }
   async function pollQueue() {
@@ -5968,7 +6068,7 @@ function renderHistoryMessages(msgs, serverTurns, placement) {
     contentEl.insertBefore(process.element, contentEl.firstChild);
     process.receive('snapshot', {terminal_snapshot: turn.terminalSnapshot});
     if (String(answer.content || '').trim()) process.answerVisible(true);
-    if (!process.terminal(turn.displayStatus)) process.label.textContent = '状态未确认';
+    if (!process.terminal(turn.displayStatus) && turn.jobId && !turn.queueEntry) process.label.textContent = '状态未确认';
     if (turn.parentJobId || turn.parentQuestionId) {
       var relation = document.createElement('div'); relation.className = 'turn-continuation'; relation.textContent = '根据上一轮选择继续';
       contentEl.insertBefore(relation, process.element);
@@ -5993,6 +6093,8 @@ function renderHistoryMessages(msgs, serverTurns, placement) {
   }
   syncEarlierHistoryButton();
   syncHistoryTurnFiles();
+  // Reading scrollHeight for every restored message forces a layout per row.
+  if (!placement || placement.append) chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
 /* v8.10: 无会话时自动创建默认会话（主流行为）——打开即有一个会话，历史回答有处可存，

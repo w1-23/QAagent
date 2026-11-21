@@ -14,6 +14,12 @@
   'use strict';
 
   var API = '/api/v2/figures';
+  var PROJECT_PAGE = 30;
+  var PROJECT_PAGE_CAP = 200;
+  var PREVIEW_MAX_BYTES = 16 * 1024;
+  var PREVIEW_MAX_LINES = 60;
+  var WORKBOOK_PREVIEW_BYTES = 16 * 1024 * 1024;
+  var WORKBOOK_PREVIEW_COLUMNS = 24;
   var model = window.FigureEditModel;
   function applyTheme(name) {
     document.documentElement.setAttribute('data-theme',
@@ -46,6 +52,12 @@
     blobUrl: null, projectionFrame: null, localUnsupported: [], localRevision: -1,
     displayedSvg: null, hitDocument: null, hitManifest: null, hitScene: null, hitCoarse: true, hitEpoch: 0, hitCycle: null,
     schemaRequest: 0, schema: null, importing: false,
+    dataFiles: [], dataPreviewFile: '', dataPreviewReady: false,
+    dataPreviewRequest: 0, dataPreviewController: null,
+    importArmed: false,
+    projectsLoading: false, projectsMore: false, projectsError: '',
+    staticPreview: false,
+    unsaved: null, savePromise: null,
     drag: null,
     epoch: 0,           // advances at navigation intent, before detail arrives
     editRevision: 0,
@@ -72,6 +84,7 @@
     state.opening = null;
     resetScene();
     state.current = null;
+    state.staticPreview = false;
     state.qa = null; state.qaFlight = null; state.qaError = ''; renderQa();
     state.selected = '';
     state.selectedGroup = '';
@@ -161,8 +174,15 @@
 
   function renderProjects() {
     var list = el('projectList');
+    var footer = el('projectListFooter'), moreButton = el('loadMoreProjects');
+    footer.hidden = !state.projectsMore || !state.projects.length;
+    moreButton.disabled = state.projectsLoading;
+    moreButton.textContent = state.projectsLoading ? '正在加载…' : '加载更早图件';
+    el('figureCount').textContent = state.projects.length
+      ? state.projects.length + (state.projectsMore ? '+' : '') + ' 个图件' : '';
     if (!state.projects.length) {
-      list.innerHTML = '<li class="list-empty">还没有图件。在问答中生成图件，或从资料库导入表格。</li>';
+      list.innerHTML = '<li class="list-empty">' + (state.projectsLoading ? '正在加载图件…' :
+        state.projectsError ? esc(state.projectsError) : '还没有图件。在问答中生成图件，或从资料库导入表格。') + '</li>';
       return;
     }
     list.innerHTML = state.projects.map(function (project) {
@@ -171,34 +191,66 @@
         : '时间未知';
       var current = state.current && state.current.figure_id === project.figure_id
         ? ' is-current' : '';
+      // A project without a saved SVG cannot be edited in this workspace even
+      // if its source is replayable; label the static outcome honestly.
+      var staticOnly = project.editable === false ||
+        (project.source_kind !== 'svg' && !(project.exports && project.exports.svg));
+      var readOnly = staticOnly ? '<span class="project-badge">只读</span>' : '';
       return '<li data-id="' + esc(project.figure_id) + '">' +
         '<button class="project-open' + current + '" data-open="' + esc(project.figure_id) +
         '" title="' + esc(when) + '" aria-current="' + (current ? 'true' : 'false') + '">' +
         '<span class="project-thumb" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M3 4v16h18M6 15l4-5 4 2 6-7"/><circle cx="6" cy="15" r="1"/><circle cx="10" cy="10" r="1"/><circle cx="14" cy="12" r="1"/><circle cx="20" cy="5" r="1"/></svg></span>' +
         '<span class="project-main"><strong>' + esc(project.title || '未命名图件') + '</strong>' +
         '<small>' + esc(project.source_kind === 'svg' ? 'SVG 示意图' : project.source_kind === 'script' ? '脚本图件' : '数据图件') +
-        (project.source_kind === 'svg' ? '' : ' · ' + esc(project.objects || 0) + ' 个对象') + '</small></span></button></li>';
-    }).join('');
+        (project.source_kind === 'svg' ? '' : ' · ' + esc(project.objects || 0) + ' 个对象') + readOnly + '</small></span></button></li>';
+    }).join('') + (state.projectsLoading ? '<li class="list-empty">正在加载图件…</li>' : '');
   }
 
-  function loadProjects() {
+  // Older projects are fetched with the router's existing limit/offset
+  // contract. One extra row detects whether another page exists without
+  // guessing a total the API does not publish.
+  function loadProjects(options) {
+    options = options || {};
+    var more = options.more === true;
+    var keep = options.keep === true;
+    var wanted = more ? PROJECT_PAGE
+      : keep ? Math.max(PROJECT_PAGE, Math.min(PROJECT_PAGE_CAP, state.projects.length)) : PROJECT_PAGE;
+    var offset = more ? state.projects.length : 0;
+    var requestLimit = Math.min(PROJECT_PAGE_CAP, wanted + 1);
     var request = ++state.listRequest;
-    return jsonRequest(API + '/projects').then(function (payload) {
+    state.projectsLoading = true;
+    renderProjects();
+    return jsonRequest(API + '/projects?limit=' + requestLimit + '&offset=' + offset).then(function (payload) {
       if (request !== state.listRequest) return;
-      state.projects = payload.projects || [];
-      el('figureCount').textContent = state.projects.length
-        ? state.projects.length + ' 个图件' : '';
+      var incoming = Array.isArray(payload.projects) ? payload.projects : [];
+      var visible = incoming.slice(0, wanted);
+      state.projects = more ? state.projects.concat(visible) : visible;
+      state.projectsMore = incoming.length > wanted;
+      state.projectsLoading = false;
+      state.projectsError = '';
       renderProjects();
+    }).catch(function (error) {
+      if (request !== state.listRequest) return;
+      state.projectsLoading = false;
+      state.projectsError = error.message || '图件列表读取失败。';
+      renderProjects();
+      notify('图件列表读取失败：' + state.projectsError, true);
     });
   }
 
   // ── Opening a project ──────────────────────────────────────────────────
 
-  function openProject(figureId, prepareEdit) {
-    if ((hasEdits() || state.saving) && !confirm('当前修改尚未全部保存，仍要打开另一图件吗？')) {
-      return Promise.resolve();
-    }
+  function openProject(figureId, prepareEdit, options) {
+    options = options || {};
+    if (options.skipUnsavedGuard) return loadProject(figureId, prepareEdit);
+    return confirmUnsaved('打开另一图件').then(function (ok) {
+      return ok ? loadProject(figureId, prepareEdit) : undefined;
+    });
+  }
+
+  function loadProject(figureId, prepareEdit) {
     clearProject();
+    state.staticPreview = false;
     var epoch = state.epoch;
     var controller = new AbortController();
     state.opening = controller;
@@ -224,6 +276,9 @@
       el('emptyState').hidden = true;
       el('deleteButton').disabled = false;
       if (state.narrow) setSidebar('left', false);
+      // A freshly opened project starts on the canvas; the context inspector
+      // returns when an object is selected.
+      setSidebar('right', false);
       renderCanvasInfo();
       fitView();
 
@@ -237,6 +292,47 @@
       state.opening = null;
       notify(error.message, true);
     });
+  }
+
+  // A project switch must never silently drop local edits. The dialog offers
+  // the three real outcomes: persist them, discard them, or stay where we are.
+  function confirmUnsaved(action) {
+    if (!hasEdits() && !state.saving) return Promise.resolve(true);
+    if (state.saving) {
+      var pending = state.savePromise || Promise.resolve();
+      return pending.then(function () {
+        if (state.saving) {
+          notify('保存仍在进行，请稍后再切换。', true);
+          return false;
+        }
+        return confirmUnsaved(action);
+      });
+    }
+    var dialog = el('unsavedDialog');
+    if (!dialog || typeof dialog.showModal !== 'function') {
+      return Promise.resolve(window.confirm('当前修改尚未全部保存，继续将放弃这些修改。仍要' + action + '吗？'));
+    }
+    var error = el('unsavedError');
+    error.hidden = true; error.textContent = '';
+    el('unsavedMessage').textContent = '当前图件有未保存的修改。可以保存后继续，或放弃本次修改。' +
+      (action ? '（' + action + '）' : '');
+    setUnsavedBusy(false);
+    if (!dialog.open) dialog.showModal();
+    el('unsavedSave').focus();
+    return new Promise(function (resolve) { state.unsaved = { resolve: resolve, action: action }; });
+  }
+
+  function setUnsavedBusy(busy) {
+    ['unsavedSave', 'unsavedDiscard', 'unsavedCancel'].forEach(function (id) { el(id).disabled = !!busy; });
+  }
+
+  function resolveUnsaved(ok) {
+    var pending = state.unsaved;
+    if (!pending) return;
+    state.unsaved = null;
+    var dialog = el('unsavedDialog');
+    if (dialog && dialog.open) dialog.close();
+    pending.resolve(!!ok);
   }
 
   function renderQa() {
@@ -333,14 +429,23 @@
   function renderProjectMeta() {
     var detail = state.current;
     var formats = Object.keys(detail.exports || {}).map(function (format) { return format.toUpperCase(); });
+    var readOnly = state.staticPreview ||
+      (detail.editable === false && !detail.edit_requires_preparation);
+    var limitation = detail.edit_limitation || (detail.edit_error && detail.edit_error.message) || '';
     if (detail.source_kind === 'svg') {
-      el('projectMeta').textContent = 'SVG 示意图 · ' + (detail.svg_targets || []).length + ' 个可编辑对象';
+      var targets = (detail.svg_targets || []).length;
+      el('projectMeta').textContent = readOnly
+        ? '只读静态预览 · SVG 示意图' + (formats.length ? ' · ' + formats.join(' / ') : '')
+        : 'SVG 示意图 · ' + targets + ' 个可编辑对象';
       el('prepareEditButton').hidden = true;
       return;
     }
-    el('projectMeta').textContent = (detail.source_kind === 'script' ? '脚本图件' : '数据图件') + ' · ' +
-      (detail.editable === false ? formats.join(' / ') || '无已保存格式' : manifestObjects().length + ' 个图内对象');
-    el('prepareEditButton').hidden = !detail.edit_requires_preparation;
+    el('projectMeta').textContent = (readOnly ? '只读静态预览 · ' : '') +
+      (detail.source_kind === 'script' ? '脚本图件' : '数据图件') + ' · ' +
+      (detail.editable === false ? formats.join(' / ') || '无已保存格式' : manifestObjects().length + ' 个图内对象') +
+      (readOnly && limitation ? ' · ' + limitation :
+        detail.edit_requires_preparation && !readOnly ? ' · 可按需加载编辑对象' : '');
+    el('prepareEditButton').hidden = !detail.edit_requires_preparation || readOnly;
   }
 
   function renderDownloads() {
@@ -514,7 +619,9 @@
     var narrow = (window.innerWidth || 1200) < 1000;
     if (narrow !== state.narrow) {
       state.narrow = narrow;
-      setSidebar('left', !narrow); setSidebar('right', !narrow);
+      // Drawers are opt-in at every width. On narrow screens they overlap the
+      // canvas, so never carry two open drawers across a breakpoint change.
+      if (narrow) { setSidebar('left', false); setSidebar('right', false); }
     }
     if (state.view.fit) fitView();
   }
@@ -977,7 +1084,16 @@
     var selected = selectedObject();
     el('objectName').textContent = state.selectedGroup ? '批量编辑 · ' + selectedMembers().length + ' 个对象' : selected ? objectLabel(selected) : '未选择对象';
     if (state.current && state.current.editable === false) {
-      panel.innerHTML = '<p class="property-empty">这张图件目前只读，可预览和下载，暂不支持样式修改。</p>';
+      if (state.current.edit_requires_preparation) {
+        panel.innerHTML = '<p class="property-empty">当前显示已保存图件的静态预览。点击画布上方的“加载编辑对象”可尝试恢复编辑；' +
+          '恢复成功前不会修改图件。</p>';
+        return;
+      }
+      var limitation = state.current.edit_limitation ||
+        (state.current.edit_error && state.current.edit_error.message) || '';
+      panel.innerHTML = '<p class="property-empty">' +
+        (limitation ? esc(limitation) + '<br>' : '') +
+        '这张图件目前只读，可预览和下载，暂不支持样式修改。</p>';
       return;
     }
     var object = propertyObject();
@@ -1312,7 +1428,11 @@
     }
     function staticOnly(message) {
       project.editable = false;
+      // A legacy project that can be prepared is not read-only; it is waiting
+      // for its explicit "load edit objects" action.
+      state.staticPreview = !project.edit_requires_preparation;
       state.savedPreviewStatus = message;
+      renderProjectMeta();
       if (url) showImage(url, null);
       else image.removeAttribute('src');
     }
@@ -1478,7 +1598,12 @@
   }
 
   function saveEdits() {
-    if (!state.current || state.current.editable === false || state.saving || state.deleting) return;
+    if (!state.current || state.current.editable === false || state.deleting) {
+      state.savePromise = Promise.resolve();
+      return state.savePromise;
+    }
+    // Never replace an in-flight save promise while a switch is waiting on it.
+    if (state.saving) return state.savePromise || Promise.resolve();
     onOverlayMouseUp();
     var figureId = state.current.figure_id;
     var epoch = state.epoch;
@@ -1493,7 +1618,8 @@
     });
     if (!batch.length) {
       notify('没有需要保存的修改。');
-      return;
+      state.savePromise = Promise.resolve();
+      return state.savePromise;
     }
     cancelPreview();
     var button = el('saveButton');
@@ -1502,7 +1628,7 @@
     state.saving = save;
     state.saveError = '';
     renderEditState();
-    return jsonRequest(API + '/projects/' + encodeURIComponent(figureId) + '/overrides', {
+    var chain = jsonRequest(API + '/projects/' + encodeURIComponent(figureId) + '/overrides', {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
@@ -1516,7 +1642,7 @@
       onOverlayMouseUp();
       applyAuthoritativeResult(result, revision);
       notify(hasEdits() ? '已保存；保存期间的新修改尚未保存。' : '已保存并重新渲染。');
-      return loadProjects().catch(function () {
+      return loadProjects({ keep: true }).catch(function () {
         if (ownsProject(figureId, epoch)) notify('图件已保存；列表刷新未完成。', true);
       });
     }).catch(function (error) {
@@ -1531,11 +1657,15 @@
       renderEditState();
       if (hasEdits()) schedulePreview();
     });
+    state.savePromise = chain;
+    function settled() { if (state.savePromise === chain) state.savePromise = null; }
+    chain.then(settled, settled);
+    return chain;
   }
 
   // ── Dragging ───────────────────────────────────────────────────────────
 
-  function selectObject(gid, focus) {
+  function selectObject(gid, focus, quiet) {
     state.selectedGroup = '';
     state.selected = gid;
     function reveal(nodes) {
@@ -1549,6 +1679,10 @@
     renderObjectSelect();
     renderProperties();
     renderOverlay();
+    // Selection is the context: reveal the inspector that edits it. A canvas
+    // press defers this until pointer-up so opening the drawer cannot move the
+    // object under the starting drag point.
+    if (gid && quiet !== true) setSidebar('right', true);
     if (focus) focusSelected();
   }
 
@@ -1583,8 +1717,8 @@
     var gid = handle && handle.dataset.moveGid === state.selected && canMove(selectedObject()) ? state.selected : pickObject(event, true);
     if (!gid) return;
     event.preventDefault();
-    selectObject(gid, true);
-    if (event.altKey || !canMove(selectedObject())) return;
+    selectObject(gid, true, true);
+    if (event.altKey || !canMove(selectedObject())) { setSidebar('right', true); return; }
     state.drag = {
       gid: gid, pointerId: event.pointerId, geometryEpoch: state.hitEpoch,
       startX: event.clientX, startY: event.clientY,
@@ -1636,6 +1770,7 @@
     renderOverlay();
     renderEditState();
     schedulePreview();
+    if (!cancelled && event && state.selected) setSidebar('right', true);
   }
 
   function onOverlayKeyDown(event) {
@@ -1678,29 +1813,77 @@
   function loadDataFiles() {
     return jsonRequest(API + '/data-files').then(function (payload) {
       var select = el('dataFileSelect');
-      var files = payload.files || [];
+      var previous = select.value;
+      var files = Array.isArray(payload.files) ? payload.files : [];
+      state.dataFiles = files;
       select.innerHTML = files.length
         ? files.map(function (file) {
             return '<option value="' + esc(file.file_id) + '">' + esc(file.filename) + '</option>';
           }).join('')
         : '<option value="">资料库里还没有表格文件</option>';
       select.disabled = !files.length;
+      if (files.some(function (file) { return file.file_id === previous; })) select.value = previous;
+      if (!files.length) {
+        resetDataPreview();
+        state.schema = null;
+        el('importMapping').disabled = true;
+        el('schemaStatus').textContent = '资料库里还没有表格文件。';
+        updateMapping();
+        return;
+      }
       loadDataSchema();
     });
   }
 
+  function selectedDataFile() {
+    var fileId = el('dataFileSelect').value;
+    return state.dataFiles.filter(function (file) { return file.file_id === fileId; })[0] || null;
+  }
+
+  function safeApiUrl(value) {
+    return typeof value === 'string' && /^\/api\/v2\/[A-Za-z0-9_./?=&%+-]+$/.test(value) &&
+      !/%2f|%5c|%2e|\/\.\./i.test(value);
+  }
+
+  function resetDataPreview() {
+    state.dataPreviewRequest += 1;
+    if (state.dataPreviewController) state.dataPreviewController.abort();
+    state.dataPreviewController = null;
+    state.dataPreviewFile = '';
+    state.dataPreviewReady = false;
+    el('importPreview').hidden = true;
+    el('importPreviewBody').textContent = '';
+    el('importPreviewBody').hidden = false;
+    el('importPreviewMeta').textContent = '';
+    el('importPreviewNote').textContent = '';
+  }
+
   function updateMapping() {
     var paired = ['scatter', 'line', 'bar'].indexOf(el('importChart').value) >= 0;
+    var previewReady = state.dataPreviewReady && state.dataPreviewFile === el('dataFileSelect').value;
+    el('importMapping').disabled = state.importing || !state.schema || !previewReady;
     el('importX').disabled = !paired;
     el('importXUnit').disabled = !paired;
     el('importGroup').disabled = el('importChart').value === 'histogram';
-    el('importButton').disabled = state.importing || !state.schema || !el('importY').value || (paired && !el('importX').value);
+    el('importButton').disabled = state.importing || state.importArmed || !state.schema ||
+      !el('importY').value || (paired && !el('importX').value) || !previewReady;
   }
+
+  function markImportChanged() {
+    state.importArmed = false;
+    el('importConfirm').hidden = true;
+    updateMapping();
+  }
+
   function loadDataSchema() {
     var request = ++state.schemaRequest, fileId = el('dataFileSelect').value;
-    state.schema = null; el('importMapping').disabled = true; el('importButton').disabled = true;
+    state.schema = null;
+    state.importArmed = false;
+    el('importConfirm').hidden = true;
+    resetDataPreview();
+    el('importMapping').disabled = true; el('importButton').disabled = true;
     el('schemaStatus').textContent = fileId ? '正在读取列信息…' : '请选择表格。';
-    if (!fileId) return;
+    if (!fileId) { updateMapping(); return; }
     jsonRequest(API + '/data-files/' + encodeURIComponent(fileId) + '/schema').then(function (schema) {
       if (request !== state.schemaRequest || fileId !== el('dataFileSelect').value) return;
       state.schema = schema;
@@ -1710,45 +1893,215 @@
           return '<option value="' + esc(column.name) + '">' + esc(column.name) + '</option>';
         }).join('');
       });
-      el('importMapping').disabled = !!schema.truncated;
       el('schemaStatus').textContent = schema.truncated ? '解析范围不完整，不能出图。' : schema.rows + ' 行 · 请明确指标、单位与图型。';
       if (schema.truncated) state.schema = null;
       updateMapping();
-    }).catch(function (error) { if (request === state.schemaRequest) el('schemaStatus').textContent = error.message; });
+      var listed = selectedDataFile();
+      loadDataPreview(fileId, String(schema.filename || (listed && listed.filename) || ''), schema.sheet);
+    }).catch(function (error) {
+      if (request !== state.schemaRequest) return;
+      state.schema = null;
+      resetDataPreview();
+      el('schemaStatus').textContent = error.message;
+      updateMapping();
+    });
   }
 
-  function importFromLibrary() {
-    var epoch = state.epoch;
+  // Workbooks use the bundled library reader, limited to the sheet used by the
+  // server mapping. CSV/TSV only needs a bounded raw-text sample.
+  function loadDataPreview(fileId, filename, sheetName) {
+    var request = ++state.dataPreviewRequest;
+    if (state.dataPreviewController) state.dataPreviewController.abort();
+    state.dataPreviewController = null;
+    state.dataPreviewFile = fileId;
+    state.dataPreviewReady = false;
+    var preview = el('importPreview'), body = el('importPreviewBody');
+    var meta = el('importPreviewMeta'), note = el('importPreviewNote');
+    preview.hidden = false;
+    body.hidden = false; body.textContent = '';
+    note.textContent = ''; meta.textContent = String(filename || '');
+    var textTable = /\.(csv|tsv)$/i.test(String(filename || ''));
+    var limit = textTable ? PREVIEW_MAX_BYTES : WORKBOOK_PREVIEW_BYTES;
+    var file = selectedDataFile();
+    var url = file && safeApiUrl(file.download_url) ? file.download_url
+      : '/api/v2/files/' + encodeURIComponent(fileId) + '/download';
+    var controller = new AbortController();
+    state.dataPreviewController = controller;
+    note.textContent = textTable ? '正在读取原始文本预览…' : '正在读取工作表预览…';
+    fetch(url, {
+      credentials: 'same-origin',
+      headers: textTable ? { Range: 'bytes=0-' + (PREVIEW_MAX_BYTES - 1) } : {},
+      signal: controller.signal
+    }).then(function (response) {
+      if (request !== state.dataPreviewRequest || fileId !== el('dataFileSelect').value) return null;
+      if (response.status === 401) {
+        location.replace('/?next=%2Ffigures');
+        throw new Error('登录已失效');
+      }
+      if (response.status === 416) throw new Error('文件为空或读取范围无效。');
+      if (!response.ok && response.status !== 206) throw new Error('数据文件无法读取（' + response.status + '）。');
+      if (!textTable && Number(response.headers.get('content-length')) > limit) throw new Error('工作簿超过 16 MB 预览上限。');
+      if (response.body) return readLimited(response.body, textTable ? limit : limit + 1);
+      return response.arrayBuffer();
+    }).then(function (buffer) {
+      if (!buffer || request !== state.dataPreviewRequest || fileId !== el('dataFileSelect').value) return;
+      if (!buffer.byteLength) throw new Error('文件为空。');
+      if (textTable) {
+        var text = decodePreviewText(buffer.slice(0, limit));
+        body.textContent = text.split(/\r?\n/).slice(0, PREVIEW_MAX_LINES).join('\n');
+        note.textContent = '最多显示文件开头 ' + Math.round(limit / 1024) + ' KiB 和 ' + PREVIEW_MAX_LINES + ' 行原文。';
+      } else {
+        if (buffer.byteLength > limit) throw new Error('工作簿超过 16 MB 预览上限。');
+        if (!window.XLSX) throw new Error('表格预览组件未加载。');
+        var workbook = window.XLSX.read(buffer, {type: 'array', sheets: sheetName || 0, sheetRows: PREVIEW_MAX_LINES});
+        var name = sheetName || workbook.SheetNames[0];
+        var sheet = workbook.Sheets[name];
+        if (!sheet || !sheet['!ref']) throw new Error('没有可预览的工作表数据。');
+        var range = window.XLSX.utils.decode_range(sheet['!ref']);
+        range.e.c = Math.min(range.e.c, range.s.c + WORKBOOK_PREVIEW_COLUMNS - 1);
+        sheet['!ref'] = window.XLSX.utils.encode_range(range);
+        body.textContent = window.XLSX.utils.sheet_to_csv(sheet, {FS: '\t', strip: true});
+        note.textContent = name + ' · 最多显示 ' + PREVIEW_MAX_LINES + ' 行和 ' + WORKBOOK_PREVIEW_COLUMNS + ' 列。';
+      }
+      state.dataPreviewReady = true;
+      updateMapping();
+    }).catch(function (error) {
+      if (request !== state.dataPreviewRequest || (error && error.name === 'AbortError')) return;
+      state.dataPreviewReady = false;
+      note.textContent = '数据原文预览未完成：' + (error.message || '读取失败') +
+        '。请重新选择文件，预览完成后才能导入。';
+      updateMapping();
+    });
+  }
+
+  function readLimited(stream, limit) {
+    var reader = stream.getReader(), chunks = [], total = 0;
+    function finish() {
+      try {
+        var cancelled = reader.cancel();
+        if (cancelled && typeof cancelled.catch === 'function') cancelled.catch(function () {});
+      } catch (error) { /* already closed */ }
+      var out = new Uint8Array(total), offset = 0;
+      chunks.forEach(function (chunk) { out.set(chunk, offset); offset += chunk.byteLength; });
+      return out.buffer;
+    }
+    function next() {
+      return reader.read().then(function (step) {
+        if (step.done) return finish();
+        var chunk = step.value;
+        if (chunk && chunk.byteLength) {
+          if (total + chunk.byteLength > limit) chunk = chunk.slice(0, limit - total);
+          chunks.push(chunk); total += chunk.byteLength;
+        }
+        return total >= limit ? finish() : next();
+      });
+    }
+    return next();
+  }
+
+  function decodePreviewText(buffer) {
+    var bytes = new Uint8Array(buffer);
+    var text = '';
+    try { text = new TextDecoder('utf-8').decode(bytes); } catch (error) { text = ''; }
+    if (text.indexOf('\uFFFD') >= 0) {
+      try {
+        var gbk = new TextDecoder('gbk').decode(bytes);
+        if (gbk && gbk.indexOf('\uFFFD') < 0) text = gbk;
+      } catch (error) { /* browser has no GBK decoder */ }
+    }
+    return text.replace(/^\uFEFF/, '');
+  }
+
+  function armImport() {
+    if (state.importing) return;
     var fileId = el('dataFileSelect').value;
     if (!fileId) {
       notify('请先选择资料库里的表格文件。', true);
       return;
     }
-    if (!state.schema || state.schema.file_id !== fileId || state.importing) return;
+    if (!state.schema || state.schema.file_id !== fileId) {
+      notify('列信息尚未读取完成。', true);
+      return;
+    }
+    if (!state.dataPreviewReady || state.dataPreviewFile !== fileId) {
+      notify('请先等待数据原文预览完成。', true);
+      return;
+    }
     updateMapping();
-    var button = el('importButton');
-    if (button.disabled) return;
-    state.importing = true; button.disabled = true;
-    jsonRequest(API + '/projects', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ file_id: fileId, mapping: { chart: el('importChart').value,
-        x: el('importX').disabled ? '' : el('importX').value, y: el('importY').value, group: el('importGroup').disabled ? '' : el('importGroup').value,
-        x_unit: el('importXUnit').value, y_unit: el('importYUnit').value } })
-    }).then(function (result) {
-      if (epoch !== state.epoch) return;
-      notify('已导入并生成图件。');
-      el('importPanel').hidden = true;
-      el('importToggle').setAttribute('aria-expanded', 'false');
-      return loadProjects().then(function () {
-        if (epoch === state.epoch) return openProject(result.figure_id);
+    if (el('importButton').disabled) return;
+    var chart = el('importChart');
+    var chartLabel = chart.options && chart.options[chart.selectedIndex]
+      ? chart.options[chart.selectedIndex].textContent : chart.value;
+    var file = selectedDataFile();
+    state.importArmed = true;
+    el('importButton').disabled = true;
+    el('importConfirmSummary').textContent = '将用「' + String((file && file.filename) || '所选表格') +
+      '」创建新图件：' + chartLabel +
+      (!el('importX').disabled && el('importX').value ? '，X = ' + el('importX').value : '') +
+      '，Y = ' + el('importY').value +
+      '。请先核对上方数据原文预览；这会创建新图件，不会修改资料库文件。';
+    el('importConfirm').hidden = false;
+    el('importConfirmButton').focus();
+  }
+
+  function cancelImport() {
+    state.importArmed = false;
+    el('importConfirm').hidden = true;
+    updateMapping();
+    el('importButton').focus();
+  }
+
+  function confirmImport() {
+    if (!state.importArmed || state.importing) return;
+    var epoch = state.epoch;
+    var fileId = el('dataFileSelect').value;
+    if (!fileId || !state.schema || state.schema.file_id !== fileId ||
+        !state.dataPreviewReady || state.dataPreviewFile !== fileId) {
+      cancelImport();
+      return;
+    }
+    var mapping = {chart: el('importChart').value, x: el('importX').disabled ? '' : el('importX').value,
+      y: el('importY').value, group: el('importGroup').disabled ? '' : el('importGroup').value,
+      x_unit: el('importXUnit').value, y_unit: el('importYUnit').value};
+    state.importing = true;
+    state.importArmed = false;
+    el('importConfirm').hidden = true;
+    updateMapping();
+    return confirmUnsaved('创建新图件').then(function (ok) {
+      if (!ok) {
+        state.importing = false; updateMapping(); return;
+      }
+      if (epoch !== state.epoch) {
+        state.importing = false; updateMapping(); return;
+      }
+      return jsonRequest(API + '/projects', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({file_id: fileId, mapping: mapping})
+      }).then(function (result) {
+        if (!result || typeof result.figure_id !== 'string' || !result.figure_id) {
+          throw new Error('导入回执缺少图件标识。');
+        }
+        notify('已导入并生成图件。');
+        el('importPanel').hidden = true;
+        el('importToggle').setAttribute('aria-expanded', 'false');
+        setSidebar('left', false);
+        return loadProjects({ keep: true }).then(function () {
+          return openProject(result.figure_id, false, { skipUnsavedGuard: true });
+        });
+      }).catch(function (error) {
+        notify(error.message, true);
+      }).then(function () {
+        state.importing = false;
+        updateMapping();
       });
-    }).catch(function (error) {
-      if (epoch === state.epoch) notify(error.message, true);
-    }).then(function () {
-      state.importing = false; updateMapping();
     });
+  }
+
+  function importFromLibrary() {
+    if (state.importArmed) return confirmImport();
+    armImport();
   }
 
   // ── Deleting ───────────────────────────────────────────────────────────
@@ -1767,7 +2120,7 @@
       if (!ownsProject(figureId, epoch)) return;
       clearProject();
       notify('已删除。');
-      return loadProjects();
+      return loadProjects({ keep: true });
     }).catch(function (error) {
       if (ownsProject(figureId, epoch)) notify(error.message, true);
     }).then(function () {
@@ -1789,17 +2142,66 @@
       if (state.current && state.current.edit_requires_preparation) openProject(state.current.figure_id, true);
     });
     el('dataFileSelect').addEventListener('change', loadDataSchema);
-    el('importChart').addEventListener('change', updateMapping);
-    ['importX', 'importY', 'importGroup'].forEach(function (id) { el(id).addEventListener('change', updateMapping); });
+    el('importChart').addEventListener('change', markImportChanged);
+    ['importX', 'importY', 'importGroup'].forEach(function (id) {
+      el(id).addEventListener('change', markImportChanged);
+    });
+    ['importXUnit', 'importYUnit'].forEach(function (id) {
+      el(id).addEventListener('input', markImportChanged);
+    });
     el('undoButton').addEventListener('click', function () { changeHistory(false); });
     el('redoButton').addEventListener('click', function () { changeHistory(true); });
     el('deleteButton').addEventListener('click', deleteCurrent);
     el('importButton').addEventListener('click', importFromLibrary);
+    el('importConfirmButton').addEventListener('click', confirmImport);
+    el('importCancelButton').addEventListener('click', cancelImport);
+    el('loadMoreProjects').addEventListener('click', function () { loadProjects({ more: true }); });
+    el('unsavedDiscard').addEventListener('click', function () { resolveUnsaved(true); });
+    el('unsavedCancel').addEventListener('click', function () { resolveUnsaved(false); });
+    el('unsavedSave').addEventListener('click', function () {
+      if (!state.unsaved || el('unsavedSave').disabled) return;
+      setUnsavedBusy(true);
+      el('unsavedError').hidden = true;
+      el('unsavedMessage').textContent = '正在保存当前修改…';
+      Promise.resolve().then(function () {
+        return saveEdits();
+      }).then(function () {
+        if (!state.unsaved) return;
+        if (state.saveError || hasEdits()) {
+          el('unsavedError').textContent = state.saveError || '保存后仍有未保存的修改。';
+          el('unsavedError').hidden = false;
+          el('unsavedMessage').textContent = '当前图件仍有未保存的修改。';
+          setUnsavedBusy(false);
+          return;
+        }
+        resolveUnsaved(true);
+      }).catch(function (error) {
+        if (!state.unsaved) return;
+        el('unsavedError').textContent = error.message || '保存未完成。';
+        el('unsavedError').hidden = false;
+        setUnsavedBusy(false);
+      });
+    });
+    var unsavedDialog = el('unsavedDialog');
+    if (unsavedDialog) {
+      unsavedDialog.addEventListener('cancel', function (event) {
+        event.preventDefault(); resolveUnsaved(false);
+      });
+      unsavedDialog.addEventListener('close', function () {
+        if (state.unsaved) resolveUnsaved(false);
+      });
+    }
     el('importToggle').addEventListener('click', function () {
       var panel = el('importPanel');
       panel.hidden = !panel.hidden;
       el('importToggle').setAttribute('aria-expanded', String(!panel.hidden));
-      if (!panel.hidden) loadDataFiles();
+      if (!panel.hidden) {
+        loadDataFiles().catch(function (error) { notify(error.message, true); });
+      } else {
+        state.importArmed = false;
+        el('importConfirm').hidden = true;
+        updateMapping();
+      }
     });
     el('objectSearch').addEventListener('input', renderObjectSelect);
     el('objectRoleFilter').addEventListener('change', renderObjectSelect);
@@ -1817,6 +2219,7 @@
       else if (group !== null) {
         state.selected = ''; state.selectedGroup = group;
         renderObjectSelect(); renderProperties(); renderOverlay();
+        selectTab('properties'); setSidebar('right', true);
       }
       if (expand === null) { selectTab('properties'); if (state.narrow) setSidebar('right', true); }
     });

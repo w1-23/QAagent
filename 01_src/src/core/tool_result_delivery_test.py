@@ -13,10 +13,12 @@ from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_openai import ChatOpenAI
 
 from src.agent.context_projection import WorkingContextProjection
+from src.agent.execution import ToolExecution
+from src.agent.host_tools import HostTools
 from src.agent.identity import ExecutionIdentity
 from src.agent.model import ModelDriver
 from src.agent.runtime import AdmissionStopped
-from src.core import jobs, task_events, tool_results, tracing
+from src.core import jobs, progress_bus, task_events, tool_results, tracing
 from src.core.context_manager import ContextManager
 from src.core.llm_pool import _ObservedDeepSeekChatOpenAI
 from src.core.provider_protocol import _DeepSeekMessage, _ProtocolState
@@ -24,6 +26,14 @@ from src.core.request_context import model_request
 from src.core.tool_result_view import FIRST_DELIVERY_BYTES, first_delivery
 from src.research.result_tools import read_tool_result
 from src.session import manager as sessions
+
+
+def oversized_controls():
+    body = {"status": "complete", "next_action": "read", "files": ["a" * 2400],
+            "exports": ["b" * 2400], "rows": ""}
+    size = len(json.dumps(body, separators=(",", ":")))
+    body["rows"] = "R" * (104_846 - size)
+    return json.dumps(body, separators=(",", ":"))
 
 
 class FixtureCatalog:
@@ -64,6 +74,70 @@ class ToolResultDeliveryTests(unittest.IsolatedAsyncioTestCase):
 
     def serialized(self, text):
         return len(json.dumps(text, ensure_ascii=False).encode("utf-8"))
+
+    async def test_combined_controls_keep_bounded_verified_reference(self):
+        original = oversized_controls()
+        self.assertEqual(len(original), 104_846)
+        result = self.delivery("aggregate-controls", original)
+        self.assertLessEqual(self.serialized(result.content), FIRST_DELIVERY_BYTES)
+        view = json.loads(result.content)
+        self.assertEqual(view["tool_result_ref"]["full_sha256"], hashlib.sha256(original.encode()).hexdigest())
+        self.assertEqual(view["control_observation"]["status"], "complete")
+        self.assertEqual(view["control_observation"]["next_action"], "read")
+        self.assertEqual(view["read_with"]["tool"], "read_tool_result")
+        self.assertEqual(tool_results.fetch_for_current_request(result.tool_call_id)["result_text"], original)
+
+    async def test_escaped_surrogate_in_field_name_keeps_verified_reference(self):
+        original = json.dumps({"\ud800": "x" * 5000, "status": "complete"})
+        result = self.delivery("unpaired-surrogate", original)
+        self.assertLessEqual(self.serialized(result.content), FIRST_DELIVERY_BYTES)
+        view = json.loads(result.content)
+        self.assertEqual(view["control_observation"]["status"], "complete")
+        self.assertEqual(view["tool_result_ref"]["full_sha256"], hashlib.sha256(original.encode()).hexdigest())
+        self.assertEqual(tool_results.fetch_for_current_request(result.tool_call_id)["result_text"], original)
+
+    async def test_oversized_invalid_reference_never_returns_full_payload(self):
+        content = json.dumps({"rows": "字😀\n\\" * 140_000}, ensure_ascii=False)
+        self.assertGreater(len(content.encode()), 1_000_000)
+        reference = tool_results.record_with_reference(tool_call_id="large", session_id=self.sid,
+            request_id="request", tool_name="analyze", status="complete", result_text=content)
+        self.assertIsNotNone(reference)
+        variants = [
+            (None, True, 7, "result_storage_unavailable"),
+            ({**reference, "storage": {"complete": False}}, True, 7, "result_storage_unavailable"),
+            ({**reference, "full_sha256": "0" * 64}, True, 7, "result_storage_unavailable"),
+            (reference, True, 8, "result_storage_unavailable"),
+            (reference, False, 7, "result_readback_unavailable"),
+            (reference, True, 7, "stored"),
+        ]
+        for proof, reader, owner, expected in variants:
+            with self.subTest(reader=reader, owner=owner, expected=expected):
+                tracing.set_user_id(owner)
+                msg = ToolMessage(content=content, name="analyze", tool_call_id="large",
+                                  additional_kwargs={"result_reference": proof})
+                actual = first_delivery(msg, call={}, reader_available=reader)
+                self.assertLessEqual(self.serialized(actual.content), FIRST_DELIVERY_BYTES)
+                view = json.loads(actual.content)
+                self.assertEqual((actual.tool_call_id, actual.name), (msg.tool_call_id, msg.name))
+                if expected == "stored":
+                    self.assertIn(view["delivery"], {"stored_result_reference", "stored_result_with_partial_preview"})
+                    self.assertEqual(view["tool_result_ref"]["full_sha256"], reference["full_sha256"])
+                else:
+                    self.assertEqual(view["delivery"], expected)
+                    self.assertNotIn("tool_result_ref", view)
+                    if expected == "result_storage_unavailable":
+                        self.assertNotIn("result_reference", actual.additional_kwargs)
+        inline = ToolMessage(content="x" * 2000, name="analyze", tool_call_id="inline")
+        self.assertIs(first_delivery(inline, call={}, reader_available=False), inline)
+
+    async def test_readback_is_exact_within_page_budget_and_never_unbounded(self):
+        content = json.dumps({"text": "字😀" * 1000}, ensure_ascii=False)
+        msg = ToolMessage(content=content, name="read_tool_result", tool_call_id="page")
+        self.assertIs(first_delivery(msg, call={}, reader_available=True), msg)
+        long = msg.model_copy(update={"content": "字😀" * 12_000})
+        stopped = first_delivery(long, call={}, reader_available=True)
+        self.assertEqual(json.loads(stopped.content)["delivery"], "result_page_too_large")
+        self.assertLessEqual(self.serialized(stopped.content), FIRST_DELIVERY_BYTES)
 
     async def test_ten_and_thirty_outputs_are_bounded_in_real_adapter_payload(self):
         body = '{"status":"complete","next_action":"read","counts":{"rows":1200},"data":"' + "F" * 10240 + '"}'
@@ -177,7 +251,17 @@ class ToolResultDeliveryTests(unittest.IsolatedAsyncioTestCase):
                 max_retries=0, max_tokens=4096, stream_usage=True, http_async_client=transport)
             driver = ModelDriver(model, FixtureCatalog(), lambda _: {"analyze"})
             call = {"name": "analyze", "args": {}, "id": "native-call"}
-            content = self.delivery(call["id"], "synthetic payload " * 600)
+            raw = oversized_controls()
+            observation = ToolMessage(content=raw, tool_call_id=call["id"], name=call["name"],
+                                      artifact={"op_receipt": {"status": "complete"}})
+            self.addCleanup(progress_bus.clear_turn_scope)
+            progress_bus.set_turn_scope(self.sid, "request")
+            host = HostTools(identity, {}, allowed_names={"analyze", "read_tool_result"})
+            content = await host.publish(call, ToolExecution(observation), identity)
+            self.assertEqual(content.additional_kwargs["host_publication"]["tool_call_id"], call["id"])
+            self.assertEqual(tool_results.fetch_for_current_request(call["id"])["result_text"], raw)
+            self.assertEqual(json.loads(content.content)["tool_result_ref"]["full_sha256"],
+                             hashlib.sha256(raw.encode()).hexdigest())
             native = _DeepSeekMessage(content="", tool_calls=[call],
                                       provider_protocol=_ProtocolState((base, model_name), "synthetic private protocol"))
             messages = (HumanMessage(content="Read the attached data"), native, content)
